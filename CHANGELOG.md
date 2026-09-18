@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased][]
 
+## v[7.0.0][] 2026-09-18
+
 - First Commit!
 
 [Unreleased]: https://github.com/fanstatic/fanstatic/compare/v7.0.0...HEAD

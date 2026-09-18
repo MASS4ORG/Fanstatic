@@ -139,7 +139,7 @@ partial class Build
     public Target GitHubPushDebianPackage => td => td
         .DependsOn(CreateDebianPackage)
         .Requires(() => GitHubToken)
-        .Executes(() => GitHubReleaseUpload(DebianPackage, $"debian-{DebianArch}"));
+        .Executes(() => GitHubReleaseUpload(DebianPackage));
 
     /// <summary>
     /// Uploads files to the release of <see cref="CurrentTag"/>.

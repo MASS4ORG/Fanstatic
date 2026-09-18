@@ -1,4 +1,4 @@
-next-version: "v7.0.0" # Force a version
+#next-version: "v7.0.0" # Force a version
 mode: ContinuousDelivery # Versioning mode (ContinuousDelivery, ContinuousDeployment, Mainline)
 
 assembly-versioning-scheme: MajorMinorPatch # The versioning scheme for assembly versioning
@@ -9,7 +9,7 @@ increment: Inherit # Inherits the version increment from the last tagged version
 no-bump-message: '\+semver:\s?(none|skip)' # Defines the message pattern that won't trigger version increments
 tag-pre-release-weight: 60000 # Specifies the weight for pre-release tags
 tag-prefix: "[vV]" # Sets the prefix for version tags
-#update-build-number: true # Updates the build number with each build
+update-build-number: true # Updates the build number with each build
 #merge-message-formats: {} # Defines merge message formats
 
 #

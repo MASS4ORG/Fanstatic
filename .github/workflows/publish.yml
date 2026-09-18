@@ -24,7 +24,23 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                rid: [win-x64, linux-x64, linux-musl-x64]
+                include:
+                    - rid: win-x64
+                      publish_binary: true
+                      publish_debian: false
+                      publish_container: false
+                    - rid: linux-x64
+                      publish_binary: true
+                      publish_debian: true
+                      publish_container: true
+                    - rid: linux-musl-x64
+                      publish_binary: true
+                      publish_debian: false
+                      publish_container: true
+                    - rid: linux-arm64
+                      publish_binary: false
+                      publish_debian: true
+                      publish_container: false
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
@@ -48,10 +64,23 @@ jobs:
                   sudo apt-get update -yqq
                   sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
 
-            - name: Publish
+            - name: Publish executable and release assets
+              if: matrix.publish_binary
               run: |
-                  ./build.sh Restore Publish WindowsInstaller GitHubUploadPackage \
-                    GitHubPushWindowsInstaller GitHubPushContainer \
+                ./build.sh GitHubUploadPackage GitHubPushWindowsInstaller GitHubPushDebianPackage \
+                     Restore Publish  \
+                    --runtime-identifier ${{ matrix.rid }} \
+                    --publish-directory "./publish/fanstatic-${{ matrix.rid }}" \
+                    --publish-self-contained $PUBLISH_SELF_CONTAINED \
+                    --publish-single-file $PUBLISH_SINGLE_FILE \
+                    --publish-trimmed $PUBLISH_TRIMMED \
+                    --container-registry ghcr.io \
+                    --container-registry-image ghcr.io/${{ github.repository }}
+
+            - name: Publish container
+              if: matrix.publish_container
+              run: |
+                ./build.sh Restore GitHubPushContainer \
                     --runtime-identifier ${{ matrix.rid }} \
                     --publish-directory "./publish/fanstatic-${{ matrix.rid }}" \
                     --publish-self-contained $PUBLISH_SELF_CONTAINED \
