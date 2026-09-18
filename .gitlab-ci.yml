@@ -1,0 +1,114 @@
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+stages:
+    - build-test
+    - check-and-create-release
+    - publish
+
+variables:
+    NUKE_TELEMETRY_OPTOUT: "1" # Disable
+    IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+
+    # Default publishing flags (can still be overridden in GitLab UI)
+    PUBLISH_SELF_CONTAINED: "true"
+    PUBLISH_SINGLE_FILE: "true"
+    PUBLISH_TRIMMED: "true"
+
+# ------------------------------------------------------------
+# Shared template used by every job: same image, same tools.
+# No container engine (docker/podman/dind) is required anywhere:
+#   * the per-commit image build writes a throwaway archive
+#   * the release push is done by the .NET SDK directly over HTTP
+# So this runs identically on GitLab shared runners and local runners.
+# ------------------------------------------------------------
+.base_template:
+    before_script:
+        - apt-get update -yqq
+        - apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+
+# build the project on every commit
+test:
+    extends: .base_template
+    stage: build-test
+    except:
+        - tags
+        - schedules
+    script:
+        - |
+            ./build.sh Restore Compile TestReport Publish CreateContainer \
+              --configuration "Debug" \
+              --publish-directory "./publish"
+        - set +e; bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/coverage.xml
+    coverage: '/^  Line coverage: (\d*.\d*)%/'
+    artifacts:
+        paths:
+            - coverage/report/*
+            - publish/*
+        reports:
+            coverage_report:
+                coverage_format: cobertura
+                path: coverage/coverage.xml
+
+# check if there is new commits, if so, create a tag and a release
+# this will trigger the publishing stage "publish"
+check-and-create-release:
+    extends: .base_template
+    stage: check-and-create-release
+    only:
+        - schedules
+        - web
+    script:
+        - |
+            ./build.sh GitLabCreateRelease \
+              --is-scheduled $CI_PIPELINE_SCHEDULED \
+              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+
+# publish the project on every tag
+# build for multiple runtimes
+publish:
+    extends: .base_template
+    stage: publish
+    only:
+        - tags
+    except:
+        - branches
+    script:
+        - |
+            # The container image is pushed directly by the .NET SDK over HTTP,
+            # so no Docker/Podman daemon is required here.
+            ./build.sh Restore Publish WindowsInstaller GitLabUploadPackage GitLabPushWindowsInstaller GitLabPushContainer \
+              --runtime-identifier $RID \
+              --publish-directory "./publish/fanstatic-$RID" \
+              --publish-self-contained $PUBLISH_SELF_CONTAINED \
+              --publish-single-file $PUBLISH_SINGLE_FILE \
+              --publish-trimmed $PUBLISH_TRIMMED \
+              --container-registry $CI_REGISTRY \
+              --container-registry-image $CI_REGISTRY_IMAGE \
+              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+    parallel:
+        matrix:
+            - RID: "win-x64"
+            - RID: "linux-x64"
+            - RID: "linux-musl-x64"
+
+# Publish Debian package for Ubuntu/Debian distros
+publish-debian:
+    extends: .base_template
+    stage: publish
+    only:
+        - tags
+    except:
+        - branches
+    script:
+        - |
+            ./build.sh Restore Publish CreateDebianPackage GitLabPushDebianPackage \
+              --runtime-identifier $RID \
+              --publish-directory "./publish/fanstatic-$RID" \
+              --publish-self-contained $PUBLISH_SELF_CONTAINED \
+              --publish-single-file $PUBLISH_SINGLE_FILE \
+              --publish-trimmed $PUBLISH_TRIMMED \
+              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+    parallel:
+        matrix:
+            - RID: "linux-x64"
+            - RID: "linux-arm64"

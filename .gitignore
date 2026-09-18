@@ -1,0 +1,60 @@
+# ASP.NET Core
+*.*~
+*.dll
+*.DS_Store
+*.exe
+*.nuget.targets
+*.pdb
+*.swp
+*.user
+*.xproj
+**/bin/
+**/obj/
+
+# build results
+[Dd]ebug/
+[Rr]elease/
+build/
+x64/
+
+# IDEs
+.idea/
+.vs/
+.vscode/
+.zed/
+.delta/
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# .NET Core
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+.nuke/temp
+*.bak
+*.cache
+*.ipch
+*.sdf
+*.sln.docstates
+*.suo
+**/*.[a-z]db*
+artifacts/
+
+# LLMs
+.claude/
+.agents/
+AGENTS.md
+
+# Project specific
+**/publish/
+**/public/
+output/
+project.fragment.lock.json
+project.lock.json
+coverage/
+qodana.yaml
+qodana.sarif.json
+.nuke/Debian/DEBIAN/control
+.nuke/Debian/usr/share/doc/fanstatic/*

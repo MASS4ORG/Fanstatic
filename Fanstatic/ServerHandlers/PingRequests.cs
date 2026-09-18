@@ -1,0 +1,28 @@
+namespace Fanstatic.ServerHandlers;
+
+/// <summary>
+/// Return the server startup timestamp as the response
+/// </summary>
+public class PingRequests : IServerHandlers
+{
+    /// <inheritdoc />
+    public bool Check(Uri requestPath)
+    {
+        ArgumentNullException.ThrowIfNull(requestPath);
+        return requestPath.OriginalString == "/ping";
+    }
+
+    /// <inheritdoc />
+    public async Task<string> Handle(IHttpListenerResponse response, Uri requestPath, DateTime serverStartTime)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        var content = serverStartTime.ToString("o");
+
+        await using var writer = new StreamWriter(response.OutputStream, leaveOpen: true);
+        await writer.WriteAsync(content).ConfigureAwait(false);
+        await writer.FlushAsync().ConfigureAwait(false);
+
+        return "ping";
+    }
+}

@@ -1,0 +1,5 @@
+---
+Title: Posts
+---
+
+Posts section.

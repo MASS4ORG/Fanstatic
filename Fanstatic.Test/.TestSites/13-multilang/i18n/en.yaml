@@ -1,0 +1,4 @@
+read_more: "Read more"
+posts:
+  one: "{{ count }} post"
+  other: "{{ count }} posts"

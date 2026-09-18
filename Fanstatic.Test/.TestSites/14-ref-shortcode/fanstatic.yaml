@@ -1,0 +1,10 @@
+title: Ref Test
+baseURL: https://example.com/
+defaultLanguage: en
+languages:
+  en:
+    languageName: English
+    weight: 1
+  pt-br:
+    languageName: Português
+    weight: 2

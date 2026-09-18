@@ -1,0 +1,12 @@
+title: Multi Site
+baseURL: https://example.com/
+defaultLanguage: en
+languages:
+  en:
+    languageName: English
+    weight: 1
+    title: My Website
+  pt-br:
+    languageName: Português
+    weight: 2
+    title: Meu Site

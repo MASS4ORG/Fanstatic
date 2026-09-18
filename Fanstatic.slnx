@@ -1,0 +1,12 @@
+<Solution>
+    <Configurations>
+        <Platform Name="Any CPU"/>
+        <Platform Name="x64"/>
+        <Platform Name="arm64"/>
+    </Configurations>
+
+    <Project Path=".nuke/Build.csproj"/>
+    <Project Path="Fanstatic.Generator/Fanstatic.Generator.csproj"/>
+    <Project Path="Fanstatic.Test/Fanstatic.Test.csproj"/>
+    <Project Path="Fanstatic/Fanstatic.csproj"/>
+</Solution>

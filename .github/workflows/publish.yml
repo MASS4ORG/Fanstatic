@@ -1,0 +1,61 @@
+name: publish
+
+# Mirrors the GitLab `publish` job: build and publish for multiple runtimes on
+# every tag. Binaries are uploaded as GitHub release assets and container
+# images are pushed to GHCR by the .NET SDK (no Docker/Podman daemon needed).
+on:
+    push:
+        tags: ["v*"]
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: Release tag to publish (for example, v1.2.3)
+                required: true
+                type: string
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+    publish:
+        name: publish (${{ matrix.rid }})
+        runs-on: ubuntu-24.04
+        strategy:
+            fail-fast: false
+            matrix:
+                rid: [win-x64, linux-x64, linux-musl-x64]
+        env:
+            NUKE_TELEMETRY_OPTOUT: "1"
+            IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+
+            # Default publishing flags (overridable in the workflow)
+            PUBLISH_SELF_CONTAINED: "true"
+            PUBLISH_SINGLE_FILE: "true"
+            PUBLISH_TRIMMED: "true"
+
+            GITHUB_TOKEN: ${{ github.token }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.tag || github.ref }}
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Install tools
+              run: |
+                  sudo apt-get update -yqq
+                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+
+            - name: Publish
+              run: |
+                  ./build.sh Restore Publish WindowsInstaller GitHubUploadPackage \
+                    GitHubPushWindowsInstaller GitHubPushContainer \
+                    --runtime-identifier ${{ matrix.rid }} \
+                    --publish-directory "./publish/fanstatic-${{ matrix.rid }}" \
+                    --publish-self-contained $PUBLISH_SELF_CONTAINED \
+                    --publish-single-file $PUBLISH_SINGLE_FILE \
+                    --publish-trimmed $PUBLISH_TRIMMED \
+                    --container-registry ghcr.io \
+                    --container-registry-image ghcr.io/${{ github.repository }}
