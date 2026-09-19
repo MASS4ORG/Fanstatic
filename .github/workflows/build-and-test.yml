@@ -1,4 +1,4 @@
-name: build-test
+name: build-and-test
 
 # Mirrors the GitLab `test` job: build on every commit (except tags and schedules).
 on:
@@ -10,11 +10,11 @@ permissions:
     contents: read
 
 concurrency:
-    group: build-test-${{ github.ref }}
+    group: build-and-test-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
-    build-test:
+    build-and-test:
         runs-on: ubuntu-24.04
         env:
             NUKE_TELEMETRY_OPTOUT: "1"

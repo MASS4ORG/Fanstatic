@@ -1,7 +1,7 @@
 image: mcr.microsoft.com/dotnet/sdk:10.0
 
 stages:
-    - build-test
+    - build-and-test
     - check-and-create-release
     - publish
 
@@ -29,7 +29,7 @@ variables:
 # build the project on every commit
 test:
     extends: .base_template
-    stage: build-test
+    stage: build-and-test
     except:
         - tags
         - schedules
