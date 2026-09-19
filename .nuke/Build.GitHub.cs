@@ -138,6 +138,7 @@ partial class Build
     /// </summary>
     public Target GitHubPushDebianPackage => td => td
         .DependsOn(CreateDebianPackage)
+        .OnlyWhenStatic(() => RuntimeToDebianArch.ContainsKey(RuntimeIdentifier))
         .Requires(() => GitHubToken)
         .Executes(() => GitHubReleaseUpload(DebianPackage));
 

@@ -17,14 +17,16 @@ partial class Build
     /// The image repository without the registry host. When pushing to a remote
     /// registry the SDK rejects a <c>ContainerRepository</c> that contains the
     /// host, so strip it when it matches <see cref="ContainerRegistry"/> (this
-    /// lets CI pass the full <c>$CI_REGISTRY_IMAGE</c> unchanged).
+    /// lets CI pass the full <c>$CI_REGISTRY_IMAGE</c> unchanged). Registries
+    /// (GHCR included) reject mixed-case repository paths, so lowercase it too -
+    /// GitHub's <c>owner/repo</c> preserves the repository's casing.
     /// </summary>
     private string ContainerRepositoryPath =>
-        !string.IsNullOrWhiteSpace(ContainerRegistry) &&
+        (!string.IsNullOrWhiteSpace(ContainerRegistry) &&
         RegistryImage.StartsWith(ContainerRegistry + "/",
             StringComparison.OrdinalIgnoreCase)
             ? RegistryImage[(ContainerRegistry.Length + 1)..]
-            : RegistryImage;
+            : RegistryImage).ToLowerInvariant();
 
     [Parameter("Default runtime that also receives generic tags")]
     public readonly string ContainerDefaultRid = "linux-x64";
@@ -40,6 +42,7 @@ partial class Build
     private Cri? ContainerRuntimeIdentifier => RuntimeIdentifier switch
     {
         "linux-x64" => ("linux-x64", "noble-chiseled"),
+        "linux-arm64" => ("linux-arm64", "noble-chiseled"),
         "linux-musl-x64" => ("alpine", "alpine"),
         _ => null,
     };

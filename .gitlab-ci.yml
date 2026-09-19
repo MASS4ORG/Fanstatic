@@ -74,9 +74,31 @@ publish:
         - branches
     script:
         - |
-            # The container image is pushed directly by the .NET SDK over HTTP,
-            # so no Docker/Podman daemon is required here.
-            ./build.sh Restore Publish WindowsInstaller GitLabUploadPackage GitLabPushWindowsInstaller GitLabPushContainer \
+            ./build.sh Restore Publish WindowsInstaller GitLabUploadPackage GitLabPushWindowsInstaller \
+              --runtime-identifier $RID \
+              --publish-directory "./publish/fanstatic-$RID" \
+              --publish-self-contained $PUBLISH_SELF_CONTAINED \
+              --publish-single-file $PUBLISH_SINGLE_FILE \
+              --publish-trimmed $PUBLISH_TRIMMED \
+              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+    parallel:
+        matrix:
+            - RID: "win-x64"
+            - RID: "linux-x64"
+            - RID: "linux-musl-x64"
+
+# publish container images on every tag. The image is pushed directly by the
+# .NET SDK over HTTP, so no Docker/Podman daemon is required here.
+publish-container:
+    extends: .base_template
+    stage: publish
+    only:
+        - tags
+    except:
+        - branches
+    script:
+        - |
+            ./build.sh Restore GitLabPushContainer \
               --runtime-identifier $RID \
               --publish-directory "./publish/fanstatic-$RID" \
               --publish-self-contained $PUBLISH_SELF_CONTAINED \
@@ -87,9 +109,9 @@ publish:
               --gitlab-private-token $GITLAB_PRIVATE_TOKEN
     parallel:
         matrix:
-            - RID: "win-x64"
             - RID: "linux-x64"
             - RID: "linux-musl-x64"
+            - RID: "linux-arm64"
 
 # Publish Debian package for Ubuntu/Debian distros
 publish-debian:

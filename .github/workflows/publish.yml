@@ -40,7 +40,7 @@ jobs:
                     - rid: linux-arm64
                       publish_binary: false
                       publish_debian: true
-                      publish_container: false
+                      publish_container: true
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"

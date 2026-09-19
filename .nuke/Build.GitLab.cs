@@ -193,6 +193,7 @@ partial class Build
     /// <see href="https://docs.gitlab.com/ee/user/packages/generic_packages/"/>
     public Target GitLabPushDebianPackage => td => td
         .DependsOn(CreateDebianPackage)
+        .OnlyWhenStatic(() => RuntimeToDebianArch.ContainsKey(RuntimeIdentifier))
         .Requires(() => GitlabPrivateToken)
         .Executes(async () =>
         {
