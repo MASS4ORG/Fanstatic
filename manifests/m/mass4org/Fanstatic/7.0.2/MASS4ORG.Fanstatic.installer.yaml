@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: MASS4ORG.Fanstatic
+PackageVersion: 7.0.2
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+Commands:
+  - fanstatic
+ReleaseDate: 2026-09-19
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/MASS4ORG/Fanstatic/releases/download/v7.0.2/fanstatic-7.0.2-win-x64-setup.exe
+    InstallerSha256: 538D52A85471B3A291DF7320221D20B06707999FDAA26829581B129C534251BA
+    AppsAndFeaturesEntries:
+      - DisplayName: Fanstatic
+        DisplayVersion: 7.0.2
+        Publisher: Bruno Massa
+ManifestType: installer
+ManifestVersion: 1.6.0
