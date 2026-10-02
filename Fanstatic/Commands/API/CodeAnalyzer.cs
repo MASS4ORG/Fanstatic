@@ -1,8 +1,8 @@
+using Fanstatic.Commands.API.APIModels;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Serilog;
-using Fanstatic.Commands.API.APIModels;
 
 namespace Fanstatic.Commands.API;
 

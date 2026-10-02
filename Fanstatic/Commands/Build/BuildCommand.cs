@@ -1,6 +1,6 @@
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Serilog;
 
 namespace Fanstatic.Commands.Build;
 

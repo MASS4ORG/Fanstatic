@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Markdig;
 using Fanstatic.Helpers;
+using Markdig;
 
 namespace Fanstatic.Models;
 

@@ -1,98 +1,167 @@
-namespace Build;
+namespace Fanstatic.NUKE;
 
 /// <summary>
 /// This is the main build file for the project.
-/// This partial is responsible for the updating the Changelog.
+/// This partial is responsible for turning Conventional Commits into a Keep a Changelog entry.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    [Parameter("Repository comparison URL prefix")]
-    public string RepositoryCompareLink = "https://github.com/fanstatic/fanstatic/compare/";
+    static AbsolutePath ChangelogFile => RootDirectory / "CHANGELOG.md";
 
-    [Parameter("Changelog file")]
-    public string ChangelogFile { get; set; } = "CHANGELOG.md";
+    const string unreleasedHeader = "## [Unreleased]";
 
-    private const string UnreleasedSection = "## [Unreleased][]";
+    static readonly (string Prefix, string Section)[] ChangelogSections =
+    [
+        ("feat", "Added"),
+        ("fix", "Fixed"),
+        ("perf", "Changed"),
+        ("refactor", "Changed"),
+        ("revert", "Changed"),
+        ("security", "Security"),
+        ("remove", "Removed"),
+        ("deprecate", "Deprecated"),
+    ];
 
-    [GeneratedRegex(@"## v\[(\d+\.\d+\.\d+)\]")]
-    private static partial Regex VersionRegex();
-
-    private Target UpdateChangelog => td => td
-        .DependsOn(CheckNewCommits)
-        .ProceedAfterFailure()
-        .Executes(() =>
-        {
-            if (!File.Exists(ChangelogFile))
+    /// <summary>
+    /// Rewrites CHANGELOG.md: the commits since the last tag are grouped into a new
+    /// "## [Version] - date" section (Keep a Changelog style), and a fresh empty
+    /// "## [Unreleased]" section is left above it for subsequent commits.
+    /// </summary>
+    public Target UpdateChangelog => td =>
+        td
+            .DependsOn(CheckNewCommits)
+            .OnlyWhenDynamic(() => HasNewCommits)
+            .Executes(() =>
             {
-                throw new FileNotFoundException($"Error: File '{ChangelogFile}' not found.");
-            }
+                var grouped = CollectChangelogEntries();
+                var section = BuildChangelogSection(Version, grouped);
+                WriteChangelogSection(section);
+                Log.Information("Updated {ChangelogFile} with version {Version}", ChangelogFile, Version);
+            });
 
-            var fileContents = File.ReadAllText(ChangelogFile);
-
-            if (IsVersionAlreadyInChangelog(VersionFull, fileContents))
-            {
-                throw new InvalidOperationException($"Error: Version '{VersionFull}' already exists in the changelog.");
-            }
-
-            var previousVersion = GetPreviousVersion();
-            if (previousVersion == VersionFull)
-            {
-                throw new InvalidOperationException($"Version {VersionFull} is the current one");
-            }
-
-            var newVersionSection =
-                $@"{Environment.NewLine}## v[{VersionFull}][] {DateTime.UtcNow:yyyy-MM-dd}{Environment.NewLine}";
-            var linkReference =
-                $@"[{VersionFull}]: {GetVersionLink($"v{previousVersion}", $"v{VersionFull}")}{Environment.NewLine}";
-            var unreleasedLink = $@"[Unreleased]: {GetVersionLink($"v{VersionFull}", "HEAD")}";
-
-            fileContents = InsertTextAtIndex(fileContents, newVersionSection, UnreleasedSection,
-                UnreleasedSection.Length + 1);
-            fileContents = InsertTextAtIndex(fileContents, linkReference, $"[{previousVersion}]:", 0);
-
-            fileContents = UpdateUnreleasedLink(fileContents, unreleasedLink, previousVersion);
-
-            File.WriteAllText(ChangelogFile, fileContents);
-
-            Log.Information("Successfully inserted version '{versionFull}' into the changelog.", VersionFull);
-        });
-
-    private bool IsVersionAlreadyInChangelog(string versionFull, string fileContents) =>
-        VersionRegex().Matches(fileContents).Any(match => match.Groups[1].Value == versionFull);
-
-    private static string InsertTextAtIndex(string fileContents, string newText, string reference, int charDelta)
+    /// <summary>
+    /// Commits since the last tag (or the full history if there is no tag yet),
+    /// grouped by Conventional Commits type into Keep a Changelog sections.
+    /// Non-user-facing types (chore, docs, test, ci, build, style) are omitted.
+    /// </summary>
+    Dictionary<string, List<string>> CollectChangelogEntries()
     {
-        var linkInsertIndex = fileContents.LastIndexOf(reference, StringComparison.CurrentCulture);
-        if (linkInsertIndex == -1)
+        var range = HasAnyTags ? $"{CurrentTag}..HEAD" : "HEAD";
+        var subjects = Git($"log {range} --no-merges --pretty=format:%s")
+            .Select(output => output.Text)
+            .Where(subject => !string.IsNullOrWhiteSpace(subject));
+
+        var grouped = new Dictionary<string, List<string>>();
+        foreach (var subject in subjects)
         {
-            throw new InvalidOperationException("Could not find the correct position to insert the new text.");
+            var match = Regex.Match(subject, @"^(?<type>\w+)(?:\([\w\-.]+\))?!?:\s*(?<message>.+)$");
+            if (!match.Success)
+            {
+                continue;
+            }
+
+            var type = match.Groups["type"].Value;
+            var section = ChangelogSections
+                .FirstOrDefault(entry => string.Equals(entry.Prefix, type, StringComparison.OrdinalIgnoreCase))
+                .Section;
+            if (section is null)
+            {
+                continue;
+            }
+
+            if (!grouped.TryGetValue(section, out var entries))
+            {
+                entries = [];
+                grouped[section] = entries;
+            }
+            entries.Add(match.Groups["message"].Value.Trim());
         }
 
-        return fileContents.Insert(linkInsertIndex + charDelta, newText);
+        return grouped;
     }
 
-    private string UpdateUnreleasedLink(string fileContents, string unreleasedLink, string previousVersion)
+    static string BuildChangelogSection(string version, Dictionary<string, List<string>> grouped)
     {
-        var oldUnreleasedLink = $@"[Unreleased]: {GetVersionLink($"v{previousVersion}", "HEAD")}";
-        return fileContents.Replace(oldUnreleasedLink, unreleasedLink, StringComparison.InvariantCulture);
-    }
+        var builder = new StringBuilder();
+        builder.AppendLine(CultureInfo.InvariantCulture, $"## [{version}] - {DateTime.UtcNow:yyyy-MM-dd}");
+        builder.AppendLine();
 
-    private string GetPreviousVersion()
-    {
-        var versionPattern = VersionRegex();
-        var fileContents = File.ReadAllText(ChangelogFile);
-
-        var versionMatches = versionPattern.Matches(fileContents);
-
-        if (versionMatches.Count == 0)
+        // One line per change, "- Added: ...", grouped in the order sections are declared above.
+        var orderedSections = ChangelogSections.Select(entry => entry.Section).Distinct();
+        foreach (var section in orderedSections)
         {
-            return "0.0.0";
+            if (!grouped.TryGetValue(section, out var entries))
+            {
+                continue;
+            }
+
+            foreach (var entry in entries)
+            {
+                builder.AppendLine(CultureInfo.InvariantCulture, $"- {section}: {entry}");
+            }
         }
 
-        // Return the first match, which is the most recent version
-        return versionMatches[0].Groups[1].ToString();
+        return builder.ToString().TrimEnd();
     }
 
-    private string GetVersionLink(string previousVersion, string currentVersion) =>
-        $"{RepositoryCompareLink}{previousVersion}...{currentVersion}";
+    void WriteChangelogSection(string section)
+    {
+        var content = ChangelogFile.FileExists() ? ChangelogFile.ReadAllText() : $"# Changelog{Environment.NewLine}";
+
+        // Link definitions live at the end of the file; they are lifted out so section edits never
+        // swallow them, then written back with the new version's diff link on top.
+        var links = LinkDefinition().Matches(content)
+            .Where(link => link.Groups["label"].Value is var label && label != "Unreleased" && label != Version)
+            .Select(link => link.Value.Trim())
+            .ToList();
+        content = LinkDefinition().Replace(content, string.Empty).TrimEnd();
+
+        var replacement = $"{unreleasedHeader}{Environment.NewLine}{Environment.NewLine}{section}{Environment.NewLine}";
+
+        // Replace the whole old "## [Unreleased]" section (header + body up to the next "## "
+        // heading or end of file), not just the header line, so stale Unreleased content doesn't
+        // survive as an orphaned block below the newly inserted version section.
+        var unreleasedSection = new Regex(
+            $@"{Regex.Escape(unreleasedHeader)}.*?(?=\n##\s|\z)",
+            RegexOptions.Singleline);
+
+        content = unreleasedSection.IsMatch(content)
+            ? unreleasedSection.Replace(content, replacement.Replace("$", "$$", StringComparison.Ordinal), 1)
+            : $"{content.TrimEnd()}{Environment.NewLine}{Environment.NewLine}{replacement}";
+
+        var repositoryUrl = $"https://github.com/{GithubRepository}";
+        links.InsertRange(0,
+        [
+            $"[Unreleased]: {repositoryUrl}/compare/v{Version}...HEAD",
+            HasAnyTags
+                ? $"[{Version}]: {repositoryUrl}/compare/{CurrentTag}...v{Version}"
+                : $"[{Version}]: {repositoryUrl}/releases/tag/v{Version}",
+        ]);
+
+        var newLine = Environment.NewLine;
+        ChangelogFile.WriteAllText($"{content.TrimEnd()}{newLine}{newLine}{string.Join(newLine, links)}{newLine}");
+    }
+
+    [GeneratedRegex(@"^\[(?<label>[^\]]+)\]:[ \t]*\S+[ \t]*\r?$\n?", RegexOptions.Multiline)]
+    private static partial Regex LinkDefinition();
+
+    /// <summary>
+    /// The changelog section body for a given tag, used as release notes for GitLab/GitHub releases.
+    /// Falls back to an empty string when the tag has no dedicated section (e.g. re-running a release).
+    /// </summary>
+    static string ReadChangelogSection(string tagName)
+    {
+        var version = tagName.TrimStart('v');
+        if (!ChangelogFile.FileExists())
+        {
+            return string.Empty;
+        }
+
+        var content = ChangelogFile.ReadAllText();
+        var match = Regex.Match(
+            content,
+            $@"##\s*\[{Regex.Escape(version)}\][^\n]*\n(?<body>.*?)(?=\n##\s*\[|\n\[[^\]]+\]:|\z)",
+            RegexOptions.Singleline);
+        return match.Success ? match.Groups["body"].Value.Trim() : string.Empty;
+    }
 }

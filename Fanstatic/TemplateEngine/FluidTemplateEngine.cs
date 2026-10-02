@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
+using Fanstatic.Models;
 using Fluid;
 using Fluid.Values;
-using Fanstatic.Models;
 
 namespace Fanstatic.TemplateEngine;
 

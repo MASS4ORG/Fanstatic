@@ -18,14 +18,14 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "TestClass.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method1", ReturnType: "void", Modifiers: "public")
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "Property1", Type: "string", Modifiers: "public")
-                }
+                ]
             )
         };
 
@@ -52,18 +52,18 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "PartialClass1.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method1", ReturnType: "void", Modifiers: "public")
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "Property1", Type: "string", Modifiers: "public")
-                },
-                Fields: new List<FieldInfo>
-                {
+                ],
+                Fields:
+                [
                     new(Name: "Field1", Type: "int", Modifiers: "public readonly")
-                }
+                ]
             ),
             new(
                 Name: "PartialClass",
@@ -71,18 +71,18 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "PartialClass2.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method2", ReturnType: "string", Modifiers: "public")
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "Property2", Type: "int", Modifiers: "public")
-                },
-                Fields: new List<FieldInfo>
-                {
+                ],
+                Fields:
+                [
                     new(Name: "Field2", Type: "string", Modifiers: "public readonly")
-                }
+                ]
             ),
             new(
                 Name: "PartialClass",
@@ -90,14 +90,14 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "PartialClass3.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method3", ReturnType: "bool", Modifiers: "public static")
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "Property3", Type: "double", Modifiers: "public")
-                }
+                ]
             )
         };
 
@@ -147,14 +147,14 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "DuplicateClass1.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "DuplicateMethod", ReturnType: "void", Modifiers: "public")
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "DuplicateProperty", Type: "string", Modifiers: "public")
-                }
+                ]
             ),
             new(
                 Name: "DuplicateClass",
@@ -162,14 +162,14 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "DuplicateClass2.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "DuplicateMethod", ReturnType: "void", Modifiers: "public") // Same name
-                },
-                Properties: new List<PropertyInfo>
-                {
+                ],
+                Properties:
+                [
                     new(Name: "DuplicateProperty", Type: "string", Modifiers: "public") // Same name
-                }
+                ]
             )
         };
 
@@ -209,10 +209,10 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "PartialClass1.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method1", ReturnType: "void", Modifiers: "public")
-                }
+                ]
             ),
             new(
                 Name: "PartialClass",
@@ -220,10 +220,10 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "PartialClass2.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method2", ReturnType: "string", Modifiers: "public")
-                }
+                ]
             )
         };
 
@@ -249,33 +249,36 @@ public class PartialClassMergerTests
         // Arrange
         var namespaceClasses = new Dictionary<string, List<ClassInfo>>
         {
-            ["TestNamespace.A"] = new List<ClassInfo>
-            {
+            ["TestNamespace.A"] =
+            [
+
                 new(
                     Name: "PartialClass",
                     FullName: "TestNamespace.A.PartialClass",
                     Namespace: "TestNamespace.A",
                     SourceFile: "PartialClass1.cs",
                     TypeKind: "class",
-                    PublicMethods: new List<MethodInfo>
-                    {
+                    PublicMethods:
+                    [
                         new(Name: "Method1", ReturnType: "void", Modifiers: "public")
-                    }
+                    ]
                 ),
+
                 new(
                     Name: "PartialClass",
                     FullName: "TestNamespace.A.PartialClass",
                     Namespace: "TestNamespace.A",
                     SourceFile: "PartialClass2.cs",
                     TypeKind: "class",
-                    PublicMethods: new List<MethodInfo>
-                    {
+                    PublicMethods:
+                    [
                         new(Name: "Method2", ReturnType: "string", Modifiers: "public")
-                    }
+                    ]
                 )
-            },
-            ["TestNamespace.B"] = new List<ClassInfo>
-            {
+            ],
+            ["TestNamespace.B"] =
+            [
+
                 new(
                     Name: "RegularClass",
                     FullName: "TestNamespace.B.RegularClass",
@@ -283,7 +286,7 @@ public class PartialClassMergerTests
                     SourceFile: "RegularClass.cs",
                     TypeKind: "class"
                 )
-            }
+            ]
         };
 
         // Act
@@ -344,10 +347,10 @@ public class PartialClassMergerTests
                 Namespace: "TestNamespace",
                 SourceFile: "ClassWithNulls2.cs",
                 TypeKind: "class",
-                PublicMethods: new List<MethodInfo>
-                {
+                PublicMethods:
+                [
                     new(Name: "Method1", ReturnType: "void", Modifiers: "public")
-                },
+                ],
                 Properties: null,
                 Fields: null
             )

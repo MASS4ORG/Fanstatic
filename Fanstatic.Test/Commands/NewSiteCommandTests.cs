@@ -1,8 +1,8 @@
-using NSubstitute;
-using Serilog;
 using Fanstatic.Commands.NewSite;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using NSubstitute;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

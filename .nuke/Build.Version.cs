@@ -1,134 +1,102 @@
-using Nuke.Common.Git;
-
-namespace Build;
+namespace Fanstatic.NUKE;
 
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the versioning using GitVersion.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    [GitRepository]
-    private readonly GitRepository Repository;
-
-    [GitVersion]
-    private readonly GitVersion GitVersion;
+    // NoFetch: GitVersion's own libgit2-based fetch doesn't support SSH remotes, which silently
+    // fails injection (gitVersion stays null) when the repo's remotes are SSH URLs. The checkout
+    // (local or CI) already has the history/tags it needs, so no additional fetch is required.
+    [GitVersion(NoFetch = true)]
+    readonly GitVersion GitVersion;
 
     /// <summary>
-    /// The current version, using GitVersion.
+    /// The current version, using GitVersion. A publish build checks out a tag on a detached HEAD, where
+    /// GitVersion cannot run without remote credentials; the tag being built is the version there.
     /// </summary>
-    private string VersionFull => GitVersion.MajorMinorPatch;
+    string Version => GitVersion?.MajorMinorPatch ?? CurrentVersion;
 
-    private string VersionMajor => GitVersion.Major.ToString(CultureInfo.InvariantCulture);
+    public string VersionMajor => Version.Split('.')[0];
 
-    private string VersionMajorMinor =>
-        $"{GitVersion.Major}.{GitVersion.Minor}";
+    public string VersionMajorMinor => string.Join('.', Version.Split('.').Take(2));
 
     /// <summary>
     /// The version in a format that can be used as a tag.
     /// </summary>
-    private string TagName => $"v{VersionFull}";
+    string TagName => $"v{Version}";
 
     /// <summary>
     /// Checks if there are new commits since the last tag.
     /// </summary>
-    private bool HasNewCommits => GitVersion.CommitsSinceVersionSource != "0";
+    bool HasNewCommits => GitVersion is not null && GitVersion.CommitsSinceVersionSource != "0";
 
-    private string CurrentVersion;
-
-    private string CurrentTag
+    string CachedTag;
+    string CurrentTag
     {
         get
         {
-            try
+            if (CachedTag is null)
             {
-                CurrentVersion ??= GitTasks.Git("describe --tags --abbrev=0")
-                    .FirstOrDefault().Text;
+                try
+                {
+                    CachedTag = Git("describe --tags --abbrev=0")
+                        .FirstOrDefault()
+                        .Text;
+                }
+                catch
+                {
+                    CachedTag = "0.0.0";
+                }
             }
-            catch
-            {
-                CurrentVersion = "v0.0.0";
-            }
-
-            return CurrentVersion;
+            return CachedTag;
         }
     }
+    string CurrentVersion => CurrentTag.TrimStart('v');
 
-    private string CurrentFullVersion => CurrentTag.TrimStart('v');
+    /// <summary>
+    /// Whether a tag is reachable from HEAD (false on the very first release). A tag on a commit outside
+    /// HEAD's history does not count: it cannot bound a changelog range.
+    /// </summary>
+    bool HasAnyTags => CurrentTag != "0.0.0";
 
     /// <summary>
     /// Prints the current version.
     /// </summary>
-    private Target ShowCurrentVersion => td => td
-        .Executes(() =>
-        {
-            Log.Information("Current version:  {Version}", CurrentFullVersion);
-            Log.Information("Current tag:      {Version}", CurrentTag);
-            Log.Information("Next version:     {Version}", VersionFull);
-        });
+    Target ShowCurrentVersion => td =>
+        td
+            .Executes(() =>
+            {
+                Log.Information("Current version:\t\t{Version}", CurrentVersion);
+                Log.Information("Current tag:\t\t{Version}", CurrentTag);
+                Log.Information("Next version:\t\t{Version}", Version);
+            });
 
     /// <summary>
     /// Checks if there are new commits since the last tag.
     /// If there are no new commits, the whole publish process is skipped.
     /// </summary>
-    private Target CheckNewCommits => td => td
-        .DependsOn(ShowCurrentVersion)
-        .Executes(() =>
-        {
-            Log.Information("Next version:    {Version}", TagName);
+    public Target CheckNewCommits => td =>
+        td
+            .DependsOn(ShowCurrentVersion)
+            .Executes(() =>
+            {
+                Log.Information("Next version:\t\t{Version}", TagName);
+                Log.Information("Checking for new commits...");
 
-            // If there are no new commits since the last tag, skip tag creation
-            // Nuke will stop here and not execute any of the following targets
-            Log.Information(HasNewCommits
-                ? $"There are {GitVersion.CommitsSinceVersionSource} new commits since last tag."
-                : "No new commits since last tag. Skipping tag creation.");
-        });
-
-    /// <summary>
-    /// Update each project Version
-    /// </summary>
-    private Target UpdateProjectVersions => td => td
-        .DependsOn(CheckNewCommits)
-        .Executes(() =>
-        {
-            Log.Information("Projects: {ProjectsCount}",
-                Solution.Projects.Count);
-            List<string> projectsVersioned = [Solution.Fanstatic];
-            Solution.Projects
-                // Filter logic
-                .Where(p => projectsVersioned.Contains(p.Path))
-                .ToList()
-                .ForEach(project =>
+                // If there are no new commits since the last tag, skip tag creation
+                // Nuke will stop here and not execute any of the following targets
+                if (HasNewCommits)
                 {
                     Log.Information(
-                        "{project}:\tfrom {version} to {VersionFull}",
-                        project.Name,
-                        project.GetProperty("Version"), VersionFull);
-                    var msbuildProject = project.GetMSBuildProject();
-                    msbuildProject.SetProperty("Version", VersionFull);
-                    msbuildProject.Save(project.Path);
-                });
-        });
-
-    public Target CreateCommit => td => td
-        .DependsOn(CheckNewCommits, UpdateProjectVersions)
-        .OnlyWhenStatic(() => HasNewCommits)
-        .Executes(() =>
-        {
-            try
-            {
-                // Add all the changes to the current branch
-                GitTasks.Git("add -A");
-
-                // Commit the changes to the current branch
-                GitTasks.Git($"config --global user.name {GitLab.GitLabUserLogin}");
-                GitTasks.Git($"config --global user.email {GitLab.GitLabUserEmail}");
-                GitTasks.Git($"commit -m {"chore: Automatic commit creation: " + Date}");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error creating commit");
-                throw;
-            }
-        });
+                        "There are {GitVersionCommitsSinceVersionSource} new commits since last tag",
+                        GitVersion.CommitsSinceVersionSource
+                    );
+                }
+                else
+                {
+                    Log.Information("No new commits since last tag. Skipping tag creation");
+                }
+            });
 }

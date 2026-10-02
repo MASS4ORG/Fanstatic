@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Net;
 using System.Text.RegularExpressions;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Serilog;
 
 namespace Fanstatic.Commands.ValidateLinks;
 

@@ -1,9 +1,9 @@
 using System.Reflection;
-using NSubstitute;
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.TemplateEngine;
+using NSubstitute;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

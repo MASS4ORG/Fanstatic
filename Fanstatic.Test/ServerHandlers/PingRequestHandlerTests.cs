@@ -1,5 +1,5 @@
-using NSubstitute;
 using Fanstatic.ServerHandlers;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.ServerHandlers;

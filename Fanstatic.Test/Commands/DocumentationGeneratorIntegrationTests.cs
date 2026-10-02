@@ -1,7 +1,7 @@
-using Serilog;
 using Fanstatic.Commands.API;
 using Fanstatic.Commands.API.APIModels;
 using Fanstatic.Models;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;
@@ -19,7 +19,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         {
             SourceProjects = [partialTestPath],
             Output = "api",
-            OutputPolicy = OutputPolicy.delete
+            OutputPolicy = OutputPolicy.Delete
         };
 
         var logger = new LoggerConfiguration()
@@ -28,7 +28,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
 
         // Act
         var structure = await Analyzer.AnalyzeProjectAsync(partialTestPath);
-        var generator = new DocumentationGenerator(outputPath, OutputPolicy.delete, logger);
+        var generator = new DocumentationGenerator(outputPath, OutputPolicy.Delete, logger);
 
         // Assert - Before merging, we should have 3 partial class entries
         Assert.Equal(3, structure.AllClasses.Count(c => c.Name == "PartialTestClass"));
@@ -82,7 +82,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         {
             SourceProjects = [TestProjectPath],
             Output = "api",
-            OutputPolicy = OutputPolicy.delete
+            OutputPolicy = OutputPolicy.Delete
         };
 
         var logger = new LoggerConfiguration()
@@ -91,7 +91,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
 
         // Act
         var structure = await Analyzer.AnalyzeProjectAsync(TestProjectPath);
-        var generator = new DocumentationGenerator(outputPath, OutputPolicy.delete, logger);
+        var generator = new DocumentationGenerator(outputPath, OutputPolicy.Delete, logger);
         await generator.GenerateDocumentationAsync(structure, options);
 
         // Assert
@@ -132,7 +132,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         {
             SourceProjects = [partialTestPath],
             Output = "api",
-            OutputPolicy = OutputPolicy.delete
+            OutputPolicy = OutputPolicy.Delete
         };
 
         var logger = new LoggerConfiguration()
@@ -141,7 +141,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
 
         // Act
         var structure = await Analyzer.AnalyzeProjectAsync(partialTestPath);
-        var generator = new DocumentationGenerator(outputPath, OutputPolicy.delete, logger);
+        var generator = new DocumentationGenerator(outputPath, OutputPolicy.Delete, logger);
         await generator.GenerateDocumentationAsync(structure, options);
 
         // Assert - Check the index file for correct counts
@@ -168,7 +168,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         {
             SourceProjects = [TestProjectPath, partialTestPath],
             Output = "api",
-            OutputPolicy = OutputPolicy.delete,
+            OutputPolicy = OutputPolicy.Delete,
             ExternalLink = "github.com/user/repo"
         };
 
@@ -201,7 +201,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
             combinedStructure.NamespaceClasses[kvp.Key].AddRange(kvp.Value);
         }
 
-        var generator = new DocumentationGenerator(outputPath, OutputPolicy.delete, logger);
+        var generator = new DocumentationGenerator(outputPath, OutputPolicy.Delete, logger);
         await generator.GenerateDocumentationAsync(combinedStructure, options);
 
         // Assert - Check that classes from both projects are included

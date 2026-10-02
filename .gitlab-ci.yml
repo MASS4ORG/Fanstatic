@@ -1,136 +1,181 @@
-image: mcr.microsoft.com/dotnet/sdk:10.0
-
 stages:
-    - build-and-test
-    - check-and-create-release
+    - test
+    - package-check
+    - release-check
+    - build
     - publish
+    - container
 
 variables:
-    NUKE_TELEMETRY_OPTOUT: "1" # Disable
+    NUKE_TELEMETRY_OPTOUT: "1" # Disable telemetry
     IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
-
-    # Default publishing flags (can still be overridden in GitLab UI)
+    # To overwrite them, just set them in the CI/CD settings (or change here)
+    DOTNET_VERSION: "10.0"
     PUBLISH_SELF_CONTAINED: "true"
     PUBLISH_SINGLE_FILE: "true"
     PUBLISH_TRIMMED: "true"
+    GITLAB_REPOSITORY_PATH: "$CI_PROJECT_PATH"
 
 # ------------------------------------------------------------
-# Shared template used by every job: same image, same tools.
+# Shared templates used by every job: same image, same tools.
 # No container engine (docker/podman/dind) is required anywhere:
 #   * the per-commit image build writes a throwaway archive
 #   * the release push is done by the .NET SDK directly over HTTP
 # So this runs identically on GitLab shared runners and local runners.
 # ------------------------------------------------------------
-.base_template:
+.build_job_template: &build_job_template
+    image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+    artifacts:
+        expire_in: 1 week
+
+# curl and bash come from the SDK image only after an apt refresh; dpkg-dev builds the Debian packages.
+.build_tools: &build_tools
     before_script:
         - apt-get update -yqq
-        - apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+        - apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev
+
+# makensis builds the Windows installer on Linux, so the Windows release assets are produced here too.
+.build_nsis: &build_nsis
+    before_script:
+        - apt-get install -yqq nsis
 
 # build the project on every commit
 test:
-    extends: .base_template
-    stage: build-and-test
-    except:
-        - tags
-        - schedules
+    <<: *build_job_template
+    stage: test
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          when: never
+        - if: '$CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "web"'
+          allow_failure: false
+    before_script:
+        - !reference [.build_tools, before_script]
     script:
         - |
-            ./build.sh Restore Compile TestReport Publish CreateContainer \
+            ./build.sh Restore Compile TestReport Publish ContainerBuild \
               --configuration "Debug" \
-              --publish-directory "./publish"
+              --verbosity minimal
         - set +e; bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/coverage.xml
     coverage: '/^  Line coverage: (\d*.\d*)%/'
     artifacts:
-        paths:
-            - coverage/report/*
-            - publish/*
         reports:
             coverage_report:
                 coverage_format: cobertura
                 path: coverage/coverage.xml
 
-# check if there is new commits, if so, create a tag and a release
-# this will trigger the publishing stage "publish"
-check-and-create-release:
-    extends: .base_template
-    stage: check-and-create-release
-    only:
-        - schedules
-        - web
+# Validate every release format without tagging or pushing.
+package-check:
+    <<: *build_job_template
+    stage: package-check
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          when: never
+        - if: '$CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "web"'
+    before_script:
+        - !reference [.build_tools, before_script]
+        - !reference [.build_nsis, before_script]
     script:
         - |
-            ./build.sh GitLabCreateRelease \
-              --is-scheduled $CI_PIPELINE_SCHEDULED \
-              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+            ./build.sh Pack DebianPackage \
+              --configuration "Release" \
+              --runtime-identifier "linux-x64" \
+              --verbosity minimal
+        - |
+            ./build.sh WingetManifest \
+              --configuration "Release" \
+              --runtime-identifier "win-x64" \
+              --packaging-dry-run \
+              --verbosity minimal
 
-# publish the project on every tag
-# build for multiple runtimes
-publish:
-    extends: .base_template
-    stage: publish
-    only:
-        - tags
-    except:
-        - branches
+# Checks for commits since the last tag; if there are any, updates CHANGELOG.md, tags the release and
+# pushes the commit+tag to this GitLab project. The pushed tag triggers this same pipeline's
+# build/publish/container stages on the new tag ref.
+release-check:
+    <<: *build_job_template
+    stage: release-check
+    rules:
+        - if: '$CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"'
+    before_script:
+        - !reference [.build_tools, before_script]
     script:
         - |
-            ./build.sh Restore Publish WindowsInstaller GitLabUploadPackage GitLabPushWindowsInstaller \
-              --runtime-identifier $RID \
-              --publish-directory "./publish/fanstatic-$RID" \
-              --publish-self-contained $PUBLISH_SELF_CONTAINED \
-              --publish-single-file $PUBLISH_SINGLE_FILE \
-              --publish-trimmed $PUBLISH_TRIMMED \
-              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+            ./build.sh GitLabCreateTag \
+              --gitlab-project-path "$GITLAB_REPOSITORY_PATH" \
+              --gitlab-token "$GITLAB_PRIVATE_TOKEN" \
+              --release-branch "$CI_DEFAULT_BRANCH" \
+              --verbosity minimal
+
+# Pack the published binaries, the Windows installer and the Debian packages on every tag.
+build:
+    <<: *build_job_template
+    stage: build
     parallel:
         matrix:
             - RID: "win-x64"
             - RID: "linux-x64"
             - RID: "linux-musl-x64"
-
-# publish container images on every tag. The image is pushed directly by the
-# .NET SDK over HTTP, so no Docker/Podman daemon is required here.
-publish-container:
-    extends: .base_template
-    stage: publish
-    only:
-        - tags
-    except:
-        - branches
+            - RID: "linux-arm64"
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          allow_failure: false
+    before_script:
+        - !reference [.build_tools, before_script]
+        - !reference [.build_nsis, before_script]
     script:
         - |
-            ./build.sh Restore GitLabPushContainer \
-              --runtime-identifier $RID \
-              --publish-directory "./publish/fanstatic-$RID" \
-              --publish-self-contained $PUBLISH_SELF_CONTAINED \
-              --publish-single-file $PUBLISH_SINGLE_FILE \
-              --publish-trimmed $PUBLISH_TRIMMED \
-              --container-registry $CI_REGISTRY \
-              --container-registry-image $CI_REGISTRY_IMAGE \
-              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
+            ./build.sh Pack DebianPackage \
+              --configuration "Release" \
+              --runtime-identifier "$RID" \
+              --publish-self-contained "$PUBLISH_SELF_CONTAINED" \
+              --publish-single-file "$PUBLISH_SINGLE_FILE" \
+              --publish-trimmed "$PUBLISH_TRIMMED" \
+              --verbosity minimal
+    artifacts:
+        paths:
+            - artifacts/*
+
+# Uploads every archive produced by the build stage and links it from the GitLab release.
+gitlab-release:
+    <<: *build_job_template
+    stage: publish
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          allow_failure: false
+    needs:
+        - build
+    before_script:
+        - !reference [.build_tools, before_script]
+    script:
+        - |
+            ./build.sh GitLabCreateRelease \
+              --gitlab-project-path "$GITLAB_REPOSITORY_PATH" \
+              --gitlab-token "$GITLAB_PRIVATE_TOKEN" \
+              --verbosity minimal
+
+# Pushes the container image to this project's GitLab Container Registry. The image is pushed directly
+# by the .NET SDK over HTTP, so no Docker/Podman daemon is required here.
+container:
+    <<: *build_job_template
+    stage: container
     parallel:
         matrix:
             - RID: "linux-x64"
             - RID: "linux-musl-x64"
             - RID: "linux-arm64"
-
-# Publish Debian package for Ubuntu/Debian distros
-publish-debian:
-    extends: .base_template
-    stage: publish
-    only:
-        - tags
-    except:
-        - branches
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          allow_failure: true
+    before_script:
+        - !reference [.build_tools, before_script]
     script:
         - |
-            ./build.sh Restore Publish CreateDebianPackage GitLabPushDebianPackage \
-              --runtime-identifier $RID \
-              --publish-directory "./publish/fanstatic-$RID" \
-              --publish-self-contained $PUBLISH_SELF_CONTAINED \
-              --publish-single-file $PUBLISH_SINGLE_FILE \
-              --publish-trimmed $PUBLISH_TRIMMED \
-              --gitlab-private-token $GITLAB_PRIVATE_TOKEN
-    parallel:
-        matrix:
-            - RID: "linux-x64"
-            - RID: "linux-arm64"
+            ./build.sh ContainerPush \
+              --configuration "Release" \
+              --runtime-identifier "$RID" \
+              --publish-self-contained "$PUBLISH_SELF_CONTAINED" \
+              --publish-single-file "$PUBLISH_SINGLE_FILE" \
+              --publish-trimmed "$PUBLISH_TRIMMED" \
+              --container-registries "$CI_REGISTRY_IMAGE" \
+              --container-registry-user "$CI_REGISTRY_USER" \
+              --container-registry-password "$CI_REGISTRY_PASSWORD" \
+              --verbosity minimal

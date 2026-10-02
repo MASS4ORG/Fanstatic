@@ -1,8 +1,8 @@
 using System.Net;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.ServerHandlers;
+using Serilog;
 
 namespace Fanstatic.Commands.Serve;
 

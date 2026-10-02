@@ -1,8 +1,8 @@
 using System.Net;
-using NSubstitute;
 using Fanstatic.Commands.ValidateLinks;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;
@@ -216,9 +216,9 @@ public class ValidateLinksCommandTests : TestSetup
 
 
     [Theory]
-    [InlineData("https://external.com", HttpStatusCode.OK, ValidateLinksCommand.LinkStatus.ok)]
-    [InlineData("https://external.com", HttpStatusCode.NotFound, ValidateLinksCommand.LinkStatus.notFound)]
-    [InlineData("https://external.com", HttpStatusCode.InternalServerError, ValidateLinksCommand.LinkStatus.httpError)]
+    [InlineData("https://external.com", HttpStatusCode.OK, ValidateLinksCommand.LinkStatus.Ok)]
+    [InlineData("https://external.com", HttpStatusCode.NotFound, ValidateLinksCommand.LinkStatus.NotFound)]
+    [InlineData("https://external.com", HttpStatusCode.InternalServerError, ValidateLinksCommand.LinkStatus.HttpError)]
     public async Task ValidateExternalLink_ShouldHandleHttpStatusCodes(string url, HttpStatusCode statusCode,
         ValidateLinksCommand.LinkStatus expectedStatus)
     {
@@ -238,8 +238,8 @@ public class ValidateLinksCommandTests : TestSetup
     }
 
     [Theory]
-    [InlineData("https://external.com#external-fragment", ValidateLinksCommand.LinkStatus.ok)]
-    [InlineData("https://external.com#non-existent", ValidateLinksCommand.LinkStatus.fragmentNotFound)]
+    [InlineData("https://external.com#external-fragment", ValidateLinksCommand.LinkStatus.Ok)]
+    [InlineData("https://external.com#non-existent", ValidateLinksCommand.LinkStatus.FragmentNotFound)]
     public async Task ValidateExternalLink_ShouldHandleFragments(string url,
         ValidateLinksCommand.LinkStatus expectedStatus)
     {
@@ -282,8 +282,8 @@ public class ValidateLinksCommandTests : TestSetup
     }
 
     [Theory]
-    [InlineData("https://external.com/#/#", ValidateLinksCommand.LinkStatus.ok)]
-    [InlineData("https://external.com/#/test", ValidateLinksCommand.LinkStatus.ok)]
+    [InlineData("https://external.com/#/#", ValidateLinksCommand.LinkStatus.Ok)]
+    [InlineData("https://external.com/#/test", ValidateLinksCommand.LinkStatus.Ok)]
     public async Task ValidateExternalLink_ShouldHandleSpecialFragments(string url,
         ValidateLinksCommand.LinkStatus expectedStatus)
     {
@@ -314,7 +314,7 @@ public class ValidateLinksCommandTests : TestSetup
             var testPage = new Page(new(SourcePathConst, new FrontMatter { Title = TitleConst }, "content"), Site, Site,
                 ("html", null), []);
             validator.PagesWithFailedLinks.TryAdd(testPage,
-                [("invalid-link", ValidateLinksCommand.LinkStatus.notFound)]);
+                [("invalid-link", ValidateLinksCommand.LinkStatus.NotFound)]);
         }
 
         var result = await validator.GenerateReport();
@@ -339,7 +339,7 @@ public class ValidateLinksCommandTests : TestSetup
             };
 
         var result = await validator.ValidateExternalLink(new Uri("https://external.com"), _httpClientMock);
-        Assert.Equal(ValidateLinksCommand.LinkStatus.timeout, result);
+        Assert.Equal(ValidateLinksCommand.LinkStatus.Timeout, result);
     }
 
     [Theory]
@@ -362,7 +362,7 @@ public class ValidateLinksCommandTests : TestSetup
 
         var result =
             await validator.ValidateExternalLink(new Uri("https://external.com"), _httpClientMock);
-        Assert.Equal(ValidateLinksCommand.LinkStatus.httpError, result);
+        Assert.Equal(ValidateLinksCommand.LinkStatus.HttpError, result);
     }
 
     [Theory]

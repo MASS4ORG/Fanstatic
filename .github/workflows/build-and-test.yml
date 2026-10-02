@@ -29,13 +29,13 @@ jobs:
             - name: Install tools
               run: |
                   sudo apt-get update -yqq
-                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev
 
-            - name: Restore, compile, test and package
+            - name: Restore, compile, test and publish
               run: |
-                  ./build.sh Restore Compile TestReport Publish CreateContainer \
+                  ./build.sh Restore Compile TestReport Publish \
                     --configuration "Debug" \
-                    --publish-directory "./publish"
+                    --publish-directory "./.publish"
 
             - name: Publish coverage to Codacy
               continue-on-error: true
@@ -56,5 +56,45 @@ jobs:
               uses: actions/upload-artifact@v7
               with:
                   name: publish
-                  path: publish/*
+                  path: .publish/*
+                  if-no-files-found: error
+
+    # Validate every release format on one runner, without tagging or pushing.
+    package:
+        runs-on: ubuntu-24.04
+        env:
+            NUKE_TELEMETRY_OPTOUT: "1"
+            IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Install tools
+              run: |
+                  sudo apt-get update -yqq
+                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+
+            - name: Pack Linux archive and Debian package
+              run: |
+                  ./build.sh Pack DebianPackage \
+                    --configuration "Release" \
+                    --runtime-identifier "linux-x64" \
+                    --verbosity minimal
+
+            - name: Build Windows installer and Winget manifests
+              run: |
+                  ./build.sh WingetManifest \
+                    --configuration "Release" \
+                    --runtime-identifier "win-x64" \
+                    --packaging-dry-run \
+                    --verbosity minimal
+
+            - name: Upload packages
+              uses: actions/upload-artifact@v7
+              with:
+                  name: packages
+                  path: artifacts/*
                   if-no-files-found: error

@@ -1,0 +1,125 @@
+name: Publish on tag
+
+# Builds every runtime on every tag, then creates the GitHub release from the produced archives.
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+env:
+    NUKE_TELEMETRY_OPTOUT: "1"
+    IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+    PUBLISH_SELF_CONTAINED: "true"
+    PUBLISH_SINGLE_FILE: "true"
+    PUBLISH_TRIMMED: "true"
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - rid: win-x64
+                    - rid: linux-x64
+                    - rid: linux-musl-x64
+                    - rid: linux-arm64
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Install tools
+              run: |
+                  sudo apt-get update -yqq
+                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+
+            # makensis builds the Windows installer on Linux, so every release asset except the Debian
+            # packages (their architecture) is built here.
+            - name: Pack ${{ matrix.rid }}
+              run: |
+                  ./build.sh Pack DebianPackage \
+                    --configuration "Release" \
+                    --runtime-identifier "${{ matrix.rid }}" \
+                    --publish-self-contained "$PUBLISH_SELF_CONTAINED" \
+                    --publish-single-file "$PUBLISH_SINGLE_FILE" \
+                    --publish-trimmed "$PUBLISH_TRIMMED" \
+                    --verbosity minimal
+
+            - name: Upload packages
+              uses: actions/upload-artifact@v7
+              with:
+                  name: artifacts-${{ matrix.rid }}
+                  path: artifacts/*
+                  retention-days: 30
+                  if-no-files-found: error
+
+    release:
+        needs: build
+        if: ${{ !cancelled() }}
+        runs-on: ubuntu-24.04
+        env:
+            FANSTATIC_BUILD_RESULT: ${{ needs.build.result }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Download packages
+              uses: actions/download-artifact@v8
+              with:
+                  pattern: artifacts-*
+                  path: artifacts
+                  merge-multiple: true
+
+            - name: Verify release assets
+              run: |
+                  if ! find artifacts -maxdepth 1 -type f \( -name '*.zip' -o -name '*.deb' -o -name '*.exe' \) -print -quit | grep -q .; then
+                    echo 'No release assets were produced.' >&2
+                    exit 1
+                  fi
+
+            - name: Create GitHub release
+              run: |
+                  ./build.sh GitHubCreateRelease \
+                    --github-repository "${{ github.repository }}" \
+                    --github-token "${{ secrets.GITHUB_TOKEN }}" \
+                    --verbosity minimal
+
+    # Pushes the container image to GHCR. The .NET SDK publishes and pushes over HTTP directly, so no
+    # Docker/Podman daemon is needed.
+    container:
+        strategy:
+            fail-fast: false
+            matrix:
+                rid: ["linux-x64", "linux-musl-x64", "linux-arm64"]
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Push container image
+              env:
+                  GHCR_REPOSITORY: ghcr.io/${{ github.repository_owner }}/fanstatic
+              run: |
+                  ./build.sh ContainerPush \
+                    --runtime-identifier "${{ matrix.rid }}" \
+                    --publish-self-contained "$PUBLISH_SELF_CONTAINED" \
+                    --publish-single-file "$PUBLISH_SINGLE_FILE" \
+                    --publish-trimmed "$PUBLISH_TRIMMED" \
+                    --container-registries "$(printf '%s' "$GHCR_REPOSITORY" | tr '[:upper:]' '[:lower:]')" \
+                    --container-registry-user "${{ github.actor }}" \
+                    --container-registry-password "${{ secrets.GITHUB_TOKEN }}" \
+                    --verbosity minimal

@@ -1,8 +1,8 @@
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
 using Fanstatic.TemplateEngine;
+using Serilog;
 
 namespace Fanstatic.Models;
 

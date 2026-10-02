@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using Fanstatic.Helpers;
 using Serilog;
 using Serilog.Sinks.InMemory;
-using Fanstatic.Helpers;
 using Xunit;
 
 namespace Fanstatic.Test.Helpers;

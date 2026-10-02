@@ -1,7 +1,7 @@
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using Serilog;
 
 namespace Fanstatic.Commands.NewSite;
 

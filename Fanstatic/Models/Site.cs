@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
 using Fanstatic.TemplateEngine;
+using Serilog;
 using YamlDotNet.Serialization;
 
 namespace Fanstatic.Models;
@@ -766,7 +766,7 @@ public class Site : ISite
     void LogDuplicatePermalink(Uri permalink, IPage page)
     {
         Logger.Error(
-            "Duplicate RelPermalink '{permalink}' from `{file}`. It is already from '{from}'.",
+            "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{from}'.",
             permalink,
             page.SourceRelativePath,
             (OutputReferences[permalink] as IFile)!.SourceRelativePath

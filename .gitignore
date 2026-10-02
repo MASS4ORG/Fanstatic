@@ -48,7 +48,7 @@ artifacts/
 AGENTS.md
 
 # Project specific
-**/publish/
+**/.publish/
 **/public/
 output/
 project.fragment.lock.json
@@ -56,5 +56,3 @@ project.lock.json
 coverage/
 qodana.yaml
 qodana.sarif.json
-.nuke/Debian/DEBIAN/control
-.nuke/Debian/usr/share/doc/fanstatic/*

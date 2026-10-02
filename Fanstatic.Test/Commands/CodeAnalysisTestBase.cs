@@ -1,5 +1,5 @@
-using Serilog;
 using Fanstatic.Commands.API;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

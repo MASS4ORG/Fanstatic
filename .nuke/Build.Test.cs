@@ -1,10 +1,10 @@
-namespace Build;
+namespace Fanstatic.NUKE;
 
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the build process.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
     AbsolutePath TestProjectDirectory => Solution.Fanstatic_Test.Directory;
     static AbsolutePath CoverageDirectory => RootDirectory / "coverage";
@@ -13,14 +13,14 @@ partial class Build
     static AbsolutePath CoverageReportSummaryDirectory => CoverageReportDirectory / "Summary.txt";
     AbsolutePath CoverageSettingsFile => TestProjectDirectory / "CodeCoverage.runsettings";
 
-    private Target Test => td => td
-        .After(Compile)
-        .Produces(CoverageResultFile)
-        .Executes(() =>
+    Target Test => td =>
+        td
+            .After(Restore, Compile)
+            .Produces(CoverageResultFile)
+            .Executes(() =>
             {
-                _ = CoverageDirectory.CreateDirectory();
-                DotNetTasks.DotNetRun(settings => settings
-                    .SetConfiguration(Configuration)
+                DotNetRun(settings => settings
+                    .SetConfiguration(Config)
                     .SetProjectFile(Solution.Fanstatic_Test.Path)
                     .SetApplicationArguments(
                         "--coverage",
@@ -28,21 +28,28 @@ partial class Build
                         "--coverage-output-format", "cobertura",
                         "--coverage-output", CoverageResultFile)
                 );
-            }
-        );
+            });
 
-    public Target TestReport => td => td
-        .DependsOn(Test)
-        .Consumes(Test, CoverageResultFile)
-        .Executes(() =>
-        {
-            _ = CoverageReportDirectory.CreateDirectory();
-            _ = ReportGeneratorTasks.ReportGenerator(s => s
-                .SetTargetDirectory(CoverageReportDirectory)
-                .SetReportTypes(ReportTypes.Html, ReportTypes.TextSummary)
-                .SetReports(CoverageResultFile)
-            );
-            var summaryText = CoverageReportSummaryDirectory.ReadAllLines();
-            Log.Information(string.Join(Environment.NewLine, summaryText));
-        });
+    public Target TestReport => td =>
+        td
+            .DependsOn(Test)
+            .Consumes(Test, CoverageResultFile)
+            .Executes(() =>
+            {
+                _ = CoverageReportDirectory.CreateDirectory();
+                _ = ReportGenerator(
+                    s => s
+                         .SetTargetDirectory(CoverageReportDirectory)
+                         .SetReportTypes([ReportTypes.Html, ReportTypes.TextSummary, ReportTypes.MarkdownSummaryGithub])
+                         .SetReports(CoverageResultFile)
+                );
+                var summaryText = CoverageReportSummaryDirectory.ReadAllLines();
+                Log.Information("{Summary}", string.Join(Environment.NewLine, summaryText));
+
+                // GitHub Actions renders this file on the run's summary page.
+                if (Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is { Length: > 0 } stepSummary)
+                {
+                    File.AppendAllText(stepSummary, (CoverageReportDirectory / "SummaryGithub.md").ReadAllText());
+                }
+            });
 }

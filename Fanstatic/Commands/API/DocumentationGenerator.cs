@@ -1,8 +1,8 @@
 using System.Text;
-using Serilog;
 using Fanstatic.Commands.API.APIModels;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Serilog;
 
 namespace Fanstatic.Commands.API;
 

@@ -1,8 +1,8 @@
 using System.Globalization;
-using NSubstitute;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.Models;

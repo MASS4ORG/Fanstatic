@@ -1,6 +1,6 @@
-using Serilog;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using Serilog;
 
 namespace Fanstatic.Commands.NewTheme;
 

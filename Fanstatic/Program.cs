@@ -2,8 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using CommandLine;
-using Serilog;
-using Serilog.Events;
 using Fanstatic.Commands;
 using Fanstatic.Commands.API;
 using Fanstatic.Commands.Build;
@@ -12,6 +10,8 @@ using Fanstatic.Commands.NewTheme;
 using Fanstatic.Commands.Serve;
 using Fanstatic.Commands.ValidateLinks;
 using Fanstatic.Helpers;
+using Serilog;
+using Serilog.Events;
 
 namespace Fanstatic;
 
