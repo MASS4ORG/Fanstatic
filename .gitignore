@@ -50,6 +50,8 @@ AGENTS.md
 # Project specific
 **/.publish/
 **/public/
+.flatpak-build/
+.flatpak-repo/
 output/
 project.fragment.lock.json
 project.lock.json

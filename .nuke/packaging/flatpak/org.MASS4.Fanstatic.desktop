@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Fanstatic
+Comment=Static site generator inspired by Hugo
+Exec=fanstatic
+Icon=org.MASS4.Fanstatic
+Categories=Development;Utility;
+Terminal=true

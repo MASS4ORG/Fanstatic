@@ -1,0 +1,27 @@
+app-id: org.MASS4.Fanstatic
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet10
+build-options:
+  append-path: /usr/lib/sdk/dotnet10/bin
+  append-ld-library-path: /usr/lib/sdk/dotnet10/lib
+  prepend-pkg-config-path: /usr/lib/sdk/dotnet10/lib/pkgconfig
+command: fanstatic
+finish-args:
+  - --share=network
+  - --filesystem=home
+modules:
+  - name: fanstatic
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/dotnet10/bin/install-sdk.sh
+      - dotnet publish Fanstatic/Fanstatic.csproj -c Release -r linux-x64 --self-contained false -o /app/lib/fanstatic
+      - install -Dm755 .nuke/packaging/flatpak/fanstatic /app/bin/fanstatic
+      - install -Dm644 .nuke/packaging/flatpak/org.MASS4.Fanstatic.desktop /app/share/applications/org.MASS4.Fanstatic.desktop
+      - install -Dm644 .nuke/packaging/flatpak/org.MASS4.Fanstatic.metainfo.xml /app/share/metainfo/org.MASS4.Fanstatic.metainfo.xml
+      - install -Dm644 .nuke/packaging/flatpak/org.MASS4.Fanstatic.svg /app/share/icons/hicolor/scalable/apps/org.MASS4.Fanstatic.svg
+    sources:
+      - type: dir
+        path: ../../..

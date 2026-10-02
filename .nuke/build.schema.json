@@ -32,6 +32,7 @@
         "CreateReleaseCommit",
         "CreateReleaseTag",
         "DebianPackage",
+        "Flatpak",
         "GitHubCreateRelease",
         "GitHubCreateTag",
         "GitLabCreateRelease",

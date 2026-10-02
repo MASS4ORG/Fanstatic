@@ -24,11 +24,17 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - rid: win-x64
-                    - rid: linux-x64
-                    - rid: linux-musl-x64
-                    - rid: linux-arm64
-        runs-on: ubuntu-24.04
+                    - os: ubuntu-24.04
+                      rid: win-x64
+                    - os: ubuntu-24.04
+                      rid: linux-x64
+                    - os: ubuntu-24.04
+                      rid: linux-musl-x64
+                    - os: ubuntu-24.04
+                      rid: linux-arm64
+                    - os: macos-latest
+                      rid: osx-x64
+        runs-on: ${{ matrix.os }}
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -36,15 +42,19 @@ jobs:
                   fetch-depth: 0
                   fetch-tags: true
 
+            # makensis builds the Windows installer and dpkg-deb builds the Debian packages, so macOS
+            # only needs the .NET SDK that the runner already provides.
             - name: Install tools
+              if: runner.os != 'macOS'
               run: |
                   sudo apt-get update -yqq
                   sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
 
-            # makensis builds the Windows installer on Linux, so every release asset except the Debian
-            # packages (their architecture) is built here.
+            # DebianPackage skips itself for the runtime identifiers that are not Debian architectures.
             - name: Pack ${{ matrix.rid }}
+              shell: bash
               run: |
+                  chmod +x ./build.sh
                   ./build.sh Pack DebianPackage \
                     --configuration "Release" \
                     --runtime-identifier "${{ matrix.rid }}" \

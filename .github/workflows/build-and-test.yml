@@ -98,3 +98,72 @@ jobs:
                   name: packages
                   path: artifacts/*
                   if-no-files-found: error
+
+    # The installer and the Winget manifests can only be proven on Windows: install silently, build a
+    # site with the installed binary, uninstall silently, then validate the manifests with wingetcreate.
+    windows:
+        runs-on: windows-2025
+        env:
+            NUKE_TELEMETRY_OPTOUT: "1"
+            IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+        defaults:
+            run:
+                shell: pwsh
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Install NSIS
+              run: |
+                  if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+                    choco install nsis --no-progress -y
+                  }
+
+            - name: Build Windows installer and Winget manifests
+              run: |
+                  ./build.cmd WindowsInstaller WingetManifest `
+                    --configuration "Release" `
+                    --runtime-identifier "win-x64" `
+                    --packaging-dry-run `
+                    --verbosity minimal
+
+            - name: Install, use and uninstall
+              run: |
+                  $setup = (Get-ChildItem "artifacts/*-win-x64-setup.exe").FullName
+                  Start-Process -FilePath $setup -ArgumentList "/S" -Wait
+                  $install = "$env:LOCALAPPDATA\Programs\Fanstatic"
+                  if (-not (Test-Path "$install\fanstatic.exe")) { throw "The installer did not create fanstatic.exe" }
+                  if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Fanstatic\Fanstatic.lnk")) {
+                    throw "The installer did not create the Start menu shortcut"
+                  }
+                  if (-not ((Get-ItemProperty HKCU:\Environment).Path.Split(';') -contains $install)) {
+                    throw "The installer did not add the install folder to the user PATH"
+                  }
+                  & "$install\fanstatic.exe" new-site "$env:RUNNER_TEMP\smoke"
+                  & "$install\fanstatic.exe" build "$env:RUNNER_TEMP\smoke"
+                  if (-not (Test-Path "$env:RUNNER_TEMP\smoke\public\index.html")) { throw "The site was not generated" }
+                  Start-Process -FilePath "$install\Uninstall.exe" -ArgumentList "/S" -Wait
+                  if (Test-Path "$install\fanstatic.exe") { throw "The uninstaller did not remove fanstatic.exe" }
+                  if ((Get-ItemProperty HKCU:\Environment).Path.Split(';') -contains $install) {
+                    throw "The uninstaller did not remove the PATH entry"
+                  }
+
+            - name: Validate Winget manifests
+              run: |
+                  dotnet tool install --global wingetcreate
+                  wingetcreate validate (Resolve-Path "artifacts/winget/*").Path
+
+            - name: Upload packages
+              uses: actions/upload-artifact@v7
+              with:
+                  name: windows-packages
+                  path: artifacts/*
+                  if-no-files-found: error
