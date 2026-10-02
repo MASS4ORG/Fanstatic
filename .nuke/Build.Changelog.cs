@@ -8,7 +8,7 @@ sealed partial class Build
 {
     static AbsolutePath ChangelogFile => RootDirectory / "CHANGELOG.md";
 
-    const string unreleasedHeader = "## [Unreleased]";
+    const string UnreleasedHeader = "## [Unreleased]";
 
     static readonly (string Prefix, string Section)[] ChangelogSections =
     [
@@ -116,13 +116,13 @@ sealed partial class Build
             .ToList();
         content = LinkDefinition().Replace(content, string.Empty).TrimEnd();
 
-        var replacement = $"{unreleasedHeader}{Environment.NewLine}{Environment.NewLine}{section}{Environment.NewLine}";
+        var replacement = $"{UnreleasedHeader}{Environment.NewLine}{Environment.NewLine}{section}{Environment.NewLine}";
 
         // Replace the whole old "## [Unreleased]" section (header + body up to the next "## "
         // heading or end of file), not just the header line, so stale Unreleased content doesn't
         // survive as an orphaned block below the newly inserted version section.
         var unreleasedSection = new Regex(
-            $@"{Regex.Escape(unreleasedHeader)}.*?(?=\n##\s|\z)",
+            $@"{Regex.Escape(UnreleasedHeader)}.*?(?=\n##\s|\z)",
             RegexOptions.Singleline);
 
         content = unreleasedSection.IsMatch(content)

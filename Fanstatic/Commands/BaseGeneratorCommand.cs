@@ -57,7 +57,7 @@ public abstract class BaseGeneratorCommand
         Stopwatch = new(logger);
         Fs = fs;
 
-        logger.Information("Source path: {source}", propertyValue: options.Source);
+        logger.Information("Source path: {Source}", propertyValue: options.Source);
 
         if (site == null)
         {

@@ -45,7 +45,7 @@ public static partial class RefShortcodeParser
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            site.Logger.Error("ref/relref shortcode with no path found in {file}", page.SourceRelativePath);
+            site.Logger.Error("ref/relref shortcode with no path found in {File}", page.SourceRelativePath);
             return match.Value;
         }
 
@@ -55,7 +55,7 @@ public static partial class RefShortcodeParser
 
         if (target is null)
         {
-            site.Logger.Error("ref/relref: unable to resolve {path} referenced in {file}", path,
+            site.Logger.Error("ref/relref: unable to resolve {Path} referenced in {File}", path,
                 page.SourceRelativePath);
             return "#";
         }

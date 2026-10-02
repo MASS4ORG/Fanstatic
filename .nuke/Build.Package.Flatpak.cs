@@ -3,8 +3,8 @@ namespace Fanstatic.NUKE;
 /// <summary>Builds a local Flatpak bundle for the static site generator.</summary>
 sealed partial class Build
 {
-    const string flatpakAppId = "org.MASS4.Fanstatic";
-    AbsolutePath FlatpakManifest => Solution.Build.Directory / "packaging" / "flatpak" / $"{flatpakAppId}.yml";
+    const string FlatpakAppId = "org.MASS4.Fanstatic";
+    AbsolutePath FlatpakManifest => Solution.Build.Directory / "packaging" / "flatpak" / $"{FlatpakAppId}.yml";
     AbsolutePath FlatpakBuildDirectory => RootDirectory / ".flatpak-build";
     AbsolutePath FlatpakRepository => RootDirectory / ".flatpak-repo";
     AbsolutePath FlatpakBundle => ArtifactsDirectory / $"Fanstatic-{Version}-x86_64.flatpak";
@@ -21,7 +21,7 @@ sealed partial class Build
                     $"\"{FlatpakBuildDirectory}\" \"{FlatpakManifest}\"")
                 .AssertZeroExitCode();
             ProcessTasks.StartProcess("flatpak",
-                    $"build-bundle \"{FlatpakRepository}\" \"{FlatpakBundle}\" {flatpakAppId}")
+                    $"build-bundle \"{FlatpakRepository}\" \"{FlatpakBundle}\" {FlatpakAppId}")
                 .AssertZeroExitCode();
         });
 }

@@ -110,7 +110,7 @@ sealed partial class Build
                 // a plain publish would skip container creation entirely.
                 .SetProcessAdditionalArguments("-target:PublishContainer");
 
-            if (registry is not (string host, string path))
+            if (registry is not ({ } host, { } path))
             {
                 // No registry: write the image to a throwaway archive instead of loading it into a local
                 // daemon, so no engine is needed.

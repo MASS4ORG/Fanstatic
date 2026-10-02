@@ -27,7 +27,7 @@ public class CodeAnalyzer(ILogger logger)
         // Find all C# files in the project
         var csharpFiles = GetCSharpFiles(projectPath);
 
-        logger.Information("Found {CsharpFilesCount} C# files to analyze.", csharpFiles.Count);
+        logger.Information("Found {CsharpFilesCount} C# files to analyze", csharpFiles.Count);
 
         foreach (var filePath in csharpFiles)
         {

@@ -766,7 +766,7 @@ public class Site : ISite
     void LogDuplicatePermalink(Uri permalink, IPage page)
     {
         Logger.Error(
-            "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{from}'.",
+            "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{From}'",
             permalink,
             page.SourceRelativePath,
             (OutputReferences[permalink] as IFile)!.SourceRelativePath
@@ -1069,7 +1069,7 @@ public class Site : ISite
 
         if (!_contentSources.TryAdd(contentSource.SourceRelativePath, contentSource))
         {
-            Logger.Error("Duplicate front matter found : {filepath}", contentSource.SourceRelativePath);
+            Logger.Error("Duplicate front matter found : {Filepath}", contentSource.SourceRelativePath);
         }
 
         var sectionPath1 = AddIndexAtPath(contentSource.Section);
@@ -1100,7 +1100,7 @@ public class Site : ISite
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error parsing file {file}", fileFullPath);
+            Logger.Error(ex, "Error parsing file {File}", fileFullPath);
         }
 
         return (null, string.Empty);
@@ -1254,7 +1254,7 @@ public class Site : ISite
         }
         catch (FormatException ex)
         {
-            Logger.Error(ex, "Error rendering theme template: {templatePath}", templatePath);
+            Logger.Error(ex, "Error rendering theme template: {TemplatePath}", templatePath);
             return string.Empty;
         }
     }

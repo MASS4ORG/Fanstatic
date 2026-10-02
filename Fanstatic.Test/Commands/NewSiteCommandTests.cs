@@ -63,7 +63,7 @@ public class NewSiteCommandTests
 
         // Assert
         _logger.Received(1)
-            .Information("Creating a new site: {title} at {outputPath}", options.Title, Arg.Any<string>());
+            .Information("Creating a new site: {Title} at {OutputPath}", options.Title, Arg.Any<string>());
     }
 
     [Fact]

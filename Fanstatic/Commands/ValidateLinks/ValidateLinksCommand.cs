@@ -121,7 +121,7 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
                     filePath = "";
                 }
 
-                Logger.Error("{source} ({url}) has {count} invalid links:\n{links}",
+                Logger.Error("{Source} ({Url}) has {Count} invalid links:\n{Links}",
                     filePath,
                     page.Permalink,
                     failedLinks.Count,

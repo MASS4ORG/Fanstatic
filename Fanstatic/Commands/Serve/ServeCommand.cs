@@ -186,7 +186,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
 
         (Site as ISiteSettings).BaseUrl = fullBaseUrl;
 
-        _logger.Information("Site is live: {fullBaseUrl}", fullBaseUrl);
+        _logger.Information("Site is live: {FullBaseUrl}", fullBaseUrl);
         _logger.Information("Press Ctrl+C to stop");
 
         _loop = Task.Run(async () =>

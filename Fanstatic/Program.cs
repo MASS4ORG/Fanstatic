@@ -102,18 +102,18 @@ public class Program(ILogger loggerInitial)
     /// <summary>
     /// Print the name and version of the program.
     /// </summary>
-    public void OutputWelcome()
+    void OutputWelcome()
     {
         var assemblyName = Assembly.GetExecutingAssembly().GetName();
         var appName = assemblyName.Name;
         var appVersion = assemblyName.Version;
-        loggerInitial.Information("{name} v{version}", appName, appVersion);
+        loggerInitial.Information("{Name} v{Version}", appName, appVersion);
     }
 
     /// <summary>
     /// Print the logo
     /// </summary>
-    public void OutputLogo()
+    void OutputLogo()
     {
         loggerInitial.Information(HelloWorld);
     }
