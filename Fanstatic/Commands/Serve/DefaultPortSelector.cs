@@ -27,7 +27,7 @@ public class DefaultPortSelector(ILogger logger) : IPortSelector
                 return portToTry;
             }
 
-            logger.Warning($"Port {portToTry} is not available. Trying next port.");
+            logger.Warning("Port {PortToTry} is not available. Trying next port.", portToTry);
         }
 
         throw new InvalidOperationException(

@@ -69,11 +69,11 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
             await _generator.GenerateDocumentationAsync(structure, _options);
 
             Summary(structure);
-            _logger.Information("Scanning completed.");
+            _logger.Information("Scanning completed");
         }
         catch (InvalidOperationException ex)
         {
-            _logger.Information($"Error generating documentation: {ex.Message}");
+            _logger.Information("Error generating documentation: {ExMessage}", ex.Message);
         }
 
         return 0;
@@ -85,7 +85,7 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
 
         foreach (var projectPath in projectPaths)
         {
-            _logger.Information($"Starting analysis of project: {projectPath}");
+            _logger.Information("Starting analysis of project: {ProjectPath}", projectPath);
 
             // Analyze the code structure
             var structure = await _analyzer!.AnalyzeProjectAsync(projectPath);
@@ -113,14 +113,14 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
         var totalMethods = groupedClasses.Sum(c => c.PublicMethods.Count);
 
         _logger.Information($"Analysis complete! Found:");
-        _logger.Information($"- {structure.AllClasses.Count} total type declarations");
-        _logger.Information($"- {groupedClasses.Count} unique types (after grouping partials)");
-        _logger.Information($"- {structure.NamespaceClasses.Count} namespaces");
-        _logger.Information($"- {totalMethods} public methods");
+        _logger.Information("- {AllClassesCount} total type declarations", structure.AllClasses.Count);
+        _logger.Information("- {GroupedClassesCount} unique types (after grouping partials)", groupedClasses.Count);
+        _logger.Information("- {NamespaceClassesCount} namespaces", structure.NamespaceClasses.Count);
+        _logger.Information("- {TotalMethods} public methods", totalMethods);
 
         if (!string.IsNullOrEmpty(_options.ExternalLink))
         {
-            _logger.Information($"- External link: {_options.ExternalLink}");
+            _logger.Information("- External link: {OptionsExternalLink}", _options.ExternalLink);
         }
     }
 }

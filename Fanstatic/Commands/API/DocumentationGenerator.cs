@@ -31,10 +31,10 @@ public class DocumentationGenerator
         {
             switch (outputPolicy)
             {
-                case OutputPolicy.delete:
+                case OutputPolicy.Delete:
                     Directory.Delete(_outputDirectory, recursive: true);
                     break;
-                case OutputPolicy.fail:
+                case OutputPolicy.Fail:
                     throw new InvalidOperationException($"Output directory '{_outputDirectory}' already exists");
             }
         }
@@ -73,7 +73,7 @@ public class DocumentationGenerator
         // Generate main index
         await GenerateAndWriteIndexAsync(structure, options);
 
-        _logger.Information($"Documentation generated in: {_outputDirectory}");
+        _logger.Information("Documentation generated in: {OutputDirectory}", _outputDirectory);
     }
 
     async Task GenerateAndWriteClassDocumentationAsync(ClassInfo classInfo, ApiGeneratorOptions options) =>

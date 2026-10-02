@@ -27,7 +27,7 @@ public class CodeAnalyzer(ILogger logger)
         // Find all C# files in the project
         var csharpFiles = GetCSharpFiles(projectPath);
 
-        logger.Information($"Found {csharpFiles.Count} C# files to analyze.");
+        logger.Information("Found {CsharpFilesCount} C# files to analyze.", csharpFiles.Count);
 
         foreach (var filePath in csharpFiles)
         {
@@ -49,7 +49,7 @@ public class CodeAnalyzer(ILogger logger)
             }
             catch (Exception ex)
             {
-                logger.Information($"Error reading file {filePath}: {ex.Message}");
+                logger.Information("Error reading file {FilePath}: {ExMessage}", filePath, ex.Message);
             }
         }
 
@@ -137,7 +137,7 @@ public class CodeAnalyzer(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Information($"Error analyzing source code from {sourceFileName}: {ex.Message}");
+            logger.Information("Error analyzing source code from {SourceFileName}: {ExMessage}", sourceFileName, ex.Message);
         }
 
         return classes;
@@ -204,7 +204,7 @@ public class CodeAnalyzer(ILogger logger)
             classInfo = classInfo with { EnumValues = GetEnumValues(enumDecl) };
         }
 
-        logger.Information($"Analyzed {typeKind}: {fullName}");
+        logger.Information("Analyzed {TypeKind}: {FullName}", typeKind, fullName);
         return classInfo;
     }
 

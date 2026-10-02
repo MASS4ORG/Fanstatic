@@ -38,11 +38,11 @@ public sealed class NewThemeCommand(NewThemeOptions options, ILogger logger)
 
         if (File.Exists(themePath) && !options.Force)
         {
-            logger.Error("{directoryPath} already exists", outputPath);
+            logger.Error("{DirectoryPath} already exists", outputPath);
             return 1;
         }
 
-        logger.Information("Creating a new site: {title} at {outputPath}", theme.Title, outputPath);
+        logger.Information("Creating a new site: {Title} at {OutputPath}", theme.Title, outputPath);
 
         CreateFolders(theme.Folders);
 

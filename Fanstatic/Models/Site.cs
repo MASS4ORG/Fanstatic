@@ -607,7 +607,7 @@ public class Site : ISite
     public void ProcessPages() =>
         _contentSources
             .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
-            .OrderBy(cs => cs.Value.BundleType == BundleType.none)
+            .OrderBy(cs => cs.Value.BundleType == BundleType.None)
             .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
             .Select(cs => cs.Value)
             .ToList()
@@ -711,7 +711,7 @@ public class Site : ISite
             };
             contentSource = new ContentSource(AddIndexAtPath(relativePath), frontMatter, string.Empty)
             {
-                BundleType = BundleType.branch,
+                BundleType = BundleType.Branch,
                 Kind = kind
             }
                 .ScanForResources(this);
@@ -914,7 +914,7 @@ public class Site : ISite
 
         var contentSource = new ContentSource(fileRelativePath, frontMatter, rawContent)
         {
-            BundleType = isLeaf ? BundleType.leaf : BundleType.branch
+            BundleType = isLeaf ? BundleType.Leaf : BundleType.Branch
         };
 
         _ = Interlocked.Increment(ref _filesParsedToReport);
