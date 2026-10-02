@@ -13,7 +13,7 @@ UninstPage instfiles
 
 Section "Fanstatic"
   SetOutPath "$INSTDIR"
-  File /r "${SOURCE_DIR}/*"
+  File /r "${SOURCE_DIR}\*"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateDirectory "$SMPROGRAMS\Fanstatic"
   CreateShortcut "$SMPROGRAMS\Fanstatic\Fanstatic.lnk" "$INSTDIR\fanstatic.exe"
