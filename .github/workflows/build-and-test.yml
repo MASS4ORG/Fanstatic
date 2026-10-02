@@ -1,9 +1,11 @@
 name: build-and-test
 
 # Mirrors the GitLab `test` job: build on every commit (except tags and schedules).
+# `push` is limited to the default branch: a branch with an open pull request already runs this
+# workflow through `pull_request`, and triggering on both would run every job twice per commit.
 on:
     push:
-        branches: ["**"]
+        branches: ["main"]
     pull_request:
 
 permissions:
@@ -57,6 +59,8 @@ jobs:
               with:
                   name: publish
                   path: .publish/*
+                  # .publish is a dot-directory and upload-artifact skips hidden paths by default.
+                  include-hidden-files: true
                   if-no-files-found: error
 
     # Validate every release format on one runner, without tagging or pushing.
@@ -126,6 +130,13 @@ jobs:
                   if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
                     choco install nsis --no-progress -y
                   }
+                  # Chocolatey installs under Program Files but does not extend the PATH of the
+                  # running job, so hand the folder to the following steps explicitly.
+                  $nsis = @("${env:ProgramFiles(x86)}\NSIS", "$env:ProgramFiles\NSIS") |
+                    Where-Object { Test-Path (Join-Path $_ "makensis.exe") } |
+                    Select-Object -First 1
+                  if (-not $nsis) { throw "makensis was not found after installing NSIS" }
+                  "$nsis" | Out-File -FilePath $env:GITHUB_PATH -Append
 
             - name: Build Windows installer and Winget manifests
               run: |
