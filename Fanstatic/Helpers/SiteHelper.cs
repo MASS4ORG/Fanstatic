@@ -1,8 +1,8 @@
-using Markdig;
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using Markdig;
+using Serilog;
 
 namespace Fanstatic.Helpers;
 

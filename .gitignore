@@ -48,13 +48,17 @@ artifacts/
 AGENTS.md
 
 # Project specific
-**/publish/
+**/.publish/
 **/public/
+.flatpak-build/
+.flatpak-repo/
 output/
 project.fragment.lock.json
 project.lock.json
 coverage/
 qodana.yaml
 qodana.sarif.json
-.nuke/Debian/DEBIAN/control
-.nuke/Debian/usr/share/doc/fanstatic/*
+
+docs/internal
+.script.[sp][hy]
+.script-[0-9].[sp][hy]

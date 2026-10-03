@@ -1,8 +1,8 @@
 using System.Text;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using Serilog;
 
 namespace Fanstatic.Commands;
 
@@ -57,7 +57,7 @@ public abstract class BaseGeneratorCommand
         Stopwatch = new(logger);
         Fs = fs;
 
-        logger.Information("Source path: {source}", propertyValue: options.Source);
+        logger.Information("Source path: {Source}", propertyValue: options.Source);
 
         if (site == null)
         {

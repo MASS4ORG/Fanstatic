@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: MASS4ORG.Fanstatic
+PackageVersion: 7.0.2
+PackageLocale: en-US
+Publisher: MASS4ORG
+PublisherUrl: https://fanstatic.mass4.com
+Author: Bruno Massa
+PackageName: Fanstatic
+PackageUrl: https://fanstatic.mass4.com
+License: MIT
+LicenseUrl: https://github.com/MASS4ORG/Fanstatic/blob/main/LICENSE.md
+Copyright: Copyright (c) 2023-2026 Bruno Massa
+ShortDescription: Fanstatic - a static site generator for fans.
+Description: Fanstatic is a static site generator. Create sites, build, serve locally, validate links and generate API reference, for fans of a fantastic static site generator.
+Moniker: fanstatic
+Tags:
+  - static-site-generator
+  - ssg
+  - yaml
+  - blog
+  - markdown
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

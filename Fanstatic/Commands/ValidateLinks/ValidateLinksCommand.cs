@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Net;
 using System.Text.RegularExpressions;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Serilog;
 
 namespace Fanstatic.Commands.ValidateLinks;
 
@@ -40,19 +40,19 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
     public enum LinkStatus
     {
         /// <summary>Link is valid and accessible</summary>
-        ok = 0,
+        Ok = 0,
 
         /// <summary>Link target does not exist</summary>
-        notFound = 1,
+        NotFound = 1,
 
         /// <summary>Link target exists but fragment/anchor not found</summary>
-        fragmentNotFound = 2,
+        FragmentNotFound = 2,
 
         /// <summary>Request timed out</summary>
-        timeout = 4,
+        Timeout = 4,
 
         /// <summary>Other HTTP error occurred</summary>
-        httpError = 8
+        HttpError = 8
     }
 
     readonly ValidateLinksOptions _settings;
@@ -121,7 +121,7 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
                     filePath = "";
                 }
 
-                Logger.Error("{source} ({url}) has {count} invalid links:\n{links}",
+                Logger.Error("{Source} ({Url}) has {Count} invalid links:\n{Links}",
                     filePath,
                     page.Permalink,
                     failedLinks.Count,
@@ -149,19 +149,19 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
 
         if (!outputReferences.TryGetValue(linkStripped, out var output))
         {
-            return Task.FromResult(LinkStatus.notFound);
+            return Task.FromResult(LinkStatus.NotFound);
         }
 
         var fakeDomain = new Uri(new Uri("http://fakedomain.com"), link);
         var fragment = fakeDomain.GetComponents(UriComponents.Fragment, UriFormat.Unescaped);
         if (string.IsNullOrEmpty(fragment))
         {
-            return Task.FromResult(LinkStatus.ok);
+            return Task.FromResult(LinkStatus.Ok);
         }
 
         return Task.FromResult(output is IPage page && HtmlHelper.HasFragmentId(page.CompleteContent, fragment)
-            ? LinkStatus.ok
-            : LinkStatus.fragmentNotFound);
+            ? LinkStatus.Ok
+            : LinkStatus.FragmentNotFound);
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
             try
             {
                 var status = await ValidateExternalLinkAttempt(link, linkStr, httpClient);
-                if (status != LinkStatus.timeout && status != LinkStatus.httpError)
+                if (status != LinkStatus.Timeout && status != LinkStatus.HttpError)
                 {
                     return status;
                 }
@@ -191,21 +191,21 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
             {
                 if (i == DefaultRetryCount - 1)
                 {
-                    return CacheAndReturn(linkStr, LinkStatus.timeout);
+                    return CacheAndReturn(linkStr, LinkStatus.Timeout);
                 }
             }
             catch (Exception)
             {
                 if (i == DefaultRetryCount - 1)
                 {
-                    return CacheAndReturn(linkStr, LinkStatus.httpError);
+                    return CacheAndReturn(linkStr, LinkStatus.HttpError);
                 }
             }
 
             Thread.Sleep(DefaultRetryInterval);
         }
 
-        return CacheAndReturn(linkStr, LinkStatus.httpError);
+        return CacheAndReturn(linkStr, LinkStatus.HttpError);
     }
 
     async Task ValidatePageLinks(Uri pageUri, string content)
@@ -265,7 +265,7 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
                     continue;
                 }
 
-                if (status != LinkStatus.ok)
+                if (status != LinkStatus.Ok)
                 {
                     failedLinks.Add((link, status));
                 }
@@ -291,19 +291,19 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
         {
             // return CacheAndReturn(linkStr, LinkStatus.HttpError);
             return CacheAndReturn(linkStr, response.StatusCode == HttpStatusCode.NotFound
-                ? LinkStatus.notFound
-                : LinkStatus.httpError);
+                ? LinkStatus.NotFound
+                : LinkStatus.HttpError);
         }
 
         var fragment = link.GetComponents(UriComponents.Fragment, UriFormat.Unescaped);
         if (string.IsNullOrEmpty(fragment))
         {
-            return CacheAndReturn(linkStr, LinkStatus.ok);
+            return CacheAndReturn(linkStr, LinkStatus.Ok);
         }
 
         if (linkStr.Contains("#/"))
         {
-            return CacheAndReturn(linkStr, LinkStatus.ok);
+            return CacheAndReturn(linkStr, LinkStatus.Ok);
         }
 
         return await ValidateFragment(linkStr, fragment, response, cts.Token);
@@ -315,10 +315,10 @@ public sealed class ValidateLinksCommand : BaseGeneratorCommand
         var content = await response.Content.ReadAsStringAsync(token);
         if (HtmlHelper.HasFragmentId(content, fragment))
         {
-            return CacheAndReturn(linkStr, LinkStatus.ok);
+            return CacheAndReturn(linkStr, LinkStatus.Ok);
         }
 
-        return CacheAndReturn(linkStr, LinkStatus.fragmentNotFound);
+        return CacheAndReturn(linkStr, LinkStatus.FragmentNotFound);
     }
 
     LinkStatus CacheAndReturn(string linkStr, LinkStatus status)

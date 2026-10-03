@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.MASS4.Fanstatic</id>
+  <name>Fanstatic</name>
+  <summary>Static site generator inspired by Hugo</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <url type="homepage">https://fanstatic.mass4.com/</url>
+  <description><p>Fanstatic is a static site generator inspired by Hugo, written in C#.</p></description>
+  <launchable type="desktop-id">org.MASS4.Fanstatic.desktop</launchable>
+  <provides><binary>fanstatic</binary></provides>
+  <content_rating type="oars-1.1" />
+</component>

@@ -8,15 +8,15 @@ public enum OutputPolicy
     /// <summary>
     /// Delete the existing directory and create a new one
     /// </summary>
-    delete,
+    Delete,
 
     /// <summary>
     /// Throw an exception if the directory exists
     /// </summary>
-    fail,
+    Fail,
 
     /// <summary>
     /// Keep the existing directory and overwrite files as needed (default)
     /// </summary>
-    overwrite
+    Overwrite
 }

@@ -1,7 +1,7 @@
-using NSubstitute;
-using Serilog;
 using Fanstatic.Commands.Build;
 using Fanstatic.Helpers;
+using NSubstitute;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

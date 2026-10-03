@@ -2,8 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using CommandLine;
-using Serilog;
-using Serilog.Events;
 using Fanstatic.Commands;
 using Fanstatic.Commands.API;
 using Fanstatic.Commands.Build;
@@ -12,6 +10,8 @@ using Fanstatic.Commands.NewTheme;
 using Fanstatic.Commands.Serve;
 using Fanstatic.Commands.ValidateLinks;
 using Fanstatic.Helpers;
+using Serilog;
+using Serilog.Events;
 
 namespace Fanstatic;
 
@@ -56,8 +56,8 @@ public class Program(ILogger loggerInitial)
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(NewThemeOptions))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ValidateLinksOptions))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ApiGeneratorOptions))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, "CommandLine.VerbAttribute", "CommandLineParser")]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, "CommandLine.OptionAttribute", "CommandLineParser")]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, "CommandLine.VerbAttribute", "CommandLine")]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, "CommandLine.OptionAttribute", "CommandLine")]
     async Task<int> RunCommandLine(string[] args)
     {
         OutputLogo();
@@ -102,18 +102,18 @@ public class Program(ILogger loggerInitial)
     /// <summary>
     /// Print the name and version of the program.
     /// </summary>
-    public void OutputWelcome()
+    void OutputWelcome()
     {
         var assemblyName = Assembly.GetExecutingAssembly().GetName();
         var appName = assemblyName.Name;
         var appVersion = assemblyName.Version;
-        loggerInitial.Information("{name} v{version}", appName, appVersion);
+        loggerInitial.Information("{Name} v{Version}", appName, appVersion);
     }
 
     /// <summary>
     /// Print the logo
     /// </summary>
-    public void OutputLogo()
+    void OutputLogo()
     {
         loggerInitial.Information(HelloWorld);
     }

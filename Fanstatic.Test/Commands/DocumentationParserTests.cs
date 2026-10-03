@@ -1,5 +1,5 @@
-using Microsoft.CodeAnalysis.CSharp;
 using Fanstatic.Commands.API;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

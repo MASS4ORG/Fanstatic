@@ -1,5 +1,5 @@
-using FolkerKinzel.MimeTypes;
 using Fanstatic.Helpers;
+using FolkerKinzel.MimeTypes;
 
 namespace Fanstatic.Models;
 

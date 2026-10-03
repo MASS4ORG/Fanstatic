@@ -167,7 +167,7 @@ public class ContentSource : IContentSource, IFile
     {
         ArgumentNullException.ThrowIfNull(site);
 
-        if (BundleType == BundleType.none)
+        if (BundleType == BundleType.None)
         {
             return this;
         }
@@ -198,7 +198,7 @@ public class ContentSource : IContentSource, IFile
         }
 
         var resourceFiles = Directory.GetFiles(sourceFullDir)
-            .Where(file => file != sourceFullPath && !IsBundleIndex(file) && (BundleType == BundleType.leaf ||
+            .Where(file => file != sourceFullPath && !IsBundleIndex(file) && (BundleType == BundleType.Leaf ||
                                                                               !file.EndsWith(".md",
                                                                                   StringComparison.OrdinalIgnoreCase)))
             .Select(file => Path.GetRelativePath(site.SourceContentPath, file));

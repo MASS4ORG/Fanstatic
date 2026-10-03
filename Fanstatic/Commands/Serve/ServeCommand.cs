@@ -1,8 +1,8 @@
 using System.Net;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.ServerHandlers;
+using Serilog;
 
 namespace Fanstatic.Commands.Serve;
 
@@ -150,7 +150,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             }
             else
             {
-                logger.Error($"Serving failed: {ex.Message}");
+                logger.Error("Serving failed: {ExMessage}", ex.Message);
             }
 
             return 1;
@@ -186,7 +186,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
 
         (Site as ISiteSettings).BaseUrl = fullBaseUrl;
 
-        _logger.Information("Site is live: {fullBaseUrl}", fullBaseUrl);
+        _logger.Information("Site is live: {FullBaseUrl}", fullBaseUrl);
         _logger.Information("Press Ctrl+C to stop");
 
         _loop = Task.Run(async () =>
@@ -205,11 +205,11 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             }
             catch (HttpListenerException) when (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                _logger.Error("Unexpected listener error.");
+                _logger.Error("Unexpected listener error");
             }
             catch (Exception ex) when (!_cancellationTokenSource.Token.IsCancellationRequested)
             {
-                _logger.Error(ex, "Error processing request.");
+                _logger.Error(ex, "Error processing request");
             }
         }, _cancellationTokenSource.Token);
     }
@@ -234,7 +234,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         }
         catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is TaskCanceledException))
         {
-            _logger.Debug("AggregateException, but it's fine.");
+            _logger.Debug("AggregateException, but it's fine");
         }
     }
 
@@ -276,7 +276,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             new RegisteredPageResourceRequest(Site)
         ];
 
-        _logger.Information("Site created.");
+        _logger.Information("Site created");
     }
 
     /// <summary>
@@ -324,7 +324,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.Debug(ex, "Error handling the request.");
+                _logger.Debug(ex, "Error handling the request");
             }
         }
 
@@ -367,7 +367,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
 
         if (_rebuildSemaphore.CurrentCount == 0)
         {
-            _logger.Debug("Restart already in progress. Marking pending restart.");
+            _logger.Debug("Restart already in progress. Marking pending restart");
             _restartPending = true;
             return;
         }

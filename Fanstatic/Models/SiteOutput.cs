@@ -1,9 +1,9 @@
 global using SiteOutputVariant = (string outputFormat, string? language);
 using System.Collections.Concurrent;
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
 using Fanstatic.TemplateEngine;
+using Serilog;
 
 
 namespace Fanstatic.Models;

@@ -1,7 +1,7 @@
 using System.Text;
-using Serilog;
 using Fanstatic.Commands.API;
 using Fanstatic.Commands.API.APIModels;
+using Serilog;
 using Xunit;
 
 namespace Fanstatic.Test.Commands;

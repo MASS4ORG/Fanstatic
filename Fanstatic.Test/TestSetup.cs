@@ -1,9 +1,9 @@
 using System.Globalization;
-using NSubstitute;
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using NSubstitute;
+using Serilog;
 
 namespace Fanstatic.Test;
 

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/lib/sdk/dotnet10/dotnet /app/lib/fanstatic/fanstatic.dll "$@"

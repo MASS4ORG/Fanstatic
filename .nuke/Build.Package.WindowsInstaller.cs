@@ -1,0 +1,25 @@
+namespace Fanstatic.NUKE;
+
+/// <summary>
+/// Builds the Windows installer included with regular Windows releases.
+/// See .nuke/packaging/windows/README.md before publishing an installer.
+/// </summary>
+sealed partial class Build
+{
+    AbsolutePath WindowsInstallerFile =>
+        ArtifactsDirectory / $"Fanstatic-{Version}-win-x64-setup.exe";
+
+    public Target WindowsInstaller => td => td
+        .DependsOn(Publish)
+        .OnlyWhenStatic(() => RuntimeIdentifier == "win-x64")
+        .Executes(() =>
+        {
+            ArtifactsDirectory.CreateDirectory();
+            WindowsInstallerFile.DeleteFile();
+            var script = Solution.Build.Directory / "packaging" / "windows" / "Fanstatic.nsi";
+            ProcessTasks.StartProcess("makensis",
+                    $"-V2 -DVERSION={Version} -DSOURCE_DIR=\"{PublishDir}\" " +
+                    $"-DOUTPUT_FILE=\"{WindowsInstallerFile}\" \"{script}\"")
+                .AssertZeroExitCode();
+        });
+}

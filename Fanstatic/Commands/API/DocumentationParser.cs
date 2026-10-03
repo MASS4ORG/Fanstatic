@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
 using System.Xml;
+using Fanstatic.Commands.API.APIModels;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Fanstatic.Commands.API.APIModels;
 
 namespace Fanstatic.Commands.API;
 

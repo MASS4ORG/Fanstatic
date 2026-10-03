@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using Serilog;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
 using Fanstatic.TemplateEngine;
+using Serilog;
 using YamlDotNet.Serialization;
 
 namespace Fanstatic.Models;
@@ -607,7 +607,7 @@ public class Site : ISite
     public void ProcessPages() =>
         _contentSources
             .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
-            .OrderBy(cs => cs.Value.BundleType == BundleType.none)
+            .OrderBy(cs => cs.Value.BundleType == BundleType.None)
             .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
             .Select(cs => cs.Value)
             .ToList()
@@ -711,7 +711,7 @@ public class Site : ISite
             };
             contentSource = new ContentSource(AddIndexAtPath(relativePath), frontMatter, string.Empty)
             {
-                BundleType = BundleType.branch,
+                BundleType = BundleType.Branch,
                 Kind = kind
             }
                 .ScanForResources(this);
@@ -766,7 +766,7 @@ public class Site : ISite
     void LogDuplicatePermalink(Uri permalink, IPage page)
     {
         Logger.Error(
-            "Duplicate RelPermalink '{permalink}' from `{file}`. It is already from '{from}'.",
+            "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{From}'",
             permalink,
             page.SourceRelativePath,
             (OutputReferences[permalink] as IFile)!.SourceRelativePath
@@ -914,7 +914,7 @@ public class Site : ISite
 
         var contentSource = new ContentSource(fileRelativePath, frontMatter, rawContent)
         {
-            BundleType = isLeaf ? BundleType.leaf : BundleType.branch
+            BundleType = isLeaf ? BundleType.Leaf : BundleType.Branch
         };
 
         _ = Interlocked.Increment(ref _filesParsedToReport);
@@ -1069,7 +1069,7 @@ public class Site : ISite
 
         if (!_contentSources.TryAdd(contentSource.SourceRelativePath, contentSource))
         {
-            Logger.Error("Duplicate front matter found : {filepath}", contentSource.SourceRelativePath);
+            Logger.Error("Duplicate front matter found : {Filepath}", contentSource.SourceRelativePath);
         }
 
         var sectionPath1 = AddIndexAtPath(contentSource.Section);
@@ -1100,7 +1100,7 @@ public class Site : ISite
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error parsing file {file}", fileFullPath);
+            Logger.Error(ex, "Error parsing file {File}", fileFullPath);
         }
 
         return (null, string.Empty);
@@ -1254,7 +1254,7 @@ public class Site : ISite
         }
         catch (FormatException ex)
         {
-            Logger.Error(ex, "Error rendering theme template: {templatePath}", templatePath);
+            Logger.Error(ex, "Error rendering theme template: {TemplatePath}", templatePath);
             return string.Empty;
         }
     }

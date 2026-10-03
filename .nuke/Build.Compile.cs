@@ -1,41 +1,43 @@
-namespace Build;
+namespace Fanstatic.NUKE;
 
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the build process.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    private Target Clean => s => s
+    Target Clean => td => td
         .Executes(() =>
         {
-            Solution.Fanstatic.Directory.GlobDirectories("**/bin", "**/obj", "**/output")
-                .ForEach((path) => path.DeleteDirectory()
-                );
-            Solution.Fanstatic_Test.Directory.GlobDirectories("**/bin", "**/obj", "**/output")
-                .ForEach((path) => path.DeleteDirectory()
-                );
+            Solution.AllProjects
+                .Where(project => project.Path != RootDirectory / ".nuke/Build.csproj")
+                .SelectMany(project => new[]
+                {
+                    project.Directory / "bin",
+                    project.Directory / "obj",
+                    project.Directory / "output",
+                })
+                .Distinct()
+                .Where(path => path.DirectoryExists())
+                .ForEach(path => path.DeleteDirectory());
             PublishDir.DeleteDirectory();
             CoverageDirectory.DeleteDirectory();
         });
 
-    private Target Restore => td => td
-        .After(Clean)
-        .Executes(() =>
-        {
-            _ = DotNetTasks.DotNetRestore(s => s
-                .SetProjectFile(Solution));
-        });
+    Target Restore => td => td
+        .DependsOn(Clean)
+        .Executes(() => _ = DotNetRestore(s => s.SetProjectFile(Solution)));
 
-    private Target Compile => td => td
-        .After(Restore)
+    Target Compile => td => td
+        .DependsOn(Restore)
         .Executes(() =>
         {
-            Log.Debug("Configuration {Configuration}", ConfigurationSet);
-            Log.Debug("configuration {configuration}", Configuration);
-            _ = DotNetTasks.DotNetBuild(s => s
+            Log.Debug("Config {Config}", Config);
+
+            _ = DotNetBuild(settings => settings
+                .SetNoLogo(true)
                 .SetProjectFile(Solution)
-                .SetConfiguration(ConfigurationSet)
+                .SetConfiguration(Config)
                 .EnableNoRestore()
             );
         });

@@ -1,9 +1,9 @@
-using NSubstitute;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
 using Fanstatic.ServerHandlers;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.ServerHandlers;

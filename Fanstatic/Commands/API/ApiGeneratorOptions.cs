@@ -26,7 +26,7 @@ public class ApiGeneratorOptions : GenerateOptions
     /// Specifies how to handle an existing output directory.
     /// </summary>
     [Option("output-policy", Required = false, HelpText = "Fail if output directory already exists.")]
-    public OutputPolicy OutputPolicy { get; init; } = OutputPolicy.delete;
+    public OutputPolicy OutputPolicy { get; init; } = OutputPolicy.Delete;
 
     /// <summary>
     /// Filter which assemblies or namespaces to include in the API documentation.

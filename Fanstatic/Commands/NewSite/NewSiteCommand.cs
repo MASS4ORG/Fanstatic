@@ -1,7 +1,7 @@
-using Serilog;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
+using Serilog;
 
 namespace Fanstatic.Commands.NewSite;
 
@@ -64,11 +64,11 @@ public sealed class NewSiteCommand(NewSiteOptions options, ILogger logger, IFile
 
         if (fileSystem.FileExists(siteSettingsPath) && !options.Force)
         {
-            logger.Error("{directoryPath} already exists", outputPath);
+            logger.Error("{DirectoryPath} already exists", outputPath);
             return 1;
         }
 
-        logger.Information("Creating a new site: {title} at {outputPath}", site.Title, outputPath);
+        logger.Information("Creating a new site: {Title} at {OutputPath}", site.Title, outputPath);
 
         try
         {

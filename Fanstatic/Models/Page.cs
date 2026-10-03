@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Markdig;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
+using Markdig;
+using Microsoft.Extensions.FileSystemGlobbing;
 
 namespace Fanstatic.Models;
 

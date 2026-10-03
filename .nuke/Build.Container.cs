@@ -1,45 +1,31 @@
 using Cri = (string identifier, string family);
 
-namespace Build;
+namespace Fanstatic.NUKE;
 
 /// <summary>
-/// This partial is responsible for building and publishing OCI container images
-/// using the native .NET SDK container support.
+/// This is the main build file for the project.
+/// This partial is responsible for building and pushing the OCI container image.
+/// The .NET SDK produces and pushes the image directly, so no Docker/Podman daemon is required.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    [Parameter("GitLab CI_REGISTRY_IMAGE")]
-    public readonly string ContainerRegistryImage;
+    [Parameter("Comma-separated image repositories to tag/push, e.g. ghcr.io/mass4org/fanstatic")]
+    readonly string ContainerRegistries = "";
 
-    private string RegistryImage => ContainerRegistryImage ?? "fanstatic";
+    [Parameter("Registry user used to authenticate the container push (example: gitlab-ci-token)")]
+    readonly string ContainerRegistryUser;
 
-    /// <summary>
-    /// The image repository without the registry host. When pushing to a remote
-    /// registry the SDK rejects a <c>ContainerRepository</c> that contains the
-    /// host, so strip it when it matches <see cref="ContainerRegistry"/> (this
-    /// lets CI pass the full <c>$CI_REGISTRY_IMAGE</c> unchanged). Registries
-    /// (GHCR included) reject mixed-case repository paths, so lowercase it too -
-    /// GitHub's <c>owner/repo</c> preserves the repository's casing.
-    /// </summary>
-    private string ContainerRepositoryPath =>
-        (!string.IsNullOrWhiteSpace(ContainerRegistry) &&
-        RegistryImage.StartsWith(ContainerRegistry + "/",
-            StringComparison.OrdinalIgnoreCase)
-            ? RegistryImage[(ContainerRegistry.Length + 1)..]
-            : RegistryImage).ToLowerInvariant();
+    [Parameter("Registry password/token used to authenticate the container push")]
+    [Secret]
+    readonly string ContainerRegistryPassword;
+
+    string[] ContainerAllRegistries =>
+        ContainerRegistries.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     [Parameter("Default runtime that also receives generic tags")]
-    public readonly string ContainerDefaultRid = "linux-x64";
+    readonly string ContainerDefaultRid = "linux-x64";
 
-    /// <summary>
-    /// Registry host (example: registry.gitlab.com). When set, the image is
-    /// pushed there by the SDK. Leave empty to only build a throwaway archive
-    /// (see <see cref="CreateContainer"/>).
-    /// </summary>
-    [Parameter("Container registry host")]
-    public readonly string ContainerRegistry;
-
-    private Cri? ContainerRuntimeIdentifier => RuntimeIdentifier switch
+    Cri? ContainerRuntimeIdentifier => RuntimeIdentifier switch
     {
         "linux-x64" => ("linux-x64", "noble-chiseled"),
         "linux-arm64" => ("linux-arm64", "noble-chiseled"),
@@ -48,111 +34,109 @@ partial class Build
     };
 
     /// <summary>
-    /// Throwaway path for the image archive produced by <see cref="CreateContainer"/>.
+    /// Throwaway path for the image archive produced by <see cref="ContainerBuild"/>.
     /// </summary>
-    private AbsolutePath ContainerArchive =>
+    AbsolutePath ContainerArchive =>
         PublishDir / $"fanstatic-{RuntimeIdentifier}.tar.gz";
 
     /// <summary>
-    /// Builds the container image to a throwaway archive on every commit, only to
-    /// verify the release image still builds. It runs the exact same build as
-    /// <see cref="PublishContainer"/> but writes a tarball instead of pushing, so
-    /// it needs no Docker/Podman daemon and runs on any runner. The archive is
-    /// discarded.
+    /// Builds the container image to a throwaway archive on every commit, only to verify the release image
+    /// still builds. It runs the exact same build as <see cref="ContainerPush"/> but writes a tarball
+    /// instead of pushing, so it needs no container daemon and runs on any runner. The archive is discarded.
     /// </summary>
-    private Target CreateContainer => td => td
+    public Target ContainerBuild => td => td
+        .DependsOn(Restore)
         .OnlyWhenStatic(() => ContainerRuntimeIdentifier is not null)
-        .Executes(() => PublishContainerImage());
+        .Executes(() => ContainerPublish(null));
 
     /// <summary>
-    /// Publishes the container image directly to the configured registry.
+    /// Pushes the image built by <see cref="ContainerBuild"/> to every repository listed in
+    /// <see cref="ContainerAllRegistries"/>, tagged with both the release version and the generic tags.
+    /// The CI job is responsible for supplying registry credentials beforehand.
     /// </summary>
-    public Target PublishContainer => td => td
+    public Target ContainerPush => td => td
+        .DependsOn(ContainerBuild)
+        .Requires(() => ContainerRegistries)
         .OnlyWhenStatic(() => ContainerRuntimeIdentifier is not null)
-        .Requires(() => ContainerRegistry)
-        .Executes(() => PublishContainerImage(ContainerRegistry));
+        .Executes(() =>
+        {
+            foreach (var registry in ContainerAllRegistries)
+            {
+                var separator = registry.IndexOf('/');
+                if (separator < 1)
+                {
+                    throw new InvalidOperationException(
+                        $"'{registry}' is not a registry-qualified repository (expected e.g. ghcr.io/mass4org/fanstatic).");
+                }
 
-    private void PublishContainerImage(string registry = null)
+                ContainerPublish((registry[..separator], registry[(separator + 1)..].ToLowerInvariant()));
+            }
+        });
+
+    /// <summary>
+    /// Runs the .NET SDK container publish, either writing a throwaway archive (no registry) or pushing to
+    /// the given registry host and repository path.
+    /// </summary>
+    void ContainerPublish((string host, string path)? registry)
     {
         var cri = ContainerRuntimeIdentifier!.Value;
 
-        // NUKE currently requires the surrounding spaces/quotes so the
-        // semicolon-separated list reaches MSBuild intact.
+        // NUKE currently requires the surrounding spaces/quotes so the semicolon-separated list reaches MSBuild intact.
         var tags = " \"" + string.Join(";", ContainerTags()) + "\" ";
 
-        DotNetTasks.DotNetPublish(s =>
+        DotNetPublish(settings =>
         {
-            s = s
+            settings = settings
                 .SetProject(Solution.Fanstatic)
-                .SetConfiguration(ConfigurationSet)
+                .SetConfiguration(Config)
                 .SetOutput(PublishDir)
                 .SetRuntime(RuntimeIdentifier)
                 .SetSelfContained(PublishSelfContained)
                 .SetPublishSingleFile(PublishSingleFile)
                 .SetPublishTrimmed(PublishTrimmed)
                 .SetPublishReadyToRun(PublishReadyToRun)
-                .SetVersion(CurrentVersion)
-                .SetAssemblyVersion(CurrentVersion)
-                .SetInformationalVersion(CurrentVersion)
-                .AddProperty("EnableSdkContainerSupport", true)
-                .AddProperty("ContainerAppCommandInstruction", "None")
-                .AddProperty("ContainerWorkingDirectory", "/bin")
-                .AddProperty("ContainerRepository", ContainerRepositoryPath)
-                .AddProperty("ContainerImageTags", tags)
-                .AddProperty("ContainerFamily", cri.family)
+                .SetVersion(Version)
+                .SetAssemblyVersion(Version)
+                .SetInformationalVersion(Version)
+                .SetProperty("TrimMode", "partial")
+                .SetProperty("EnableTrimAnalyzer", PublishTrimmed)
+                .SetProperty("EnableCompressionInSingleFile", "true")
+                .SetProperty("EnableSdkContainerSupport", "true")
+                .SetProperty("ContainerAppCommandInstruction", "None")
+                .SetProperty("ContainerWorkingDirectory", "/bin")
+                .SetProperty("ContainerImageTags", tags)
+                .SetProperty("ContainerFamily", cri.family)
                 // The SDK only produces/pushes the image when this target runs;
                 // a plain publish would skip container creation entirely.
-                .AddProcessAdditionalArguments("-target:PublishContainer");
+                .SetProcessAdditionalArguments("-target:PublishContainer");
 
-            if (!string.IsNullOrWhiteSpace(registry))
+            if (registry is not ({ } host, { } path))
             {
-                // Push straight to the remote registry over HTTP - no Docker or
-                // Podman daemon required. The SDK reads credentials from these
-                // env vars; in GitLab CI the job token authenticates the push.
-                s = s.AddProperty("ContainerRegistry", registry);
-
-                if (GitLab is not null && !string.IsNullOrEmpty(GitLab.JobToken))
-                {
-                    s = s
-                        .SetProcessEnvironmentVariable(
-                            "SDK_CONTAINER_REGISTRY_UNAME", "gitlab-ci-token")
-                        .SetProcessEnvironmentVariable(
-                            "SDK_CONTAINER_REGISTRY_PWORD", GitLab.JobToken);
-                }
-                else if (!string.IsNullOrWhiteSpace(GitHubToken))
-                {
-                    // GitHub Actions: authenticate the GHCR push with a token
-                    // (the workflow token or a PAT from the ADMIN_ACCESS_TOKEN secret).
-                    s = s
-                        .SetProcessEnvironmentVariable(
-                            "SDK_CONTAINER_REGISTRY_UNAME",
-                            Environment.GetEnvironmentVariable("GITHUB_ACTOR") ?? "github-actions")
-                        .SetProcessEnvironmentVariable(
-                            "SDK_CONTAINER_REGISTRY_PWORD", GitHubToken);
-                }
-            }
-            else
-            {
-                // No registry: write the image to a throwaway archive instead of
-                // loading it into a local daemon, so no engine is needed.
-                s = s.AddProperty("ContainerArchiveOutputPath", ContainerArchive);
+                // No registry: write the image to a throwaway archive instead of loading it into a local
+                // daemon, so no engine is needed.
+                return settings.SetProperty("ContainerArchiveOutputPath", ContainerArchive);
             }
 
-            return s;
+            return settings
+                .SetProperty("ContainerRegistry", host)
+                // Registries reject a repository path containing the host, so the caller passes it split.
+                .SetProperty("ContainerRepository", path)
+                .SetProcessEnvironmentVariable("SDK_CONTAINER_REGISTRY_UNAME", ContainerRegistryUser ?? string.Empty)
+                .SetProcessEnvironmentVariable("SDK_CONTAINER_REGISTRY_PWORD", ContainerRegistryPassword ?? string.Empty);
         });
     }
 
     /// <summary>
     /// Returns all tags that should be applied to the generated image.
     /// </summary>
-    private List<string> ContainerTags()
+    List<string> ContainerTags()
     {
         var cri = ContainerRuntimeIdentifier!.Value;
         var localTag = IsLocalBuild ? "local" : string.Empty;
 
         var genericTags = new[]
             {
-                VersionFull,
+                Version,
                 VersionMajorMinor,
                 VersionMajor,
                 string.Empty
