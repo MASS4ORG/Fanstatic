@@ -59,5 +59,6 @@ coverage/
 qodana.yaml
 qodana.sarif.json
 
+docs/internal
 .script.[sp][hy]
 .script-[0-9].[sp][hy]

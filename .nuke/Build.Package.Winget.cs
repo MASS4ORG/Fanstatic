@@ -12,6 +12,11 @@ sealed partial class Build
     [Parameter("Generate platform package manifests with a placeholder URL and without publishing")]
     readonly bool PackagingDryRun;
 
+    /// <summary>
+    /// Newest manifest schema the winget client on CI runners understands; a newer one fails `winget validate`.
+    /// </summary>
+    const string WingetManifestVersion = "1.10.0";
+
     public Target WingetManifest => td => td
         .DependsOn(WindowsInstaller)
         .Executes(() =>
@@ -30,15 +35,15 @@ sealed partial class Build
             manifestDirectory.CreateOrCleanDirectory();
 
             (manifestDirectory / "MASS4ORG.Fanstatic.yaml").WriteAllText($"""
-                # yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+                # yaml-language-server: $schema=https://aka.ms/winget-manifest.version.{WingetManifestVersion}.schema.json
                 PackageIdentifier: MASS4ORG.Fanstatic
                 PackageVersion: {Version}
                 DefaultLocale: en-US
                 ManifestType: version
-                ManifestVersion: 1.12.0
+                ManifestVersion: {WingetManifestVersion}
                 """ + "\n");
             (manifestDirectory / "MASS4ORG.Fanstatic.installer.yaml").WriteAllText($"""
-                # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+                # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.{WingetManifestVersion}.schema.json
                 PackageIdentifier: MASS4ORG.Fanstatic
                 PackageVersion: {Version}
                 InstallerType: nullsoft
@@ -53,18 +58,15 @@ sealed partial class Build
                   - DisplayName: Fanstatic
                     DisplayVersion: {Version}
                     Publisher: Bruno Massa
-                Dependencies:
-                  PackageDependencies:
-                    - PackageIdentifier: Microsoft.DotNet.SDK.10
                 Installers:
                   - Architecture: x64
                     InstallerUrl: {installerUrl}
                     InstallerSha256: {hash}
                 ManifestType: installer
-                ManifestVersion: 1.12.0
+                ManifestVersion: {WingetManifestVersion}
                 """ + "\n");
             (manifestDirectory / "MASS4ORG.Fanstatic.locale.en-US.yaml").WriteAllText($"""
-                # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+                # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.{WingetManifestVersion}.schema.json
                 PackageIdentifier: MASS4ORG.Fanstatic
                 PackageVersion: {Version}
                 PackageLocale: en-US
@@ -86,7 +88,7 @@ sealed partial class Build
                   - blog
                   - markdown
                 ManifestType: defaultLocale
-                ManifestVersion: 1.12.0
+                ManifestVersion: {WingetManifestVersion}
                 """ + "\n");
         });
 }

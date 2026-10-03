@@ -15,7 +15,8 @@ The Winget manifests are generated, never hand-edited. `WingetManifest` hashes t
    ```
 
    Output goes to `artifacts/winget/<version>`: `MASS4ORG.Fanstatic.yaml`, `MASS4ORG.Fanstatic.installer.yaml`
-   and `MASS4ORG.Fanstatic.locale.en-US.yaml`, targeting Winget manifest schema `1.12.0`.
+   and `MASS4ORG.Fanstatic.locale.en-US.yaml`, targeting Winget manifest schema `1.10.0`. Keep the schema no newer than the winget client on the CI
+   runners (`winget --version`); `winget validate` reports an unknown schema as a warning and exits non-zero.
 3. Validate them:
 
    ```sh
@@ -27,5 +28,5 @@ The Winget manifests are generated, never hand-edited. `WingetManifest` hashes t
    [`manifests/`](manifests/m/mass4org/Fanstatic) as the record of what shipped.
 
 CI runs the same target with `--packaging-dry-run` on every commit, which generates the manifests and checks
-the installer hash without needing a published URL. The dependency on the .NET 10 SDK is declared with
-`PackageType: zip`, because `winget install` on a machine without the SDK cannot run the binary.
+the installer hash without needing a published URL. The installed binary is self-contained, so the manifest
+declares no dependencies. `winget` cannot run under Wine, so manifests are only validated on the Windows runner.

@@ -15,8 +15,8 @@ that format; generated packages land in `artifacts/`.
 ## Runtime identifiers
 
 `linux-x64`, `linux-arm64`, `linux-musl-x64`, `win-x64` and `osx-x64` are released, matching Turian.
-Everything is published self-contained, so the target machine needs no .NET runtime; the Winget manifest still
-declares the .NET SDK dependency so a machine without it gets it installed.
+Everything is published self-contained, so the target machine needs no .NET runtime and the Winget manifest
+declares no dependencies.
 
 ## Adding a format
 
