@@ -167,10 +167,20 @@ jobs:
                     throw "The uninstaller did not remove the PATH entry"
                   }
 
+            # wingetcreate has no validate command; `winget validate` is the official validator. The runner
+            # image may not ship winget, so it is bootstrapped through the Microsoft.WinGet.Client module.
             - name: Validate Winget manifests
               run: |
-                  dotnet tool install --global wingetcreate
-                  wingetcreate validate (Resolve-Path "artifacts/winget/*").Path
+                  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+                    Install-PackageProvider -Name NuGet -Force | Out-Null
+                    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null
+                    Repair-WinGetPackageManager -AllUsers -Latest -Force
+                    $env:Path = "$env:LOCALAPPDATA\Microsoft\WindowsApps;$env:Path"
+                  }
+                  winget --version
+                  $manifests = (Get-ChildItem "artifacts/winget" -Directory | Select-Object -First 1).FullName
+                  winget validate --manifest $manifests --disable-interactivity
+                  if ($LASTEXITCODE -ne 0) { throw "winget validate failed with exit code $LASTEXITCODE" }
 
             - name: Upload packages
               uses: actions/upload-artifact@v7

@@ -58,3 +58,6 @@ project.lock.json
 coverage/
 qodana.yaml
 qodana.sarif.json
+
+.script.[sp][hy]
+.script-[0-9].[sp][hy]

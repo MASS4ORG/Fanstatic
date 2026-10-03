@@ -19,7 +19,7 @@ The Winget manifests are generated, never hand-edited. `WingetManifest` hashes t
 3. Validate them:
 
    ```sh
-   wingetcreate validate artifacts/winget/<version>
+   winget validate --manifest artifacts/winget/<version>
    ```
 
 4. Fork `microsoft/winget-pkgs`, copy the three files to `manifests/m/MASS4ORG/Fanstatic/<version>/` inside
