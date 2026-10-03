@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Added Winget and Windows Installer
-- Added macOS package
-- Change code organization
+## [7.1.0] - 2026-10-03
+
+- Added: Winget and Windows Installer
 
 ## [7.0.2] - 2026-09-19
 
@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First Commit!
 
-[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.0.2...HEAD
+[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.1.0...HEAD
+[7.1.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.0.2...v7.1.0
 [7.0.2]: https://github.com/MASS4ORG/Fanstatic/compare/v7.0.1...v7.0.2
 [7.0.1]: https://github.com/MASS4ORG/Fanstatic/compare/v7.0.0...v7.0.1
 [7.0.0]: https://github.com/MASS4ORG/Fanstatic/compare/v6.9.0...v7.0.0
