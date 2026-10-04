@@ -34,6 +34,15 @@ public interface IFileSystem
     string[] DirectoryGetFiles(string path, string searchPattern);
 
     /// <summary>
+    /// Directory.GetFiles
+    /// </summary>
+    /// <param name="path"></param>
+    /// <param name="searchPattern"></param>
+    /// <param name="recursive">Whether to include files in subdirectories.</param>
+    /// <returns></returns>
+    string[] DirectoryGetFiles(string path, string searchPattern, bool recursive);
+
+    /// <summary>
     /// Directory.GetDirectories
     /// </summary>
     /// <param name="path"></param>
@@ -88,6 +97,11 @@ public class FileSystem : IFileSystem
 
     /// <inheritdoc/>
     public string[] DirectoryGetFiles(string path, string searchPattern) => Directory.GetFiles(path, searchPattern);
+
+    /// <inheritdoc/>
+    public string[] DirectoryGetFiles(string path, string searchPattern, bool recursive) =>
+        Directory.GetFiles(path, searchPattern,
+            recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
     /// <inheritdoc/>
     public string[] DirectoryGetDirectories(string path) => Directory.GetDirectories(path);

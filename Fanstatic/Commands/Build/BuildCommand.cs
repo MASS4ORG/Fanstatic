@@ -128,7 +128,7 @@ public class BuildCommand : BaseGeneratorCommand
     }
 
     /// <summary>
-    /// Copy a folder content from source into the output folder.
+    /// Copy a folder content from source into the output folder, keeping subfolders.
     /// </summary>
     /// <param name="source">The source folder to copy from.</param>
     /// <param name="output">The output folder to copy to.</param>
@@ -143,16 +143,21 @@ public class BuildCommand : BaseGeneratorCommand
         // Create the output folder if it doesn't exist
         Fs.DirectoryCreateDirectory(output);
 
-        // Get all files in the source folder
-        var files = Fs.DirectoryGetFiles(source);
+        var sourceRoot = Path.GetFullPath(source);
+
+        // Get all files in the source folder and its subfolders
+        var files = Fs.DirectoryGetFiles(source, "*.*", recursive: true);
 
         foreach (var fileFullPath in files)
         {
-            // Get the filename from the full path
-            var fileName = Path.GetFileName(fileFullPath);
+            // Keep the file inside the subfolder it came from
+            var relativePath = Path.GetRelativePath(sourceRoot, fileFullPath);
 
-            // Create the destination path by combining the output folder and the filename
-            var destinationFullPath = Path.Combine(output, fileName);
+            // Create the destination path by combining the output folder and the relative path
+            var destinationFullPath = Path.Combine(output, relativePath);
+
+            // Subfolders do not exist in the output yet
+            Fs.DirectoryCreateDirectory(Path.GetDirectoryName(destinationFullPath)!);
 
             // Copy the file to the output folder
             Fs.FileCopy(fileFullPath, destinationFullPath, overwrite: true);

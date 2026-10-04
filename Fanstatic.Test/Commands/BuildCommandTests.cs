@@ -83,6 +83,43 @@ public class BuildCommandTests : TestSetup
         _fileSystem.DidNotReceive().DirectoryCreateDirectory(Arg.Any<string>());
     }
 
+    [Fact]
+    public void CopyFolder_ShouldKeepSubfolders_WhenSourceFolderHasNestedFiles()
+    {
+        // Arrange
+        _fileSystem.DirectoryExists("sourceFolder").Returns(true);
+        _fileSystem.DirectoryGetFiles("sourceFolder", "*.*", true).Returns(
+        [
+            Path.Combine("sourceFolder", "robots.txt"),
+            Path.Combine("sourceFolder", "css", "site.css")
+        ]);
+        var buildCommand = new BuildCommand(_options, _logger, _fileSystem);
+
+        // Act
+        buildCommand.CopyFolder("sourceFolder", "outputFolder");
+
+        // Assert
+        _fileSystem.Received(1).DirectoryCreateDirectory(Path.Combine("outputFolder", "css"));
+        _fileSystem.Received(1).FileCopy(Path.Combine("sourceFolder", "robots.txt"),
+            Path.Combine("outputFolder", "robots.txt"), true);
+        _fileSystem.Received(1).FileCopy(Path.Combine("sourceFolder", "css", "site.css"),
+            Path.Combine("outputFolder", "css", "site.css"), true);
+    }
+
+    [Fact]
+    public void CopyFolder_ShouldNotCopyAnything_WhenSourceFolderHasNoFiles()
+    {
+        // Arrange
+        _fileSystem.DirectoryExists("sourceFolder").Returns(true);
+        var buildCommand = new BuildCommand(_options, _logger, _fileSystem);
+
+        // Act
+        buildCommand.CopyFolder("sourceFolder", "outputFolder");
+
+        // Assert
+        _fileSystem.DidNotReceive().FileCopy(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>());
+    }
+
     [Theory]
     [InlineData(TestSitePathConst07, 1, 0)]
     [InlineData(TestSitePathConst06, 0, 0)]
@@ -97,6 +134,34 @@ public class BuildCommandTests : TestSetup
         // Assert
         Assert.Equal(expectedExitCode, exitCode);
         Assert.Equal(expectedContinueOnErrorExitCode, continueOnErrorExitCode);
+    }
+
+    [Fact]
+    public async Task Run_ShouldCopyNestedStaticFolders()
+    {
+        // Arrange
+        var outputPath = NewOutputPath();
+        var options = new BuildOptions
+        {
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst16)),
+            Output = outputPath
+        };
+
+        try
+        {
+            // Act
+            var exitCode = await BuildCommand.Create(options, _logger);
+
+            // Assert
+            Assert.Equal(0, exitCode);
+            Assert.Equal("body { color: rebeccapurple; }", File.ReadAllText(Path.Combine(outputPath, "css", "site.css")));
+            Assert.Equal("console.log('theme');", File.ReadAllText(Path.Combine(outputPath, "js", "app.js")));
+            Assert.Equal("SITE-ROOT-FILE", File.ReadAllText(Path.Combine(outputPath, "robots.txt")));
+        }
+        finally
+        {
+            DeleteOutput(outputPath);
+        }
     }
 
     [Fact]
@@ -120,7 +185,7 @@ public class BuildCommandTests : TestSetup
 
     async Task<int> BuildSite(string testSitePath, bool continueOnError, ILogger? logger = null)
     {
-        var outputPath = Path.Combine(Path.GetTempPath(), "fanstatic-test-" + Guid.NewGuid().ToString("N")[..8]);
+        var outputPath = NewOutputPath();
         var options = new BuildOptions
         {
             SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, testSitePath)),
@@ -134,10 +199,18 @@ public class BuildCommandTests : TestSetup
         }
         finally
         {
-            if (Directory.Exists(outputPath))
-            {
-                Directory.Delete(outputPath, recursive: true);
-            }
+            DeleteOutput(outputPath);
+        }
+    }
+
+    static string NewOutputPath() =>
+        Path.Combine(Path.GetTempPath(), "fanstatic-test-" + Guid.NewGuid().ToString("N")[..8]);
+
+    static void DeleteOutput(string outputPath)
+    {
+        if (Directory.Exists(outputPath))
+        {
+            Directory.Delete(outputPath, recursive: true);
         }
     }
 }

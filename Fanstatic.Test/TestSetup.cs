@@ -25,6 +25,7 @@ public class TestSetup
     protected const string TestSitePathConst09 = ".TestSites/09-cascade";
     protected const string TestSitePathConst11 = ".TestSites/11-page-resources";
     protected const string TestSitePathConst15 = ".TestSites/15-missing-partial";
+    protected const string TestSitePathConst16 = ".TestSites/16-static-nested";
 
     protected readonly IFrontMatterParser FrontMatterParser = new YamlParser();
     protected readonly IFrontMatterParser FrontMatterParserMock = Substitute.For<IFrontMatterParser>();
