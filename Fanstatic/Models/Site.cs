@@ -388,11 +388,18 @@ public class Site : ISite
     #endregion
 
     /// <summary>
-    /// Number of files parsed, used in the report.
+    /// Number of Markdown files read, used in the report.
     /// </summary>
     public int FilesParsedToReport => _filesParsedToReport;
 
+    /// <summary>
+    /// Number of pages created, used in the report.
+    /// </summary>
+    public int PagesCreatedToReport => _pagesCreatedToReport;
+
     int _filesParsedToReport;
+
+    int _pagesCreatedToReport;
 
     const string IndexLeafFileConst = "index.md";
 
@@ -462,6 +469,9 @@ public class Site : ISite
             {
                 return;
             }
+
+            // Use interlocked to safely increment the counter in a multithreaded environment
+            _ = Interlocked.Increment(ref _filesParsedToReport);
 
             var contentSource = new ContentSource(Path.GetRelativePath(SourceContentPath, filePath), frontMatter,
                     rawContent)
@@ -626,36 +636,52 @@ public class Site : ISite
             contentSource.ContentSourceParent.ContentSourceToPages.AddRange(parents);
         }
 
-        var outputFormats = GetUniqueOutputFormats(contentSource.Kind, KindOutputFormats).ToList();
-
         if (IsPageValid(contentSource, Options))
         {
-            foreach (var outputFormat in outputFormats)
-            {
-                SiteOutputVariant siteVariant = (outputFormat, contentSource.Language);
-                _siteVariants.TryGetValue(siteVariant, out var siteOutput);
-                if (siteOutput is null)
-                {
-                    siteOutput = new SiteOutput(this, siteVariant);
-                    _siteVariants.Add(siteVariant, siteOutput);
-                }
-
-                Page page = new(contentSource, this, siteOutput, siteVariant, outputFormats);
-                PostProcessPage(page, true);
-                contentSource.ContentSourceToPages.Add(page);
-                pages.Add(page);
-
-                if (Home is null && page.SourceRelativePath is IndexBranchFileConst or IndexLeafFileConst)
-                {
-                    Home = page;
-                }
-            }
+            PageCreateVariants(contentSource,
+                GetUniqueOutputFormats(contentSource.Kind, KindOutputFormats), pages);
         }
 
-        // Use interlocked to safely increment the counter in a multithreaded environment
-        _ = Interlocked.Increment(ref _filesParsedToReport);
-
         return pages;
+    }
+
+    /// <summary>
+    /// Create one page per output format of the content source.
+    /// </summary>
+    void PageCreateVariants(ContentSource contentSource, List<string> outputFormats, List<Page> pages)
+    {
+        foreach (var outputFormat in outputFormats)
+        {
+            var page = PageCreateVariant(contentSource, outputFormat, outputFormats);
+            contentSource.ContentSourceToPages.Add(page);
+            pages.Add(page);
+
+            // Use interlocked to safely increment the counter in a multithreaded environment
+            _ = Interlocked.Increment(ref _pagesCreatedToReport);
+
+            if (Home is null && page.SourceRelativePath is IndexBranchFileConst or IndexLeafFileConst)
+            {
+                Home = page;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Create the page of a content source for a single output format.
+    /// </summary>
+    Page PageCreateVariant(ContentSource contentSource, string outputFormat, List<string> outputFormats)
+    {
+        SiteOutputVariant siteVariant = (outputFormat, contentSource.Language);
+        _siteVariants.TryGetValue(siteVariant, out var siteOutput);
+        if (siteOutput is null)
+        {
+            siteOutput = new SiteOutput(this, siteVariant);
+            _siteVariants.Add(siteVariant, siteOutput);
+        }
+
+        Page page = new(contentSource, this, siteOutput, siteVariant, outputFormats);
+        PostProcessPage(page, true);
+        return page;
     }
 
     /// <summary>

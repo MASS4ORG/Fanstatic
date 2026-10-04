@@ -59,7 +59,7 @@ public static class SiteHelper
 
         site.ProcessPages();
 
-        stopwatch.Stop("Generate Pages", site.FilesParsedToReport);
+        stopwatch.Stop("Generate Pages", site.PagesCreatedToReport);
 
         return site;
     }

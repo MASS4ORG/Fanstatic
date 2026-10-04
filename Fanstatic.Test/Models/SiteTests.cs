@@ -485,4 +485,79 @@ public class SiteTests : TestSetup
         Assert.Equal("Cover art", resource.Title);
         Assert.Equal("Alt text", resource.Params["alt"]);
     }
+
+    [Theory]
+    [InlineData(TestSitePathConst01)]
+    [InlineData(TestSitePathConst02)]
+    [InlineData(TestSitePathConst03)]
+    [InlineData(TestSitePathConst04)]
+    [InlineData(TestSitePathConst09)]
+    public void FilesParsedToReport_ShouldEqualMarkdownFileCount(string sitePath)
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument =
+                Path.GetFullPath(Path.Combine(TestSitesPath, sitePath))
+        };
+        var site = new Site(options, SiteSettingsMock, FrontMatterParser, LoggerMock, SystemClockMock);
+        var markdownFiles = Directory.GetFiles(site.SourceContentPath, "*.md",
+            SearchOption.AllDirectories);
+
+        // Act
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        // Assert
+        Assert.Equal(markdownFiles.Length, site.FilesParsedToReport);
+    }
+
+    [Fact]
+    public void PagesCreatedToReport_ShouldCountEveryCreatedPage()
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument =
+                Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst01))
+        };
+        var site = new Site(options, SiteSettingsMock, FrontMatterParser, LoggerMock, SystemClockMock);
+
+        // Act
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        // Assert
+        Assert.Equal(site.Pages.Count(), site.PagesCreatedToReport);
+    }
+
+    [Fact]
+    public void PageCreate_ShouldAlsoCreateThePagesOfTheParent()
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument =
+                Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst01))
+        };
+        var parser = new YamlParser();
+        var siteSettings =
+            SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, siteSettings, parser, LoggerMock, null);
+        var parent = new ContentSource("blog/_index.md",
+            new FrontMatter { Title = "Blog" }, string.Empty)
+        {
+            BundleType = BundleType.Branch
+        };
+        var child = new ContentSource("blog/post-01.md",
+            new FrontMatter { Title = "Post" }, string.Empty)
+        {
+            ContentSourceParent = parent
+        };
+
+        // Act
+        var pages = site.PageCreate(child);
+
+        // Assert
+        Assert.NotEmpty(parent.ContentSourceToPages);
+        Assert.All(parent.ContentSourceToPages, page => Assert.Contains(page, pages));
+        Assert.NotEmpty(child.ContentSourceToPages);
+    }
 }
