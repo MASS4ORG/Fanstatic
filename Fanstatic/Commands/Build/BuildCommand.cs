@@ -46,6 +46,13 @@ public class BuildCommand : BaseGeneratorCommand
         // Generate the build report
         Stopwatch.LogReport(Site.Title);
 
+        if (Site.TemplateErrors.Count > 0)
+        {
+            Logger.Error("Build failed: {TemplateErrorCount} template error(s), see above", Site.TemplateErrors.Count);
+
+            return _options.ContinueOnError ? 0 : 1;
+        }
+
         return 0;
     }
 

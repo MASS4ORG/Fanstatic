@@ -78,19 +78,21 @@ public class FluidTemplateEngine : ITemplateEngine
     }
 
     /// <inheritdoc/>
-    public void PreCompileTheme(string themePath)
+    public IReadOnlyList<TemplateError> PreCompileTheme(string themePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(themePath);
 
         var fullThemePath = Path.GetFullPath(themePath);
         if (!Directory.Exists(fullThemePath))
         {
-            return;
+            return [];
         }
 
         _themePath = fullThemePath;
         _compiledCache.Clear();
         _templateBodyByKey.Clear();
+
+        List<TemplateError> errors = [];
 
         foreach (var file in Directory.EnumerateFiles(fullThemePath, "*.*", SearchOption.AllDirectories))
         {
@@ -108,8 +110,17 @@ public class FluidTemplateEngine : ITemplateEngine
             _templateBodyByKey[fullPath] = body;
             _templateBodyByKey['/' + relativePath] = body;
 
-            _ = _compiledCache.GetOrAdd(body, d => FluidParser.TryParse(d, out var t, out _) ? t : null);
+            if (FluidParser.TryParse(body, out var template, out var parseError))
+            {
+                _ = _compiledCache.GetOrAdd(body, _ => template);
+                continue;
+            }
+
+            _ = _compiledCache.GetOrAdd(body, _ => null);
+            errors.Add(TemplateError.FromFluidParseError(fullPath, parseError, body));
         }
+
+        return errors;
     }
 
     /// <inheritdoc/>
@@ -123,7 +134,19 @@ public class FluidTemplateEngine : ITemplateEngine
         var template = GetCompiledTemplate(templateBody);
 
         var context = SeedContext(site, page, counter);
-        return template.Render(context);
+        return RenderTemplate(template, templateBody, context);
+    }
+
+    static string RenderTemplate(IFluidTemplate template, string templateBody, TemplateContext context)
+    {
+        try
+        {
+            return template.Render(context);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw TemplateRenderException.MissingTemplate(ex.Message, templateBody, ex);
+        }
     }
 
     /// <inheritdoc/>
@@ -136,7 +159,7 @@ public class FluidTemplateEngine : ITemplateEngine
         var template = GetCompiledTemplate(templateBody);
 
         var context = SeedContext(site, page);
-        return template.Render(context);
+        return RenderTemplate(template, templateBody, context);
     }
 
     TemplateContext SeedContext(ISite site, IPage page, int? counter = null)

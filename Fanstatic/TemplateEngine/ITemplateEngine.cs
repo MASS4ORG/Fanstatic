@@ -14,10 +14,11 @@ public interface ITemplateEngine
     void Initialize(Site site);
 
     /// <summary>
-    /// Precompiles all templates from the theme path.
+    /// Precompiles all templates from the theme path, reporting every template that fails to parse.
     /// </summary>
     /// <param name="themePath">The absolute theme path.</param>
-    void PreCompileTheme(string themePath);
+    /// <returns>One error per template with a syntax error, empty when the theme is valid.</returns>
+    IReadOnlyList<TemplateError> PreCompileTheme(string themePath);
 
     /// <summary>
     /// Renders a template identified by key/path.

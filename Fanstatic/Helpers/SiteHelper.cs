@@ -38,7 +38,13 @@ public static class SiteHelper
         if (fs.DirectoryExists(Path.GetFullPath(site.SourceThemePath)))
         {
             site.TemplateEngine.Initialize(site);
-            site.TemplateEngine.PreCompileTheme(site.SourceThemePath);
+
+            var themeErrors = site.TemplateEngine.PreCompileTheme(site.SourceThemePath);
+            _ = site.AddTemplateErrors(themeErrors);
+            foreach (var themeError in themeErrors)
+            {
+                logger.Error("{TemplateError}", themeError);
+            }
         }
 
         stopwatch.Start("Parse");

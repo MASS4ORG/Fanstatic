@@ -52,6 +52,18 @@ public interface ISite : ISiteSettings, ISiteOutput
     ILogger Logger { get; }
 
     /// <summary>
+    /// Template failures found while validating the theme or rendering pages, one per template.
+    /// </summary>
+    IReadOnlyList<TemplateError> TemplateErrors { get; }
+
+    /// <summary>
+    /// Records template failures, keeping only the first failure per template.
+    /// </summary>
+    /// <param name="errors">The failures to record.</param>
+    /// <returns>The number of failures added because no earlier failure used the same template.</returns>
+    int AddTemplateErrors(IEnumerable<TemplateError> errors);
+
+    /// <summary>
     /// List of all basic source folders
     /// </summary>
     IEnumerable<string> SourceFolders { get; }

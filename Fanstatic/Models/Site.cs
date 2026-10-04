@@ -313,6 +313,57 @@ public class Site : ISite
     /// <inheritdoc/>
     public ILogger Logger { get; }
 
+    /// <summary>
+    /// Template failures found while validating the theme or rendering pages, one per template.
+    /// </summary>
+    public IReadOnlyList<TemplateError> TemplateErrors
+    {
+        get
+        {
+            lock (_templateErrorLock)
+            {
+                return _templateErrors.ToArray();
+            }
+        }
+    }
+
+    readonly Lock _templateErrorLock = new();
+
+    readonly List<TemplateError> _templateErrors = [];
+
+    readonly HashSet<string> _templateErrorTemplates = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc/>
+    public int AddTemplateErrors(IEnumerable<TemplateError> errors)
+    {
+        ArgumentNullException.ThrowIfNull(errors);
+
+        var added = 0;
+
+        lock (_templateErrorLock)
+        {
+            foreach (var error in errors)
+            {
+                if (_templateErrorTemplates.Add(DedupKey(error.TemplatePath)))
+                {
+                    _templateErrors.Add(error);
+                    added++;
+                }
+            }
+        }
+
+        return added;
+    }
+
+    /// <summary>
+    /// Normalizes a template path so one file reached through a relative theme path and a full path
+    /// still counts as a single failure.
+    /// </summary>
+    static string DedupKey(string templatePath)
+        => string.IsNullOrEmpty(templatePath) || templatePath == InlineTemplateName
+            ? templatePath
+            : Path.GetFullPath(templatePath);
+
     /// <inheritdoc/>
     public IEnumerable<string> SourceFolders =>
     [
@@ -326,6 +377,12 @@ public class Site : ISite
     {
         CacheManager.ResetCache();
         OutputReferences.Clear();
+
+        lock (_templateErrorLock)
+        {
+            _templateErrors.Clear();
+            _templateErrorTemplates.Clear();
+        }
     }
 
     #endregion
@@ -1252,10 +1309,21 @@ public class Site : ISite
 
             return isBaseTemplate ? page.Content : page.ContentPreRendered;
         }
-        catch (FormatException ex)
+        catch (Exception ex)
         {
-            Logger.Error(ex, "Error rendering theme template: {TemplatePath}", templatePath);
-            return string.Empty;
+            var error = TemplateError.FromRenderException(
+                string.IsNullOrEmpty(templatePath) ? InlineTemplateName : templatePath,
+                page.SourceRelativePath,
+                ex);
+
+            if (AddTemplateErrors([error]) > 0)
+            {
+                Logger.Error("{TemplateError}", error);
+            }
+
+            return Fanstatic.IsServer ? TemplateErrorOverlay.Render(error) : string.Empty;
         }
     }
+
+    const string InlineTemplateName = "(inline template)";
 }
