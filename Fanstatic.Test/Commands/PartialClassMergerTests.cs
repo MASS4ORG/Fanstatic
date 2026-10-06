@@ -24,7 +24,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "Property1", Type: "string", Modifiers: "public")
+                    new(Name: "Property1", Type: "string")
                 ]
             )
         };
@@ -58,7 +58,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "Property1", Type: "string", Modifiers: "public")
+                    new(Name: "Property1", Type: "string")
                 ],
                 Fields:
                 [
@@ -77,7 +77,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "Property2", Type: "int", Modifiers: "public")
+                    new(Name: "Property2", Type: "int")
                 ],
                 Fields:
                 [
@@ -96,7 +96,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "Property3", Type: "double", Modifiers: "public")
+                    new(Name: "Property3", Type: "double")
                 ]
             )
         };
@@ -153,7 +153,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "DuplicateProperty", Type: "string", Modifiers: "public")
+                    new(Name: "DuplicateProperty", Type: "string")
                 ]
             ),
             new(
@@ -168,7 +168,7 @@ public class PartialClassMergerTests
                 ],
                 Properties:
                 [
-                    new(Name: "DuplicateProperty", Type: "string", Modifiers: "public") // Same name
+                    new(Name: "DuplicateProperty", Type: "string") // Same name
                 ]
             )
         };

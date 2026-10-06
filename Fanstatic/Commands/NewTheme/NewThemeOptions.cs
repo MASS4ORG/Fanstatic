@@ -1,4 +1,5 @@
 using CommandLine;
+using JetBrains.Annotations;
 
 namespace Fanstatic.Commands.NewTheme;
 
@@ -17,6 +18,7 @@ public class NewThemeOptions
     /// <summary>
     /// Force theme creation.
     /// </summary>
+    [UsedImplicitly]
     [Option('f', "force", Required = false, HelpText = "Force theme creation")]
     public bool Force { get; init; }
 

@@ -15,6 +15,8 @@ public class Site : ISite
 {
     Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
 
+    readonly Lazy<SiteOutput> _defaultHtmlSiteOutputCached;
+
     #region IParams
 
     /// <inheritdoc/>
@@ -37,7 +39,9 @@ public class Site : ISite
     /// <inheritdoc/>
     public string? Copyright => _settings.Copyright;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The base URL that will be used to build public links.
+    /// </summary>
     public Uri BaseUrl
     {
         get => _settings.BaseUrl;
@@ -61,7 +65,7 @@ public class Site : ISite
     public Dictionary<string, string> TaxonomyDefinitions => _settings.Taxonomies;
 
     IReadOnlyDictionary<string, TaxonomyTerms> ISiteOutput.Taxonomies =>
-        new SiteOutput(this, ("html", DefaultLanguage)).Taxonomies;
+        _defaultHtmlSiteOutputCached.Value.Taxonomies;
 
     /// <inheritdoc/>
     public Dictionary<string, LanguageSettings> Languages => _settings.Languages;
@@ -87,6 +91,8 @@ public class Site : ISite
 
     /// <inheritdoc/>
     LanguageSettings ISiteOutput.Language => DefaultLanguageObj;
+
+    IReadOnlyList<LanguageSettings> ISite.Languages => LanguageList;
 
     /// <inheritdoc/>
     IReadOnlyList<LanguageSettings> ISiteOutput.Languages => LanguageList;
@@ -207,7 +213,7 @@ public class Site : ISite
         {
             var langCode = Path.GetFileNameWithoutExtension(file);
             var yamlContent = File.ReadAllText(file);
-            var raw = deserializer.Deserialize<Dictionary<string, object?>>(yamlContent);
+            var raw = deserializer.Deserialize<Dictionary<string, object?>?>(yamlContent);
             if (raw is null)
             {
                 continue;
@@ -274,13 +280,29 @@ public class Site : ISite
     {
         get
         {
-            _pagesCache ??= OutputReferences.Values
-                .Where(output => output is IPage)
-                .Select(output => (output as IPage)!)
-                .OrderBy(page => -page.Weight);
-            return _pagesCache!;
+            if (_processingPages)
+            {
+                // Processing can add outputs after intermediate reads; avoid caching a partial snapshot.
+                // BuildPages excludes virtual pagination pages, so their registration cannot stale the cache.
+                return BuildPages();
+            }
+
+            _pagesCache ??= BuildPages();
+            return _pagesCache;
         }
     }
+
+    IReadOnlyList<IPage> BuildPages() =>
+        OutputReferences.Values
+            .Where(output => output is IPage)
+            .Select(output => (output as IPage)!)
+            .Where(page => page is not Page { PageIndex: > 1 })
+            .OrderBy(page => -page.Weight)
+            .ThenBy(page => page.SourceRelativePath, StringComparer.Ordinal)
+            .ThenBy(page => page.Language.Code, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.OutputFormat, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.RelPermalink.ToString(), StringComparer.Ordinal)
+            .ToList();
 
     /// <inheritdoc/>
     public IEnumerable<IPage> AllRegularPages =>
@@ -291,18 +313,34 @@ public class Site : ISite
     {
         get
         {
-            _regularPagesCache ??= OutputReferences
-                .Where(pair =>
-                    pair.Value is IPage
-                    {
-                        IsPage: true
-                    } page &&
-                    pair.Key == page.RelPermalink)
-                .Select(pair => (pair.Value as IPage)!)
-                .OrderBy(page => -page.Weight);
+            if (_processingPages)
+            {
+                // Processing can add outputs after intermediate reads; avoid caching a partial snapshot.
+                // BuildRegularPages excludes virtual pages, so their registration cannot stale the cache.
+                return BuildRegularPages();
+            }
+
+            _regularPagesCache ??= BuildRegularPages();
             return _regularPagesCache;
         }
     }
+
+    IReadOnlyList<IPage> BuildRegularPages() =>
+        OutputReferences
+            .Where(pair =>
+                pair.Value is IPage
+                {
+                    IsPage: true
+                } page &&
+                page is not Page { PageIndex: > 1 } &&
+                pair.Key == page.RelPermalink)
+            .Select(pair => (pair.Value as IPage)!)
+            .OrderBy(page => -page.Weight)
+            .ThenBy(page => page.SourceRelativePath, StringComparer.Ordinal)
+            .ThenBy(page => page.Language.Code, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.OutputFormat, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.RelPermalink.ToString(), StringComparer.Ordinal)
+            .ToList();
 
     /// <inheritdoc/>
     public IPage? Home { get; private set; }
@@ -383,6 +421,8 @@ public class Site : ISite
     {
         CacheManager.ResetCache();
         OutputReferences.Clear();
+        _pagesCache = null;
+        _regularPagesCache = null;
 
         lock (_templateErrorLock)
         {
@@ -416,9 +456,11 @@ public class Site : ISite
     /// </summary>
     readonly Lock _syncLockPostProcess = new();
 
-    IEnumerable<IPage>? _pagesCache;
+    IReadOnlyList<IPage>? _pagesCache;
 
-    IEnumerable<IPage>? _regularPagesCache;
+    IReadOnlyList<IPage>? _regularPagesCache;
+
+    bool _processingPages;
 
     readonly SiteSettings _settings;
 
@@ -443,6 +485,7 @@ public class Site : ISite
         Logger = logger;
         Parser = parser;
         TemplateEngine = new FluidTemplateEngine();
+        _defaultHtmlSiteOutputCached = new(() => new SiteOutput(this, ("html", DefaultLanguage)));
 
         _clock = clock ?? new SystemClock();
 
@@ -464,21 +507,24 @@ public class Site : ISite
 
         cascade ??= new FrontMatter();
 
-        var markdownFiles = fs.DirectoryGetFiles(directory, "*.md").ToList();
+        var markdownFiles = fs.DirectoryGetFiles(directory, "*.md")
+            .OrderBy(file => file, StringComparer.Ordinal)
+            .ToList();
         ParseIndexFrontMatter(directory, level, ref parent, ref cascade,
             ref markdownFiles);
 
-        // Other source files that are not index
-        // _ = Parallel.ForEach(markdownFiles,
-        markdownFiles.ForEach(filePath =>
+        var parsedFiles = new (FrontMatter? FrontMatter, string RawContent)[markdownFiles.Count];
+        Parallel.For(0, markdownFiles.Count, index => parsedFiles[index] = ParseFile(markdownFiles[index], cascade));
+
+        for (var index = 0; index < markdownFiles.Count; index++)
         {
-            var (frontMatter, rawContent) = ParseFile(filePath, cascade);
+            var filePath = markdownFiles[index];
+            var (frontMatter, rawContent) = parsedFiles[index];
             if (frontMatter is null)
             {
-                return;
+                continue;
             }
 
-            // Use interlocked to safely increment the counter in a multithreaded environment
             _ = Interlocked.Increment(ref _filesParsedToReport);
 
             var contentSource = new ContentSource(Path.GetRelativePath(SourceContentPath, filePath), frontMatter,
@@ -487,9 +533,10 @@ public class Site : ISite
             contentSource.ContentSourceParent = parent;
 
             ContentSourceAdd(contentSource);
-        });
+        }
 
-        var subdirectories = fs.DirectoryGetDirectories(directory);
+        var subdirectories = fs.DirectoryGetDirectories(directory)
+            .OrderBy(subdirectory => subdirectory, StringComparer.Ordinal);
         foreach (var subdirectory in subdirectories)
         {
             ScanAndParseSourceFiles(fs, subdirectory, level + 1, parent,
@@ -537,7 +584,7 @@ public class Site : ISite
 
             try
             {
-                relPermalink = TemplateEngine.RenderInline(urlTemplate!, this, page);
+                relPermalink = TemplateEngine.RenderInline(urlTemplate, this, page);
             }
             catch (Exception ex)
             {
@@ -697,14 +744,26 @@ public class Site : ISite
     /// </summary>
     public void ProcessPages()
     {
-        GenerateTaxonomies();
-        _contentSources
-            .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
-            .OrderBy(cs => cs.Value.BundleType == BundleType.None)
-            .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
-            .Select(cs => cs.Value)
-            .ToList()
-            .ForEach(cs => PageCreate(cs));
+        _pagesCache = null;
+        _regularPagesCache = null;
+        _processingPages = true;
+
+        try
+        {
+            GenerateTaxonomies();
+            _contentSources
+                .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
+                .OrderBy(cs => cs.Value.BundleType == BundleType.None)
+                .ThenBy(cs => cs.Value.SourceRelativePathDirectory, StringComparer.Ordinal)
+                .ThenBy(cs => cs.Value.SourceRelativePath, StringComparer.Ordinal)
+                .Select(cs => cs.Value)
+                .ToList()
+                .ForEach(cs => PageCreate(cs));
+        }
+        finally
+        {
+            _processingPages = false;
+        }
     }
 
     /// <inheritdoc/>
@@ -873,8 +932,8 @@ public class Site : ISite
         Logger.Error(
             "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{From}'",
             permalink,
-            page.SourceRelativePath,
-            (OutputReferences[permalink] as IFile)!.SourceRelativePath
+            page.SourceFullPath(SourceContentPath),
+            (OutputReferences[permalink] as IFile)!.SourceFullPath(SourceContentPath)
         );
     }
 
@@ -1207,6 +1266,11 @@ public class Site : ISite
 
             return (cascade.Merge(frontMatter), rawContent);
         }
+        catch (FormatException ex)
+        {
+            Logger.Error("Error parsing file {File}: {Reason}", fileFullPath, ex.Message);
+            Logger.Debug(ex, "Front matter details for {File}", fileFullPath);
+        }
         catch (Exception ex)
         {
             Logger.Error(ex, "Error parsing file {File}", fileFullPath);
@@ -1222,7 +1286,9 @@ public class Site : ISite
             return;
         }
 
-        var contentSources = _contentSources.Values.ToList();
+        var contentSources = _contentSources.Values
+            .OrderBy(contentSource => contentSource.SourceRelativePath, StringComparer.Ordinal)
+            .ToList();
         foreach (var (taxonomyName, plural) in TaxonomyDefinitions)
         {
             foreach (var contentSource in contentSources)

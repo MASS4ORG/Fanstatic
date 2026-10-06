@@ -39,6 +39,12 @@ public interface ITemplateEngine
     /// <returns>The rendered template output.</returns>
     string RenderInline(string templateBody, ISite site, IPage page);
 
+    /// <summary>
+    /// Gets a snapshot of the collected template render metrics.
+    /// </summary>
+    /// <returns>Metrics grouped by template path.</returns>
+    IReadOnlyList<TemplateMetric> GetTemplateMetrics();
+
     // TODO razor: a RazorTemplateEngine would implement PreCompileTheme by
     // running Microsoft.CodeAnalysis over discovered .cshtml files, emitting
     // a delegate per template keyed on the same path the Fluid engine uses.

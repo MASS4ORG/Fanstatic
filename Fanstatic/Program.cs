@@ -115,6 +115,6 @@ public class Program(ILogger loggerInitial)
     /// </summary>
     void OutputLogo()
     {
-        loggerInitial.Information(HelloWorld);
+        loggerInitial.Information("{Logo}", HelloWorld);
     }
 }

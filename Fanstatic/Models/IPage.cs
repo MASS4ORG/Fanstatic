@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Fanstatic.Helpers;
-using Markdig;
 
 namespace Fanstatic.Models;
 
@@ -44,7 +42,7 @@ public interface IPage : IOutput, IFile, IContentSource
     /// <summary>
     /// Plain markdown content, without HTML.
     /// </summary>
-    string Plain => Markdown.ToPlainText(ContentSource.RawContent, SiteHelper.MarkdownPipeline);
+    string Plain { get; }
 
     /// <summary>
     /// A list of tags, if any.
@@ -74,12 +72,7 @@ public interface IPage : IOutput, IFile, IContentSource
     /// <summary>
     /// The number of words in the main content
     /// </summary>
-    int WordCount => Plain.Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length;
-
-    /// <summary>
-    /// Characters that are not considered as words
-    /// </summary>
-    protected static readonly char[] NonWords = [' ', ',', ';', '.', '!', '"', '(', ')', '?', '\n', '\r'];
+    int WordCount { get; }
 
     /// <summary>
     /// The markdown content converted to HTML
@@ -158,6 +151,46 @@ public interface IPage : IOutput, IFile, IContentSource
     /// List of pages from the content folder.
     /// </summary>
     IEnumerable<IPage> RegularPages { get; }
+
+    /// <summary>
+    /// Pages ordered by date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByDate { get; }
+
+    /// <summary>
+    /// Pages ordered by last modification date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByLastMod { get; }
+
+    /// <summary>
+    /// Pages ordered by weight, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByWeight { get; }
+
+    /// <summary>
+    /// Pages ordered by title, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByTitle { get; }
+
+    /// <summary>
+    /// Regular pages ordered by date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByDate { get; }
+
+    /// <summary>
+    /// Regular pages ordered by last modification date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByLastMod { get; }
+
+    /// <summary>
+    /// Regular pages ordered by weight, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByWeight { get; }
+
+    /// <summary>
+    /// Regular pages ordered by title, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByTitle { get; }
 
     /// <summary>
     /// Get all URLs related to this content.

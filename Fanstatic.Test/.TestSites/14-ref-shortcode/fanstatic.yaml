@@ -8,3 +8,6 @@ languages:
   pt-br:
     languageName: Português
     weight: 2
+  de:
+    languageName: Deutsch
+    weight: 3

@@ -2,12 +2,11 @@ namespace Fanstatic.Commands.API.APIModels;
 
 /// <summary>
 /// Represents information about a property within a class or struct, including name, type,
-/// access modifiers, whether it has a getter or setter, default value, and documentation details.
+/// whether it has a getter or setter, default value, and documentation details.
 /// </summary>
 public record PropertyInfo(
     string Name = "",
     string Type = "",
-    string Modifiers = "",
     bool HasGetter = false,
     bool HasSetter = false,
     string? DefaultValue = null,

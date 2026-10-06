@@ -1,5 +1,6 @@
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Fanstatic.TemplateEngine;
 using Serilog;
 
 namespace Fanstatic.Commands.Build;
@@ -29,7 +30,7 @@ public class BuildCommand : BaseGeneratorCommand
     /// </summary>
     public int Run()
     {
-        Logger.Information("Output path: {output}", _options.Output);
+        Logger.Information("Output path: {Output}", _options.Output);
 
         // Generate the site pages
         CreateOutputFiles();
@@ -45,6 +46,11 @@ public class BuildCommand : BaseGeneratorCommand
 
         // Generate the build report
         Stopwatch.LogReport(Site.Title);
+
+        if (_options.TemplateMetrics)
+        {
+            Logger.Information("{Report}", TemplateMetricsReport.Format(Site.TemplateEngine.GetTemplateMetrics()));
+        }
 
         if (Site.TemplateErrors.Count > 0)
         {
@@ -73,7 +79,7 @@ public class BuildCommand : BaseGeneratorCommand
         }
         catch (Exception ex)
         {
-            logger.Error($"Build failed: {ex.Message}");
+            logger.Error(ex, "Build failed");
             return Task.FromResult(1);
         }
     }
@@ -115,7 +121,7 @@ public class BuildCommand : BaseGeneratorCommand
             Fs.FileWriteAllText(outputAbsolutePath, result);
 
             _ = Interlocked.Increment(ref pagesCreated);
-            Logger.Debug("Page created {pagesCreated}: {Permalink}", pagesCreated, outputAbsolutePath);
+            Logger.Debug("Page created {PagesCreated}: {Permalink}", pagesCreated, outputAbsolutePath);
         }
         else if (output is IResource resource)
         {

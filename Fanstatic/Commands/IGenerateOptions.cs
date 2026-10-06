@@ -29,4 +29,9 @@ public interface IGenerateOptions
     /// Include expired content
     /// </summary>
     bool Expired { get; }
+
+    /// <summary>
+    /// Report template render metrics when supported by the command.
+    /// </summary>
+    bool TemplateMetrics { get; }
 }

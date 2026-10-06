@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Fanstatic.Models;
 using Fluid;
 using Fluid.Values;
@@ -24,15 +25,29 @@ public class FluidTemplateEngine : ITemplateEngine
     TemplateOptions TemplateOptions { get; } = new();
 
     /// <summary>
-    /// Cache of compiled templates by template content.
+    /// Cache of compiled file templates by normalized path.
     /// </summary>
-    readonly ConcurrentDictionary<string, IFluidTemplate?> _compiledCache = new();
+    readonly ConcurrentDictionary<string, IFluidTemplate?> _compiledTemplateByPath =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Cache of compiled inline templates by template content.
+    /// </summary>
+    readonly ConcurrentDictionary<string, IFluidTemplate?> _compiledInlineTemplateCache = new();
 
     /// <summary>
     /// Cache of template body by template key/path.
     /// </summary>
     readonly ConcurrentDictionary<string, string> _templateBodyByKey =
-        new(StringComparer.OrdinalIgnoreCase);
+        new(StringComparer.Ordinal);
+
+    readonly ConcurrentDictionary<string, TemplateMetricCounter> _templateMetrics =
+        new(StringComparer.Ordinal);
+
+    readonly ConcurrentDictionary<string, string> _resolvedTemplatePathByKey =
+        new(StringComparer.Ordinal);
+
+    bool _templateMetricsEnabled;
 
     /// <summary>
     /// Current initialized theme path.
@@ -71,9 +86,13 @@ public class FluidTemplateEngine : ITemplateEngine
 
         _site = site;
         _themePath = Path.GetFullPath(site.SourceThemePath);
+        _templateMetricsEnabled = site.Options.TemplateMetrics;
 
-        _compiledCache.Clear();
+        _compiledTemplateByPath.Clear();
+        _compiledInlineTemplateCache.Clear();
         _templateBodyByKey.Clear();
+        _resolvedTemplatePathByKey.Clear();
+        _templateMetrics.Clear();
 
         TemplateOptions.FileProvider = new LiquidPhysicalFileProvider(_themePath);
     }
@@ -90,8 +109,10 @@ public class FluidTemplateEngine : ITemplateEngine
         }
 
         _themePath = fullThemePath;
-        _compiledCache.Clear();
+        _compiledTemplateByPath.Clear();
+        _compiledInlineTemplateCache.Clear();
         _templateBodyByKey.Clear();
+        _resolvedTemplatePathByKey.Clear();
 
         List<TemplateError> errors = [];
 
@@ -105,7 +126,7 @@ public class FluidTemplateEngine : ITemplateEngine
             var body = File.ReadAllText(file);
 
             var relativePath = UrlifyPath(Path.GetRelativePath(fullThemePath, file));
-            var fullPath = UrlifyPath(file);
+            var fullPath = NormalizeTemplatePath(file);
 
             _templateBodyByKey[relativePath] = body;
             _templateBodyByKey[fullPath] = body;
@@ -113,11 +134,11 @@ public class FluidTemplateEngine : ITemplateEngine
 
             if (FluidParser.TryParse(body, out var template, out var parseError))
             {
-                _ = _compiledCache.GetOrAdd(body, _ => template);
+                _ = _compiledTemplateByPath.GetOrAdd(fullPath, _ => template);
                 continue;
             }
 
-            _ = _compiledCache.GetOrAdd(body, _ => null);
+            _ = _compiledTemplateByPath.GetOrAdd(fullPath, _ => null);
             errors.Add(TemplateError.FromFluidParseError(fullPath, parseError, body));
         }
 
@@ -131,11 +152,34 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(page);
 
-        var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
-        var template = GetCompiledTemplate(templateBody);
+        var metricsEnabled = _templateMetricsEnabled;
+        var startedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0;
+        var metricPath = "(inline template)";
+        var cacheHit = false;
 
-        var context = SeedContext(site, page, counter);
-        return RenderTemplate(template, templateBody, context);
+        try
+        {
+            var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
+            if (metricsEnabled && templatePath is not null)
+            {
+                metricPath = templatePath;
+            }
+
+            var templateBody = ResolveTemplateBody(templatePathOrInlineKey, templatePath);
+            var template = templatePath is null
+                ? GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit)
+                : GetCompiledTemplate(templatePath, templateBody, out cacheHit);
+
+            var context = SeedContext(site, page, counter);
+            return RenderTemplate(template, templateBody, context);
+        }
+        finally
+        {
+            if (metricsEnabled)
+            {
+                RecordTemplateMetric(metricPath, startedAt, cacheHit);
+            }
+        }
     }
 
     static string RenderTemplate(IFluidTemplate template, string templateBody, TemplateContext context)
@@ -157,11 +201,28 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(page);
 
-        var template = GetCompiledTemplate(templateBody);
+        var metricsEnabled = _templateMetricsEnabled;
+        var startedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0;
+        var cacheHit = false;
 
-        var context = SeedContext(site, page);
-        return RenderTemplate(template, templateBody, context);
+        try
+        {
+            var template = GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit);
+            var context = SeedContext(site, page);
+            return RenderTemplate(template, templateBody, context);
+        }
+        finally
+        {
+            if (metricsEnabled)
+            {
+                RecordTemplateMetric("(inline template)", startedAt, cacheHit);
+            }
+        }
     }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<TemplateMetric> GetTemplateMetrics() =>
+        _templateMetrics.Select(pair => pair.Value.Snapshot(pair.Key)).ToArray();
 
     TemplateContext SeedContext(ISite site, IPage page, int? counter = null)
     {
@@ -178,21 +239,72 @@ public class FluidTemplateEngine : ITemplateEngine
         return context;
     }
 
-    IFluidTemplate GetCompiledTemplate(string templateBody)
+    IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody, out bool cacheHit)
     {
-        var template = _compiledCache.GetOrAdd(templateBody,
-            d => FluidParser.TryParse(d, out var t, out _) ? t : null);
-
-        if (template is not null)
+        cacheHit = _compiledTemplateByPath.TryGetValue(templatePath, out var template);
+        if (!cacheHit)
         {
-            return template;
+            var parsedTemplate = FluidParser.TryParse(templateBody, out var parsed, out _) ? parsed : null;
+            template = _compiledTemplateByPath.GetOrAdd(templatePath, parsedTemplate);
         }
 
+        return template ?? ThrowTemplateParseError(templateBody);
+    }
+
+    IFluidTemplate GetCompiledInlineTemplate(string templateBody, bool metricsEnabled, out bool cacheHit)
+    {
+        if (metricsEnabled && _compiledInlineTemplateCache.TryGetValue(templateBody, out var cached))
+        {
+            cacheHit = true;
+            return cached ?? ThrowTemplateParseError(templateBody);
+        }
+
+        cacheHit = false;
+        var template = _compiledInlineTemplateCache.GetOrAdd(templateBody,
+            body => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null);
+
+        return template ?? ThrowTemplateParseError(templateBody);
+    }
+
+    void RecordTemplateMetric(string templatePath, long startedAt, bool cacheHit)
+    {
+        var elapsedTicks = Stopwatch.GetElapsedTime(startedAt).Ticks;
+        _templateMetrics.GetOrAdd(templatePath, _ => new TemplateMetricCounter()).Add(elapsedTicks, cacheHit);
+    }
+
+    IFluidTemplate ThrowTemplateParseError(string templateBody)
+    {
         _ = FluidParser.TryParse(templateBody, out _, out var error);
         throw new FormatException(error);
     }
 
-    string ResolveTemplateBody(string templatePathOrInlineKey)
+    string? ResolveTemplatePath(string templatePathOrInlineKey)
+    {
+        if (_resolvedTemplatePathByKey.TryGetValue(templatePathOrInlineKey, out var cached))
+        {
+            return cached.Length == 0 ? null : cached;
+        }
+
+        string? resolvedPath = null;
+        if (File.Exists(templatePathOrInlineKey))
+        {
+            resolvedPath = NormalizeTemplatePath(templatePathOrInlineKey);
+        }
+        else if (!string.IsNullOrEmpty(_themePath))
+        {
+            var normalizedKey = UrlifyPath(templatePathOrInlineKey);
+            var combined = Path.Combine(_themePath, normalizedKey.TrimStart('/'));
+            if (File.Exists(combined))
+            {
+                resolvedPath = NormalizeTemplatePath(combined);
+            }
+        }
+
+        return _resolvedTemplatePathByKey.GetOrAdd(templatePathOrInlineKey, resolvedPath ?? string.Empty)
+            is { Length: > 0 } path ? path : null;
+    }
+
+    string ResolveTemplateBody(string templatePathOrInlineKey, string? resolvedTemplatePath)
     {
         if (_templateBodyByKey.TryGetValue(templatePathOrInlineKey, out var cached))
         {
@@ -205,29 +317,19 @@ public class FluidTemplateEngine : ITemplateEngine
             return cached;
         }
 
-        if (File.Exists(templatePathOrInlineKey))
+        if (resolvedTemplatePath is not null)
         {
-            var body = File.ReadAllText(templatePathOrInlineKey);
-            _templateBodyByKey[UrlifyPath(templatePathOrInlineKey)] = body;
+            var body = File.ReadAllText(resolvedTemplatePath);
+            _templateBodyByKey[templatePathOrInlineKey] = body;
+            _templateBodyByKey[normalizedKey] = body;
+            var fullKey = UrlifyPath(resolvedTemplatePath);
+            var relativeKey = !string.IsNullOrEmpty(_themePath)
+                ? UrlifyPath(Path.GetRelativePath(_themePath, resolvedTemplatePath))
+                : fullKey;
+            _templateBodyByKey[fullKey] = body;
+            _templateBodyByKey[relativeKey] = body;
+            _templateBodyByKey['/' + relativeKey] = body;
             return body;
-        }
-
-        if (!string.IsNullOrEmpty(_themePath))
-        {
-            var combined = Path.Combine(_themePath, normalizedKey.TrimStart('/'));
-            if (File.Exists(combined))
-            {
-                var body = File.ReadAllText(combined);
-
-                var fullKey = UrlifyPath(combined);
-                var relKey = UrlifyPath(Path.GetRelativePath(_themePath, combined));
-
-                _templateBodyByKey[fullKey] = body;
-                _templateBodyByKey[relKey] = body;
-                _templateBodyByKey['/' + relKey] = body;
-
-                return body;
-            }
         }
 
         return templatePathOrInlineKey;
@@ -241,6 +343,8 @@ public class FluidTemplateEngine : ITemplateEngine
     }
 
     static string UrlifyPath(string path) => path.Replace('\\', '/');
+
+    static string NormalizeTemplatePath(string path) => UrlifyPath(Path.GetFullPath(path));
 
     /// <summary>
     /// Liquid filter: <c>pages_list | paginate: N</c>

@@ -1,5 +1,6 @@
 using System.Text;
 using FolkerKinzel.Strings;
+using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -38,8 +39,19 @@ public class YamlParser : IFrontMatterParser
         }
         catch (Exception ex)
         {
-            // TODO: Log original error
-            throw new FormatException($"Error parsing YAML for '{typeof(T).Name}': {ex}");
+            var cause = ex;
+            while (cause.InnerException is not null)
+            {
+                cause = cause.InnerException;
+            }
+
+            var location = ex is YamlException { Start: var start }
+                ? $" (front matter line {start.Line}, column {start.Column})"
+                : string.Empty;
+            var hint = cause is InvalidCastException
+                ? "; the value type does not match the field, for example a single value where a list is expected"
+                : string.Empty;
+            throw new FormatException($"Invalid YAML for '{typeof(T).Name}'{location}: {cause.Message}{hint}", ex);
         }
     }
 

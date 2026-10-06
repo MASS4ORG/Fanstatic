@@ -1,0 +1,48 @@
+{
+  "entries": [
+    {
+      "version": "7.2.0-dev",
+      "recordedAtUtc": "2026-10-06T13:00:04.3754576+00:00",
+      "source": "local",
+      "runner": "MassaPCLinux",
+      "sdkVersion": "10.0.112",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "linux-x64",
+      "architecture": "X64",
+      "processorCount": 2,
+      "runsPerScenario": 5,
+      "scenarios": [
+        {
+          "name": "1000-posts-sidebar-off",
+          "parseMedianMilliseconds": 42,
+          "createMedianMilliseconds": 88
+        },
+        {
+          "name": "1000-posts-sidebar-on",
+          "parseMedianMilliseconds": 42,
+          "createMedianMilliseconds": 89
+        },
+        {
+          "name": "2000-posts-sidebar-off",
+          "parseMedianMilliseconds": 69,
+          "createMedianMilliseconds": 130
+        },
+        {
+          "name": "2000-posts-sidebar-on",
+          "parseMedianMilliseconds": 69,
+          "createMedianMilliseconds": 130
+        },
+        {
+          "name": "4000-posts-sidebar-off",
+          "parseMedianMilliseconds": 124,
+          "createMedianMilliseconds": 201
+        },
+        {
+          "name": "4000-posts-sidebar-on",
+          "parseMedianMilliseconds": 123,
+          "createMedianMilliseconds": 213
+        }
+      ]
+    }
+  ]
+}

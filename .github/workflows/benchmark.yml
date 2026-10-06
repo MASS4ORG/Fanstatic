@@ -1,0 +1,42 @@
+name: benchmark
+
+# Measures the synthetic blogs on a CI runner and appends the entry for the current version to the benchmark
+# history. Nothing is committed: download the `benchmark-history` artifact and commit `.nuke/benchmark-history.json`.
+# Releases record their entry automatically; use this only to seed or repair the history.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    benchmark:
+        runs-on: ubuntu-24.04
+        env:
+            NUKE_TELEMETRY_OPTOUT: "1"
+            IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Run and record the performance benchmarks
+              run: ./build.sh Benchmark --configuration Release --runtime-identifier linux-x64 --record-benchmark
+
+            - name: Upload benchmark results
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: benchmark-history
+                  path: |
+                      artifacts/benchmark.json
+                      .nuke/benchmark-history.json
+                  include-hidden-files: true
+                  if-no-files-found: error

@@ -1,6 +1,7 @@
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.Parser;
@@ -81,11 +82,33 @@ public class RefShortcodeParserTests : TestSetup
     }
 
     [Fact]
+    public void Ref_WithMissingTranslation_ShouldFallBackToDefaultLanguage()
+    {
+        var about = Page("about.md");
+        var greeting = Page("posts/greeting.md");
+        var greetingDe = Page("posts/greeting.de.md");
+
+        Assert.DoesNotContain(greetingDe.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
+        Assert.Contains(greeting.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Ref_WithUnresolvablePath_ShouldFallBackToHash()
     {
         var about = Page("about.md");
 
         Assert.Contains("Missing: #", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ref_WithUnresolvablePath_ShouldLogTheAbsoluteSourcePath()
+    {
+        var about = Page("about.md");
+
+        _ = about.ContentPreRendered;
+
+        LoggerMock.Received().Error("ref/relref: unable to resolve {Path} referenced in {File}",
+            "posts/does-not-exist.md", Path.Combine(_site.SourceContentPath, "about.md"));
     }
 
     [Fact]

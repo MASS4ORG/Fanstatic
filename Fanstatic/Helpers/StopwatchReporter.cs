@@ -101,6 +101,6 @@ Total                     {totalDurationAllSteps} ms
 ═════════════════════════════════════════════");
 
         // Log the report
-        _logger.Information(report.ToString(), siteTitle);
+        _logger.Information("{Report}", report);
     }
 }

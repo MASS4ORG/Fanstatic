@@ -39,14 +39,6 @@ jobs:
                     --configuration "Debug" \
                     --publish-directory "./.publish"
 
-            - name: Publish coverage to Codacy
-              continue-on-error: true
-              run: |
-                  set +e
-                  bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/coverage.xml
-              env:
-                  CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-
             - name: Upload coverage report
               uses: actions/upload-artifact@v7
               with:
@@ -61,6 +53,34 @@ jobs:
                   path: .publish/*
                   # .publish is a dot-directory and upload-artifact skips hidden paths by default.
                   include-hidden-files: true
+                  if-no-files-found: error
+
+    benchmark:
+        runs-on: ubuntu-24.04
+        env:
+            NUKE_TELEMETRY_OPTOUT: "1"
+            IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+                  fetch-tags: true
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Run performance benchmarks
+              run: ./build.sh Benchmark --configuration Release --runtime-identifier linux-x64
+
+            - name: Upload benchmark results
+              if: always()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: benchmark-results
+                  path: artifacts/benchmark.json
                   if-no-files-found: error
 
     # Validate every release format on one runner, without tagging or pushing.

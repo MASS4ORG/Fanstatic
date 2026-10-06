@@ -93,7 +93,7 @@ public class DocumentationGenerator
     {
         var filePath = Path.Combine(_outputDirectory, fileName);
         await File.WriteAllTextAsync(filePath, content);
-        _logger.Information($"Generated: {fileName}");
+        _logger.Information("Generated: {FileName}", fileName);
     }
 
     static string GenerateClassContent(ClassInfo classInfo, ApiGeneratorOptions options) =>

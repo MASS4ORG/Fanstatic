@@ -20,4 +20,10 @@ public class BuildOptions : GenerateOptions
     [Option("continue-on-error", Required = false,
         HelpText = "Exit with 0 even when template errors were found")]
     public bool ContinueOnError { get; set; }
+
+    /// <summary>
+    /// Report template render metrics after the build.
+    /// </summary>
+    [Option("template-metrics", Required = false, HelpText = "Report template render metrics")]
+    public override bool TemplateMetrics { get; init; }
 }

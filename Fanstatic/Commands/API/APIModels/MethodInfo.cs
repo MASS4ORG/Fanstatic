@@ -15,7 +15,7 @@ public record MethodInfo(
     /// Represents the collection of parameters associated with the method.
     /// Provides detailed information about each parameter including its name, type, and optional default value.
     /// </summary>
-    public List<ParameterInfo> Parameters { get; init; } = Parameters ?? new();
+    public List<ParameterInfo> Parameters { get; init; } = Parameters ?? [];
 
     /// <summary>
     /// Provides documentation details for the associated method such as summary, parameters, return value,

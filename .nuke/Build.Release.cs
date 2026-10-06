@@ -27,7 +27,7 @@ sealed partial class Build
     /// Commits the changelog once before creating the release tag.
     /// </summary>
     public Target CreateReleaseCommit => td => td
-        .DependsOn(UpdateChangelog)
+        .DependsOn(UpdateChangelog, RecordReleaseBenchmark)
         .OnlyWhenDynamic(() => HasNewCommits)
         .Executes(() =>
         {

@@ -18,5 +18,5 @@ public record DocumentationInfo(
     /// a method or property. This collection typically contains information
     /// about the name and description of each parameter involved.
     /// </summary>
-    public List<ParamDoc> Parameters { get; init; } = Parameters ?? new();
+    public List<ParamDoc> Parameters { get; init; } = Parameters ?? [];
 }

@@ -12,6 +12,8 @@ namespace Fanstatic.Models;
 /// </summary>
 public class Page : IPage
 {
+    static readonly AsyncLocal<HashSet<Page>?> ContentRenderStack = new();
+
     #region IPage
 
     /// <inheritdoc/>
@@ -26,7 +28,9 @@ public class Page : IPage
     /// <inheritdoc/>
     public ISiteOutput Site { get; init; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The full site instance, used for internal access to the template engine and other services.
+    /// </summary>
     public ISite SiteInternal { get; init; }
 
     /// <inheritdoc/>
@@ -64,42 +68,39 @@ public class Page : IPage
     }
 
     /// <inheritdoc/>
-    public string Plain =>
-        Markdown.ToPlainText(RawContent, SiteHelper.MarkdownPipeline);
+    public string Plain => _plainCached.Value;
 
     /// <inheritdoc/>
-    // TODO:
-    public List<IPage> TagsReference
+    public List<IPage> TagsReference => _tagsReferenceCached.Value;
+
+    List<IPage> CreateTagsReference()
     {
-        get
-        {
-            var tagPlural = SiteInternal.TaxonomyDefinitions
-                .FirstOrDefault(taxonomy => taxonomy.Key.Equals("tag", StringComparison.OrdinalIgnoreCase))
-                .Value ?? "tags";
-            return Taxonomies.TryGetValue(tagPlural, out var tags) ? [.. tags] : [];
-        }
+        var tagPlural = SiteInternal.TaxonomyDefinitions
+            .FirstOrDefault(taxonomy => taxonomy.Key.Equals("tag", StringComparison.OrdinalIgnoreCase))
+            .Value ?? "tags";
+        return Taxonomies.TryGetValue(tagPlural, out var tags) ? [.. tags] : [];
     }
 
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, IReadOnlyList<IPage>> Taxonomies
-    {
-        get
-        {
-            var taxonomies = new Dictionary<string, IReadOnlyList<IPage>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (plural, termSources) in ContentSource.ContentSourceTaxonomies)
-            {
-                var terms = termSources
-                    .SelectMany(source => source.ContentSourceToPages)
-                    .Where(page => page.OutputFormat == OutputFormat
-                                   && string.Equals(page.ContentSource.Language, ContentSource.Language,
-                                       StringComparison.OrdinalIgnoreCase))
-                    .DistinctBy(page => page.ContentSource)
-                    .ToList();
-                taxonomies[plural] = terms;
-            }
+        => _taxonomiesCached.Value;
 
-            return taxonomies;
+    IReadOnlyDictionary<string, IReadOnlyList<IPage>> CreateTaxonomies()
+    {
+        var taxonomies = new Dictionary<string, IReadOnlyList<IPage>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (plural, termSources) in ContentSource.ContentSourceTaxonomies)
+        {
+            var terms = termSources
+                .SelectMany(source => source.ContentSourceToPages)
+                .Where(page => page.OutputFormat == OutputFormat
+                               && string.Equals(page.ContentSource.Language, ContentSource.Language,
+                                   StringComparison.OrdinalIgnoreCase))
+                .DistinctBy(page => page.ContentSource)
+                .ToList();
+            taxonomies[plural] = terms;
         }
+
+        return taxonomies;
     }
 
     /// <inheritdoc/>
@@ -112,15 +113,44 @@ public class Page : IPage
     public bool IsSection => Type == "section";
 
     /// <inheritdoc/>
-    public int WordCount => Plain
-        .Split(IPage.NonWords,
-            StringSplitOptions.RemoveEmptyEntries).Length;
+    public int WordCount => _wordCountCached.Value;
 
     /// <inheritdoc/>
     public string ContentPreRendered => _contentPreRenderedCached.Value;
 
     /// <inheritdoc/>
-    public string Content => SiteInternal.ParseAndRenderTemplate(this, false);
+    public string Content
+    {
+        get
+        {
+            if (_contentCached.IsValueCreated)
+            {
+                return _contentCached.Value;
+            }
+
+            var previous = ContentRenderStack.Value;
+            if (previous?.Contains(this) == true)
+            {
+                throw new InvalidOperationException(
+                    $"Recursive content rendering detected for '{SourceRelativePath}'.");
+            }
+
+            var current = previous is null
+                ? new HashSet<Page>(ReferenceEqualityComparer.Instance)
+                : new HashSet<Page>(previous, ReferenceEqualityComparer.Instance);
+            _ = current.Add(this);
+            ContentRenderStack.Value = current;
+
+            try
+            {
+                return _contentCached.Value;
+            }
+            finally
+            {
+                ContentRenderStack.Value = previous;
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public string CompleteContent => SiteInternal.ParseAndRenderTemplate(this, true);
@@ -205,10 +235,35 @@ public class Page : IPage
         get
         {
             field ??= Pages
-                .Where(page => page.IsPage);
+                .Where(page => page.IsPage && page is not Page { PageIndex: > 1 })
+                .ToList();
             return field;
         }
     }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByDate => _pagesByDateCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByLastMod => _pagesByLastModCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByWeight => _pagesByWeightCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByTitle => _pagesByTitleCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByDate => _regularPagesByDateCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByLastMod => _regularPagesByLastModCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByWeight => _regularPagesByWeightCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByTitle => _regularPagesByTitleCached.Value;
 
     /// <inheritdoc/>
     public Dictionary<Uri, IOutput> AllOutputUrLs => _allOutputUrLs;
@@ -299,8 +354,11 @@ public class Page : IPage
     /// <inheritdoc/>
     public string? Url => ContentSource.Url;
 
-    /// <inheritdoc/>
-    public string? UrlTemplate => Url ?? (SourceFileNameWithoutExtension == "index" ? UrlForIndex : UrlForNonIndex);
+    /// <summary>
+    /// The URL template used to build the permalink, derived from <see cref="Url"/>
+    /// or the default index/non-index templates.
+    /// </summary>
+    public string UrlTemplate => Url ?? (SourceFileNameWithoutExtension == "index" ? UrlForIndex : UrlForNonIndex);
 
     /// <inheritdoc/>
     public bool? Draft => ContentSource.Draft;
@@ -405,6 +463,34 @@ public class Page : IPage
     /// </summary>
     readonly Lazy<string> _contentPreRenderedCached;
 
+    readonly Lazy<string> _contentCached;
+
+    readonly Lazy<string> _plainCached;
+
+    readonly Lazy<int> _wordCountCached;
+
+    readonly Lazy<List<IPage>> _tagsReferenceCached;
+
+    readonly Lazy<IReadOnlyDictionary<string, IReadOnlyList<IPage>>> _taxonomiesCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByDateCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByLastModCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByWeightCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByTitleCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByDateCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByLastModCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByWeightCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByTitleCached;
+
+    static readonly char[] NonWords = [' ', ',', ';', '.', '!', '"', '(', ')', '?', '\n', '\r'];
+
     const string UrlForIndex = @"{%- liquid
 if page.Parent
 echo page.Parent.RelPermalinkDir
@@ -429,7 +515,7 @@ echo page.SourceFileNameWithoutExtension
 endif
 -%}";
 
-    Dictionary<Uri, IOutput> _allOutputUrLs = [];
+    Dictionary<Uri, IOutput> _allOutputUrLs;
 
     /// <summary>
     /// Constructor
@@ -449,11 +535,26 @@ endif
                           throw new ArgumentException("No output format for {OutputFormat}", OutputFormat);
 
         _allOutputUrLs = BuildAllOutputUrLs();
+        _plainCached = new(() => Markdown.ToPlainText(RawContent, SiteHelper.MarkdownPipeline));
+        _wordCountCached = new(() => Plain
+            .Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length);
+        _tagsReferenceCached = new(CreateTagsReference);
+        _taxonomiesCached = new(CreateTaxonomies);
+        _pagesByDateCached = new(() => Pages.OrderBy(page => page.Date).ToList());
+        _pagesByLastModCached = new(() => Pages.OrderBy(page => page.LastMod).ToList());
+        _pagesByWeightCached = new(() => Pages.OrderBy(page => page.Weight).ToList());
+        _pagesByTitleCached = new(() => Pages.OrderBy(page => page.Title).ToList());
+        _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
+        _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
+        _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
+        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
         _contentPreRenderedCached = new(() =>
         {
             var content = RefShortcodeParser.Process(RawContent, SiteInternal, this);
             return Markdown.ToHtml(content, SiteHelper.MarkdownPipeline);
         });
+        _contentCached = new(() => SiteInternal.ParseAndRenderTemplate(this, false),
+            LazyThreadSafetyMode.PublicationOnly);
     }
 
     /// <summary>

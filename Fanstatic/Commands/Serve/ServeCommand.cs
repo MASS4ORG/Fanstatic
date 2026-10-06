@@ -118,7 +118,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         ArgumentNullException.ThrowIfNull(logger);
 
         // Create a cancellation token source
-        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationTokenSource = new CancellationTokenSource();
 
         try
         {
@@ -157,7 +157,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             }
             else
             {
-                logger.Error("Serving failed: {ExMessage}", ex.Message);
+                logger.Error(ex, "Serving failed");
             }
 
             return 1;
@@ -366,7 +366,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
 
     void LogRequestResult(string resultType, Uri requestPath)
     {
-        _logger.Debug("Request {type}\tfor {RequestPath}", resultType, requestPath);
+        _logger.Debug("Request {Type}\tfor {RequestPath}", resultType, requestPath);
     }
 
     static async Task HandleNotFoundRequest(HttpListenerContext context)

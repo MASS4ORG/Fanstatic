@@ -93,7 +93,7 @@ public class LiquidPhysicalFileProvider : IFileProvider
     {
         public bool Exists => fileInfo.Exists;
         public long Length => fileInfo.Length;
-        public string? PhysicalPath => fileInfo.FullName;
+        public string PhysicalPath => fileInfo.FullName;
         public string Name => fileInfo.Name;
         public DateTimeOffset LastModified => fileInfo.LastWriteTimeUtc;
         public bool IsDirectory => false;
