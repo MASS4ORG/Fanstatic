@@ -2,6 +2,7 @@ using System.Globalization;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Fanstatic.TemplateEngine;
 using NSubstitute;
 using Xunit;
 
@@ -308,6 +309,58 @@ public class PageTests : TestSetup
         // Assert
         Assert.Equal(plain, page.Plain);
         Assert.Same(page.Plain, page.Plain);
+    }
+
+    [Fact]
+    public void Content_ShouldRenderTemplateOncePerPage()
+    {
+        var templateEngine = Substitute.For<ITemplateEngine>();
+        var site = Substitute.For<ISite>();
+        var children = new List<Page>();
+        Page? parent = null;
+        site.TemplateEngine.Returns(templateEngine);
+        site.ParseAndRenderTemplate(Arg.Any<Page>(), false)
+            .Returns(call =>
+            {
+                var page = call.Arg<Page>();
+                if (ReferenceEquals(page, parent))
+                {
+                    foreach (var child in children)
+                    {
+                        _ = child.Content;
+                        _ = child.Content;
+                    }
+
+                    return "Parent output";
+                }
+
+                return templateEngine.Render("content", site, page);
+            });
+        templateEngine.Render(Arg.Any<string>(), site, Arg.Any<IPage>(), Arg.Any<int?>())
+            .Returns(call => ((IPage)call[2]!).SourceRelativePath);
+
+        children.AddRange(Enumerable.Range(1, 3)
+            .Select(index => new Page(
+                new($"content-{index}.md", new FrontMatter(), $"Content {index}"),
+                Site,
+                Site,
+                ("html", null),
+                [])
+            {
+                SiteInternal = site
+            })
+            .ToList());
+        parent = new Page(new("index.md", new FrontMatter(), string.Empty), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
+
+        Assert.Equal("Parent output", parent.Content);
+        Assert.Equal("Parent output", parent.Content);
+        foreach (var child in children)
+        {
+            templateEngine.Received(1).Render("content", site, child, Arg.Any<int?>());
+        }
     }
 
     [Theory]

@@ -116,7 +116,7 @@ public class Page : IPage
     public string ContentPreRendered => _contentPreRenderedCached.Value;
 
     /// <inheritdoc/>
-    public string Content => SiteInternal.ParseAndRenderTemplate(this, false);
+    public string Content => _contentCached.Value;
 
     /// <inheritdoc/>
     public string CompleteContent => SiteInternal.ParseAndRenderTemplate(this, true);
@@ -402,6 +402,8 @@ public class Page : IPage
     /// </summary>
     readonly Lazy<string> _contentPreRenderedCached;
 
+    readonly Lazy<string> _contentCached;
+
     readonly Lazy<string> _plainCached;
 
     readonly Lazy<int> _wordCountCached;
@@ -463,6 +465,7 @@ endif
             var content = RefShortcodeParser.Process(RawContent, SiteInternal, this);
             return Markdown.ToHtml(content, SiteHelper.MarkdownPipeline);
         });
+        _contentCached = new(() => SiteInternal.ParseAndRenderTemplate(this, false));
     }
 
     /// <summary>

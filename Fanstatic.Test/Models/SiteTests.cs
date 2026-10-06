@@ -273,6 +273,19 @@ public class SiteTests : TestSetup
             .First(page => page is Page { PageIndex: > 1 }));
         Assert.DoesNotContain(virtualPage, pages);
         Assert.DoesNotContain(virtualPage, regularPages);
+
+        var sourceTermPage = Assert.IsType<Page>(termPage);
+        _ = sourceTermPage.Content;
+        var virtualContent = virtualPage.Content;
+
+        Assert.Equal(1, sourceTermPage.Paginator?.Current);
+        Assert.Equal(2, virtualPage.Paginator?.Current);
+        Assert.Contains(sourceTermPage.Paginator!.PageItems[0].Title!,
+            sourceTermPage.Content, StringComparison.Ordinal);
+        Assert.Contains(virtualPage.Paginator!.PageItems[0].Title!,
+            virtualContent, StringComparison.Ordinal);
+        Assert.NotEqual(sourceTermPage.Content, virtualContent);
+        Assert.Same(virtualContent, virtualPage.Content);
     }
 
     [Fact]
