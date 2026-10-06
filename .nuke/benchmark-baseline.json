@@ -1,33 +1,43 @@
 {
+  "sdkVersion": "10.0.112",
   "runtimeIdentifier": "linux-x64",
   "architecture": "X64",
+  "runtimeVersion": "10.0.12",
   "processorCount": 2,
-  "runsPerScenario": 3,
-  "updatedAtUtc": "2026-10-06T06:48:03.0844314+00:00",
+  "runsPerScenario": 5,
+  "updatedAtUtc": "2026-10-06T13:00:04.3754576+00:00",
+  "source": "local",
+  "runner": "MassaPCLinux",
   "scenarios": [
     {
       "name": "1000-posts-sidebar-off",
-      "medianMilliseconds": 349.0212
+      "parseMedianMilliseconds": 42,
+      "createMedianMilliseconds": 88
     },
     {
       "name": "1000-posts-sidebar-on",
-      "medianMilliseconds": 353.4704
+      "parseMedianMilliseconds": 42,
+      "createMedianMilliseconds": 89
     },
     {
       "name": "2000-posts-sidebar-off",
-      "medianMilliseconds": 395.7432
+      "parseMedianMilliseconds": 69,
+      "createMedianMilliseconds": 130
     },
     {
       "name": "2000-posts-sidebar-on",
-      "medianMilliseconds": 403.1135
+      "parseMedianMilliseconds": 69,
+      "createMedianMilliseconds": 130
     },
     {
       "name": "4000-posts-sidebar-off",
-      "medianMilliseconds": 508.366
+      "parseMedianMilliseconds": 124,
+      "createMedianMilliseconds": 201
     },
     {
       "name": "4000-posts-sidebar-on",
-      "medianMilliseconds": 516.9798
+      "parseMedianMilliseconds": 123,
+      "createMedianMilliseconds": 213
     }
   ]
 }

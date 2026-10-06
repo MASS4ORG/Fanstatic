@@ -1,11 +1,10 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Fanstatic.NUKE;
 
 sealed partial class Build
 {
-    const int BenchmarkRunsPerScenario = 3;
+    const int BenchmarkRunsPerScenario = 5;
     const int MaximumBenchmarkRegressionPercent = 25;
     const int BenchmarkProcessorCount = 2;
 
@@ -32,6 +31,13 @@ sealed partial class Build
 
     void RunBenchmark()
     {
+        var sdkVersion = ReadDotNetSdkVersion();
+        if (!System.Version.TryParse(sdkVersion, out var parsedSdkVersion) || parsedSdkVersion.Major != 10)
+        {
+            throw new InvalidOperationException(
+                $"Benchmarks must use the .NET 10 SDK; the selected SDK is '{sdkVersion}'.");
+        }
+
         BenchmarkReportFile.DeleteFile();
         var tempDirectory = Path.Combine(Path.GetTempPath(), $"fanstatic-benchmark-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDirectory);
@@ -63,36 +69,47 @@ sealed partial class Build
         }
 
         var baseline = UpdateBenchmarkBaseline
-            ? WriteBenchmarkBaseline(measurements)
+            ? WriteBenchmarkBaseline(measurements, sdkVersion)
             : ReadBenchmarkBaseline();
-        ValidateBenchmarkBaseline(baseline);
+        ValidateBenchmarkBaseline(baseline, sdkVersion);
 
         var reportScenarios = measurements.Select(measurement =>
         {
             var baselineMedian = baseline.Scenarios
-                .SingleOrDefault(entry => entry.Name == measurement.Name)?.MedianMilliseconds
+                .SingleOrDefault(entry => entry.Name == measurement.Name)
                 ?? throw new InvalidDataException($"Benchmark baseline is missing scenario '{measurement.Name}'.");
-            if (baselineMedian <= 0)
+            if (baselineMedian.ParseMedianMilliseconds <= 0 || baselineMedian.CreateMedianMilliseconds <= 0)
             {
-                throw new InvalidDataException($"Benchmark baseline for '{measurement.Name}' must be positive.");
+                throw new InvalidDataException($"Benchmark baseline phases for '{measurement.Name}' must be positive.");
             }
 
-            var regressionPercent = (measurement.MedianMilliseconds - baselineMedian) / baselineMedian * 100;
-            var passed = measurement.MedianMilliseconds <=
-                         baselineMedian * (1 + MaximumBenchmarkRegressionPercent / 100d);
+            var parseRegressionPercent =
+                (measurement.ParseMedianMilliseconds - baselineMedian.ParseMedianMilliseconds)
+                / baselineMedian.ParseMedianMilliseconds * 100;
+            var createRegressionPercent =
+                (measurement.CreateMedianMilliseconds - baselineMedian.CreateMedianMilliseconds)
+                / baselineMedian.CreateMedianMilliseconds * 100;
+            var passed = measurement.ParseMedianMilliseconds <=
+                         baselineMedian.ParseMedianMilliseconds * (1 + MaximumBenchmarkRegressionPercent / 100d)
+                         && measurement.CreateMedianMilliseconds <=
+                         baselineMedian.CreateMedianMilliseconds * (1 + MaximumBenchmarkRegressionPercent / 100d);
 
             Log.Information(
-                "Benchmark {Scenario}: median {Median:F1} ms, baseline {Baseline:F1} ms, regression {Regression:F1}%, {Status}",
-                measurement.Name, measurement.MedianMilliseconds, baselineMedian, regressionPercent,
+                "Benchmark {Scenario}: Parse {Parse:F1}/{BaselineParse:F1} ms ({ParseRegression:F1}%), " +
+                "Create {Create:F1}/{BaselineCreate:F1} ms ({CreateRegression:F1}%), {Status}",
+                measurement.Name, measurement.ParseMedianMilliseconds, baselineMedian.ParseMedianMilliseconds,
+                parseRegressionPercent, measurement.CreateMedianMilliseconds,
+                baselineMedian.CreateMedianMilliseconds, createRegressionPercent,
                 passed ? "PASS" : "FAIL");
 
             return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
-                measurement.RunTimesMilliseconds, measurement.MedianMilliseconds, baselineMedian,
-                regressionPercent, passed);
+                measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
+                measurement.WallMedianMilliseconds, baselineMedian.ParseMedianMilliseconds,
+                baselineMedian.CreateMedianMilliseconds, parseRegressionPercent, createRegressionPercent, passed);
         }).ToArray();
 
         var report = new BenchmarkReport(DateTimeOffset.UtcNow, RuntimeIdentifier,
-            RuntimeInformation.ProcessArchitecture.ToString(), Environment.Version.ToString(),
+            RuntimeInformation.ProcessArchitecture.ToString(), sdkVersion, Environment.Version.ToString(),
             BenchmarkProcessorCount, reportScenarios.All(scenario => scenario.Passed), reportScenarios);
 
         _ = BenchmarkReportFile.Parent.CreateDirectory();
@@ -121,29 +138,69 @@ sealed partial class Build
         );
     }
 
+    static string ReadDotNetSdkVersion()
+    {
+        var startInfo = new ProcessStartInfo("dotnet", "--version")
+        {
+            WorkingDirectory = RootDirectory,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Could not determine the selected .NET SDK version.");
+        var standardOutput = process.StandardOutput.ReadToEnd();
+        var standardError = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(
+                $"Could not determine the selected .NET SDK version.{Environment.NewLine}{standardError}");
+        }
+
+        return standardOutput.Trim();
+    }
+
+    static double Median(IEnumerable<double> samples) =>
+        samples.Order().ElementAt(BenchmarkRunsPerScenario / 2);
+
+    static double ReadPhaseDuration(string buildLog, string phase)
+    {
+        var match = Regex.Match(buildLog,
+            $@"(?m)^\s*{Regex.Escape(phase)}\s+\d+\s+(?<duration>\d+)\s+ms\s*$");
+        if (!match.Success ||
+            !double.TryParse(match.Groups["duration"].Value, CultureInfo.InvariantCulture, out var duration))
+        {
+            throw new InvalidDataException($"Could not read the '{phase}' phase duration from the build report.");
+        }
+
+        return duration;
+    }
+
     BenchmarkMeasurement RunBenchmarkScenario(string executable, string tempDirectory, BenchmarkScenario scenario)
     {
         var siteDirectory = Path.Combine(tempDirectory, scenario.Name);
         CreateBenchmarkSite(siteDirectory, scenario);
 
-        List<double> runTimes = [];
+        List<BenchmarkRun> runs = [];
         for (var run = 1; run <= BenchmarkRunsPerScenario; run++)
         {
             var outputDirectory = Path.Combine(tempDirectory, "output", $"{scenario.Name}-{run}");
-            var elapsedMilliseconds = RunBenchmarkBuild(executable, siteDirectory, outputDirectory);
-            runTimes.Add(elapsedMilliseconds);
+            runs.Add(RunBenchmarkBuild(executable, siteDirectory, outputDirectory));
             if (Directory.Exists(outputDirectory))
             {
                 Directory.Delete(outputDirectory, recursive: true);
             }
         }
 
-        var medianMilliseconds = runTimes.Order().ElementAt(BenchmarkRunsPerScenario / 2);
-        return new BenchmarkMeasurement(scenario.Name, scenario.PostCount, scenario.HasSidebar,
-            runTimes, medianMilliseconds);
+        return new BenchmarkMeasurement(scenario.Name, scenario.PostCount, scenario.HasSidebar, runs,
+            Median(runs.Select(run => run.ParseMilliseconds)),
+            Median(runs.Select(run => run.CreateMilliseconds)),
+            Median(runs.Select(run => run.WallMilliseconds)));
     }
 
-    static double RunBenchmarkBuild(string executable, string siteDirectory, string outputDirectory)
+    static BenchmarkRun RunBenchmarkBuild(string executable, string siteDirectory, string outputDirectory)
     {
         var startInfo = new ProcessStartInfo(executable)
         {
@@ -177,7 +234,11 @@ sealed partial class Build
                 $"{standardOutput}{Environment.NewLine}{standardError}");
         }
 
-        return stopwatch.Elapsed.TotalMilliseconds;
+        var buildLog = standardOutput + Environment.NewLine + standardError;
+        return new BenchmarkRun(
+            ReadPhaseDuration(buildLog, "Parse"),
+            ReadPhaseDuration(buildLog, "Create"),
+            stopwatch.Elapsed.TotalMilliseconds);
     }
 
     static void CreateBenchmarkSite(string siteDirectory, BenchmarkScenario scenario)
@@ -204,18 +265,33 @@ sealed partial class Build
                 - html
             """);
 
-        File.WriteAllText(Path.Combine(themeDirectory, "single.html"), "<article>{{ page.ContentPreRendered }}</article>");
-        File.WriteAllText(Path.Combine(themeDirectory, "list.html"),
-            scenario.HasSidebar
-                ? """
-                  <main>{{ page.ContentPreRendered }}</main>
-                  <aside>
-                  {% for recent in site.RegularPagesByDate reversed limit: 10 %}
-                    <a>{{ recent.Title }}</a>
-                  {% endfor %}
-                  </aside>
-                  """
-                : "<main>{{ page.ContentPreRendered }}</main>");
+        File.WriteAllText(Path.Combine(themeDirectory, "single.html"), """
+            <article>{{ page.ContentPreRendered }}</article>
+            <span>{{ page.WordCount }}</span>
+            <span>{{ page.Taxonomies.tags | size }}</span>
+            <span>{{ site.Taxonomies.tags | size }}</span>
+            """);
+        var listTemplate = """
+            <main>{{ page.ContentPreRendered }}</main>
+            {% for child in site.RegularPages %}
+              {{ child.Content }}
+              {{ child.WordCount }}
+              {{ child.Taxonomies.tags | size }}
+            {% endfor %}
+            <span>{{ site.Taxonomies.tags | size }}</span>
+            """;
+        if (scenario.HasSidebar)
+        {
+            listTemplate += """
+                <aside>
+                {% for recent in site.RegularPagesByDate reversed limit: 10 %}
+                  <a>{{ recent.Title }}</a>
+                {% endfor %}
+                </aside>
+                """;
+        }
+
+        File.WriteAllText(Path.Combine(themeDirectory, "list.html"), listTemplate);
 
         var today = DateTime.UtcNow.Date;
         for (var post = 1; post <= scenario.PostCount; post++)
@@ -237,12 +313,17 @@ sealed partial class Build
         }
     }
 
-    BenchmarkBaseline WriteBenchmarkBaseline(IReadOnlyList<BenchmarkMeasurement> measurements)
+    BenchmarkBaseline WriteBenchmarkBaseline(
+        IReadOnlyList<BenchmarkMeasurement> measurements,
+        string sdkVersion)
     {
-        var baseline = new BenchmarkBaseline(RuntimeIdentifier, RuntimeInformation.ProcessArchitecture.ToString(),
+        var baseline = new BenchmarkBaseline(sdkVersion, RuntimeIdentifier,
+            RuntimeInformation.ProcessArchitecture.ToString(), Environment.Version.ToString(),
             BenchmarkProcessorCount, BenchmarkRunsPerScenario, DateTimeOffset.UtcNow,
+            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ? "GitHub Actions" : "local",
+            Environment.MachineName,
             measurements.Select(measurement => new BenchmarkBaselineEntry(measurement.Name,
-                measurement.MedianMilliseconds)).ToArray());
+                measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds)).ToArray());
 
         BenchmarkBaselineFile.WriteAllText(JsonSerializer.Serialize(baseline, BenchmarkJsonOptions));
         Log.Information("Updated benchmark baseline at {Path}", BenchmarkBaselineFile);
@@ -263,13 +344,21 @@ sealed partial class Build
                ?? throw new InvalidDataException($"Could not deserialize benchmark baseline '{BenchmarkBaselineFile}'.");
     }
 
-    void ValidateBenchmarkBaseline(BenchmarkBaseline baseline)
+    void ValidateBenchmarkBaseline(BenchmarkBaseline baseline, string sdkVersion)
     {
         if (baseline.RunsPerScenario != BenchmarkRunsPerScenario)
         {
             throw new InvalidDataException(
                 $"Benchmark baseline uses {baseline.RunsPerScenario} runs per scenario; " +
                 $"expected {BenchmarkRunsPerScenario}.");
+        }
+
+        if (!StringComparer.Ordinal.Equals(baseline.SdkVersion, sdkVersion) ||
+            !StringComparer.Ordinal.Equals(baseline.RuntimeVersion, Environment.Version.ToString()))
+        {
+            throw new InvalidDataException(
+                $"Benchmark baseline was measured with SDK/runtime {baseline.SdkVersion}/{baseline.RuntimeVersion}; " +
+                $"this run uses {sdkVersion}/{Environment.Version}. Refresh the baseline on the benchmark runner.");
         }
 
         if (baseline.RuntimeIdentifier != RuntimeIdentifier ||
@@ -293,24 +382,34 @@ sealed partial class Build
         string Name,
         int PostCount,
         bool HasSidebar,
-        IReadOnlyList<double> RunTimesMilliseconds,
-        double MedianMilliseconds);
+        IReadOnlyList<BenchmarkRun> Runs,
+        double ParseMedianMilliseconds,
+        double CreateMedianMilliseconds,
+        double WallMedianMilliseconds);
+
+    sealed record BenchmarkRun(double ParseMilliseconds, double CreateMilliseconds, double WallMilliseconds);
 
     sealed record BenchmarkBaseline(
+        string SdkVersion,
         string RuntimeIdentifier,
         string Architecture,
+        string RuntimeVersion,
         int ProcessorCount,
         int RunsPerScenario,
         DateTimeOffset UpdatedAtUtc,
+        string Source,
+        string Runner,
         IReadOnlyList<BenchmarkBaselineEntry> Scenarios);
 
-    sealed record BenchmarkBaselineEntry(string Name, double MedianMilliseconds);
+    sealed record BenchmarkBaselineEntry(
+        string Name, double ParseMedianMilliseconds, double CreateMedianMilliseconds);
 
     sealed record BenchmarkReport(
         DateTimeOffset GeneratedAtUtc,
         string RuntimeIdentifier,
         string Architecture,
-        string FrameworkVersion,
+        string SdkVersion,
+        string RuntimeVersion,
         int ProcessorCount,
         bool Passed,
         IReadOnlyList<BenchmarkScenarioReport> Scenarios);
@@ -319,9 +418,13 @@ sealed partial class Build
         string Name,
         int PostCount,
         bool HasSidebar,
-        IReadOnlyList<double> RunTimesMilliseconds,
-        double MedianMilliseconds,
-        double BaselineMedianMilliseconds,
-        double RegressionPercent,
+        IReadOnlyList<BenchmarkRun> Runs,
+        double ParseMedianMilliseconds,
+        double CreateMedianMilliseconds,
+        double WallMedianMilliseconds,
+        double BaselineParseMedianMilliseconds,
+        double BaselineCreateMedianMilliseconds,
+        double ParseRegressionPercent,
+        double CreateRegressionPercent,
         bool Passed);
 }
