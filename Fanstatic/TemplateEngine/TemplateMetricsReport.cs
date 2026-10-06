@@ -11,6 +11,10 @@ public static class TemplateMetricsReport
     /// <summary>
     /// Creates a table sorted by total render time, descending.
     /// </summary>
+    /// <remarks>
+    /// Times are inclusive: Fluid-rendered partials contribute to their caller, but are not separate rows.
+    /// A page's lazy <c>Content</c> time is charged to the first template that reads it.
+    /// </remarks>
     /// <param name="metrics">The metrics to format.</param>
     /// <returns>A text table suitable for logging.</returns>
     public static string Format(IEnumerable<TemplateMetric> metrics)
