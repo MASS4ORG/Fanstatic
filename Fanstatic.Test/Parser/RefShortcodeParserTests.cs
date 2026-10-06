@@ -81,6 +81,17 @@ public class RefShortcodeParserTests : TestSetup
     }
 
     [Fact]
+    public void Ref_WithMissingTranslation_ShouldFallBackToDefaultLanguage()
+    {
+        var about = Page("about.md");
+        var greeting = Page("posts/greeting.md");
+        var greetingDe = Page("posts/greeting.de.md");
+
+        Assert.DoesNotContain(greetingDe.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
+        Assert.Contains(greeting.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Ref_WithUnresolvablePath_ShouldFallBackToHash()
     {
         var about = Page("about.md");

@@ -12,4 +12,6 @@ Portuguese: {{< ref "posts/hello.md" lang="pt-br" >}}
 
 RSS: {{< ref "posts/hello.md" outputFormat="rss" >}}
 
+Untranslated: {{< ref "posts/greeting.md" lang="pt-br" >}}
+
 Missing: {{< ref "posts/does-not-exist.md" >}}

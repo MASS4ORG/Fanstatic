@@ -1,0 +1,5 @@
+---
+Title: Greeting
+---
+
+Greeting content.

@@ -106,7 +106,7 @@ public static partial class RefShortcodeParser
 
     /// <summary>
     /// Looks up a page by content path, first among the exact language/outputFormat requested,
-    /// falling back to any other matching variant (e.g. when a translation is missing).
+    /// falling back to the default-language variant, then any other matching variant, when a translation is missing.
     /// </summary>
     static IPage? FindPage(ISite site, IPage callerPage, string targetPath, string lang,
         string outputFormat)
@@ -141,10 +141,18 @@ public static partial class RefShortcodeParser
                 return candidate;
             }
 
-            fallback ??= candidate;
+            if (fallback is null || (!IsDefaultLanguageVariant(fallback) && IsDefaultLanguageVariant(candidate)))
+            {
+                fallback = candidate;
+            }
         }
 
         return fallback;
+
+        bool IsDefaultLanguageVariant(IPage candidate) =>
+            string.Equals(candidate.ContentSource.Language, site.DefaultLanguageObj.Code,
+                StringComparison.OrdinalIgnoreCase)
+            && string.Equals(candidate.OutputFormat, outputFormat, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
