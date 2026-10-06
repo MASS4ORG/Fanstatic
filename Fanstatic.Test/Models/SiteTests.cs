@@ -65,6 +65,62 @@ public class SiteTests : TestSetup
         });
     }
 
+    [Fact]
+    public void ScanAndParseSourceFiles_ShouldLinkPagesInPathOrderAndPreserveCascade()
+    {
+        var source = Path.Combine(Path.GetTempPath(), $"fanstatic-ordered-{Guid.NewGuid():N}");
+        var content = Path.Combine(source, "content");
+        var blog = Path.Combine(content, "blog");
+        Directory.CreateDirectory(blog);
+        File.WriteAllText(Path.Combine(source, "fanstatic.yaml"), "BaseUrl: https://example.test/\n");
+        File.WriteAllText(Path.Combine(blog, "_index.md"),
+        "---\ncascade:\n  weight: 7\n  params:\n    inherited: inherited-value\n---\n");
+        foreach (var name in new[] { "z", "m", "a" })
+        {
+            File.WriteAllText(Path.Combine(blog, name + ".md"),
+                $"---\ntitle: {name}\ntags: [common]\n---\n{name}\n");
+        }
+
+        try
+        {
+            GenerateOptions options = new() { SourceArgument = source };
+            var parser = new YamlParser();
+            var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+            var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+            site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+            site.ProcessPages();
+
+            var section = site.Pages.FirstOrDefault(page => page.SourceRelativePath == "blog/_index.md");
+            Assert.NotNull(section);
+            var children = section.RegularPages
+                .Where(page => page.SourceRelativePath != "blog/_index.md")
+                .ToList();
+            Assert.Equal(
+                new[] { "blog/a.md", "blog/m.md", "blog/z.md" },
+                children.Select(page => page.SourceRelativePath));
+            Assert.All(children, page =>
+            {
+                Assert.Equal(7, page.Weight);
+                Assert.Equal("inherited-value", page.Params["inherited"]);
+            });
+
+            var tag = site.OutputReferences.Values
+                .OfType<IPage>()
+                .FirstOrDefault(page => page.Kind == Kind.term
+                                        && page.OutputFormat == "html"
+                                        && page.Title == "common");
+            Assert.NotNull(tag);
+            Assert.Equal(
+                new[] { "blog/a.md", "blog/m.md", "blog/z.md" },
+                tag.RegularPages.Select(page => page.SourceRelativePath));
+        }
+        finally
+        {
+            Directory.Delete(source, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(TestSitePathConst01, 0)]
     [InlineData(TestSitePathConst02, 0)]

@@ -294,6 +294,10 @@ public class Site : ISite
             .Select(output => (output as IPage)!)
             .Where(page => page is not Page { PageIndex: > 1 })
             .OrderBy(page => -page.Weight)
+            .ThenBy(page => page.SourceRelativePath, StringComparer.Ordinal)
+            .ThenBy(page => page.Language.Code, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.OutputFormat, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.RelPermalink.ToString(), StringComparer.Ordinal)
             .ToList();
 
     /// <inheritdoc/>
@@ -326,6 +330,10 @@ public class Site : ISite
                 pair.Key == page.RelPermalink)
             .Select(pair => (pair.Value as IPage)!)
             .OrderBy(page => -page.Weight)
+            .ThenBy(page => page.SourceRelativePath, StringComparer.Ordinal)
+            .ThenBy(page => page.Language.Code, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.OutputFormat, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(page => page.RelPermalink.ToString(), StringComparer.Ordinal)
             .ToList();
 
     /// <inheritdoc/>
@@ -492,21 +500,24 @@ public class Site : ISite
 
         cascade ??= new FrontMatter();
 
-        var markdownFiles = fs.DirectoryGetFiles(directory, "*.md").ToList();
+        var markdownFiles = fs.DirectoryGetFiles(directory, "*.md")
+            .OrderBy(file => file, StringComparer.Ordinal)
+            .ToList();
         ParseIndexFrontMatter(directory, level, ref parent, ref cascade,
             ref markdownFiles);
 
-        // Other source files that are not index
-        // _ = Parallel.ForEach(markdownFiles,
-        markdownFiles.ForEach(filePath =>
+        var parsedFiles = new (FrontMatter? FrontMatter, string RawContent)[markdownFiles.Count];
+        Parallel.For(0, markdownFiles.Count, index => parsedFiles[index] = ParseFile(markdownFiles[index], cascade));
+
+        for (var index = 0; index < markdownFiles.Count; index++)
         {
-            var (frontMatter, rawContent) = ParseFile(filePath, cascade);
+            var filePath = markdownFiles[index];
+            var (frontMatter, rawContent) = parsedFiles[index];
             if (frontMatter is null)
             {
-                return;
+                continue;
             }
 
-            // Use interlocked to safely increment the counter in a multithreaded environment
             _ = Interlocked.Increment(ref _filesParsedToReport);
 
             var contentSource = new ContentSource(Path.GetRelativePath(SourceContentPath, filePath), frontMatter,
@@ -515,9 +526,10 @@ public class Site : ISite
             contentSource.ContentSourceParent = parent;
 
             ContentSourceAdd(contentSource);
-        });
+        }
 
-        var subdirectories = fs.DirectoryGetDirectories(directory);
+        var subdirectories = fs.DirectoryGetDirectories(directory)
+            .OrderBy(subdirectory => subdirectory, StringComparer.Ordinal);
         foreach (var subdirectory in subdirectories)
         {
             ScanAndParseSourceFiles(fs, subdirectory, level + 1, parent,
@@ -735,7 +747,8 @@ public class Site : ISite
             _contentSources
                 .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
                 .OrderBy(cs => cs.Value.BundleType == BundleType.None)
-                .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
+                .ThenBy(cs => cs.Value.SourceRelativePathDirectory, StringComparer.Ordinal)
+                .ThenBy(cs => cs.Value.SourceRelativePath, StringComparer.Ordinal)
                 .Select(cs => cs.Value)
                 .ToList()
                 .ForEach(cs => PageCreate(cs));
@@ -1261,7 +1274,9 @@ public class Site : ISite
             return;
         }
 
-        var contentSources = _contentSources.Values.ToList();
+        var contentSources = _contentSources.Values
+            .OrderBy(contentSource => contentSource.SourceRelativePath, StringComparer.Ordinal)
+            .ToList();
         foreach (var (taxonomyName, plural) in TaxonomyDefinitions)
         {
             foreach (var contentSource in contentSources)
