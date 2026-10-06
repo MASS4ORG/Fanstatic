@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Fanstatic.Commands.Serve;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
@@ -111,6 +113,18 @@ public class ServeCommandTests : TestSetup
         _mockFileWatcher.Received(1).Stop();
     }
 
+    [Fact]
+    public void IsClientDisconnected_RecognizesPlatformClientDisconnectErrors()
+    {
+        var disconnectErrors = OperatingSystem.IsWindows()
+            ? new[] { 64, 995, 10053, 10054, 10058 }
+            : [32, 53, 54, 57, 103, 104, 107];
+
+        Assert.All(disconnectErrors, errorCode =>
+            Assert.True(ServeCommand.IsClientDisconnected(new HttpListenerException(errorCode))));
+        Assert.False(ServeCommand.IsClientDisconnected(new HttpListenerException(5)));
+    }
+
     ServeCommand CreateServeCommand()
     {
         // Helper method to create a ServeCommand with mocked dependencies
@@ -140,6 +154,39 @@ public class DefaultPortSelectorTests
             portSelector.SelectAvailablePort("http://localhost", initialPort,
                 10);
         Assert.Equal(initialPort, selectedPort);
+    }
+
+    [Fact]
+    public async Task SelectAvailablePort_WhenPortHasTimeWaitConnections_ReturnsSamePort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using var client = new TcpClient();
+        var connectTask = client.ConnectAsync(IPAddress.Loopback, port, TestContext.Current.CancellationToken);
+        using var accepted = await listener.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
+        await connectTask;
+        listener.Stop();
+        accepted.Close();
+        client.Close();
+
+        var timeout = DateTime.UtcNow.AddSeconds(5);
+        while (!IPGlobalProperties.GetIPGlobalProperties()
+                   .GetActiveTcpConnections()
+                   .Any(connection => connection.LocalEndPoint.Port == port
+                                      && connection.State == TcpState.TimeWait)
+               && DateTime.UtcNow < timeout)
+        {
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Contains(
+            IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections(),
+            connection => connection.LocalEndPoint.Port == port
+                          && connection.State == TcpState.TimeWait);
+
+        var portSelector = new DefaultPortSelector(_mockLogger);
+        Assert.Equal(port, portSelector.SelectAvailablePort("http://localhost", port, 10));
     }
 
     [Fact]

@@ -52,6 +52,11 @@ public interface IPage : IOutput, IFile, IContentSource
     List<IPage> TagsReference { get; }
 
     /// <summary>
+    /// The taxonomy term pages assigned to this page, keyed by taxonomy path segment.
+    /// </summary>
+    IReadOnlyDictionary<string, IReadOnlyList<IPage>> Taxonomies { get; }
+
+    /// <summary>
     /// Just a simple check if the current page is the home page
     /// </summary>
     bool IsHome => Site.Home == this;

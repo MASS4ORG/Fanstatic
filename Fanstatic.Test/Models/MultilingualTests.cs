@@ -236,4 +236,20 @@ public class MultilingualTests : TestSetup
         Assert.NotEmpty(sectionEn.Pages);
         Assert.All(sectionEn.Pages, page => Assert.Equal("en", page.Language.Code));
     }
+
+    [Fact]
+    public void TaxonomyTerms_ShouldBeGeneratedAndLinkedPerLanguage()
+    {
+        var helloEn = Page("posts/hello.md");
+        var helloPt = Page("posts/hello.pt-br.md");
+
+        Assert.Equal("en", Assert.Single(helloEn.Taxonomies["tags"]).Language.Code);
+        Assert.Equal("pt-br", Assert.Single(helloPt.Taxonomies["tags"]).Language.Code);
+        Assert.Equal("pt-br", Assert.Single(helloPt.Taxonomies["series"]).Language.Code);
+        Assert.True(_site.OutputReferences.ContainsKey(
+            new Uri("/pt-br/series/hello/index.html", UriKind.Relative)));
+        Assert.Single(helloPt.Site.Taxonomies["series"]);
+        Assert.All(helloPt.Site.Taxonomies["series"].Single().Pages,
+            page => Assert.Equal("pt-br", page.Language.Code));
+    }
 }

@@ -13,6 +13,11 @@ public interface IFrontMatter : IParams
     string? Title { get; }
 
     /// <summary>
+    /// Description of the content.
+    /// </summary>
+    string? Description { get; }
+
+    /// <summary>
     /// The first directory where the content is located, inside content.
     /// </summary>
     ///

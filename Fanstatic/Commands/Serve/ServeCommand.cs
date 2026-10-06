@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Net;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
@@ -54,6 +55,12 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
     IServerHandlers[]? _handlers;
 
     DateTime _serverChangeTime;
+
+    static readonly FrozenSet<int> WindowsClientDisconnectErrors =
+        new[] { 64, 995, 10053, 10054, 10058 }.ToFrozenSet();
+
+    static readonly FrozenSet<int> UnixClientDisconnectErrors =
+        new[] { 32, 53, 54, 57, 103, 104, 107 }.ToFrozenSet();
 
     Task? _loop;
 
@@ -279,6 +286,11 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         _logger.Information("Site created");
     }
 
+    static string SanitizeForLog(string value)
+    {
+        return value.Replace("\r", "").Replace("\n", "");
+    }
+
     /// <summary>
     /// Handles the HTTP request asynchronously.
     /// </summary>
@@ -288,19 +300,26 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         var requestPath = context.Request.Url ?? new("");
         requestPath = new Uri(requestPath.AbsolutePath, UriKind.RelativeOrAbsolute);
 
-        var resultType = await TryHandleRequestWithHandlers(context, requestPath);
-
-        if (resultType is null)
+        try
         {
-            resultType = "404";
-            await HandleNotFoundRequest(context).ConfigureAwait(false);
-        }
-        else
-        {
-            context.Response.OutputStream.Close();
-        }
+            var resultType = await TryHandleRequestWithHandlers(context, requestPath);
 
-        LogRequestResult(resultType, requestPath);
+            if (resultType is null)
+            {
+                resultType = "404";
+                await HandleNotFoundRequest(context).ConfigureAwait(false);
+            }
+            else
+            {
+                context.Response.OutputStream.Close();
+            }
+
+            LogRequestResult(resultType, requestPath);
+        }
+        catch (HttpListenerException ex) when (IsClientDisconnected(ex))
+        {
+            _logger.Debug("Client disconnected while serving {RequestPath}", SanitizeForLog(requestPath.ToString()));
+        }
     }
 
     async Task<string?> TryHandleRequestWithHandlers(HttpListenerContext context, Uri requestPath)
@@ -322,6 +341,10 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
             {
                 return await handler.Handle(response, requestPath, _serverChangeTime).ConfigureAwait(false);
             }
+            catch (HttpListenerException ex) when (IsClientDisconnected(ex))
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.Debug(ex, "Error handling the request");
@@ -329,6 +352,16 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         }
 
         return null;
+    }
+
+    internal static bool IsClientDisconnected(HttpListenerException exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        var disconnectErrors = OperatingSystem.IsWindows()
+            ? WindowsClientDisconnectErrors
+            : UnixClientDisconnectErrors;
+        return disconnectErrors.Contains(exception.ErrorCode);
     }
 
     void LogRequestResult(string resultType, Uri requestPath)

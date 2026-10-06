@@ -36,6 +36,11 @@ public interface ISiteSettings : IParams
     Dictionary<Kind, List<string>> KindOutputFormats { get; }
 
     /// <summary>
+    /// Taxonomy names and their content path segments.
+    /// </summary>
+    Dictionary<string, string> TaxonomyDefinitions { get; }
+
+    /// <summary>
     /// Number of regular pages shown per paginated page.
     /// </summary>
     int Paginate { get; }

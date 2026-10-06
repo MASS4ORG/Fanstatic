@@ -92,10 +92,10 @@ public class SiteTests : TestSetup
     }
 
     [Theory]
-    [InlineData(TestSitePathConst01, 5)]
-    [InlineData(TestSitePathConst02, 8)]
-    [InlineData(TestSitePathConst03, 13)]
-    [InlineData(TestSitePathConst04, 26)]
+    [InlineData(TestSitePathConst01, 8)]
+    [InlineData(TestSitePathConst02, 11)]
+    [InlineData(TestSitePathConst03, 16)]
+    [InlineData(TestSitePathConst04, 29)]
     public void PagesReference_ShouldReturnExpectedQuantityOfPages(
         string sitePath, int expectedQuantity)
     {
@@ -235,6 +235,74 @@ public class SiteTests : TestSetup
         Assert.NotNull(page);
         Assert.Equal(10, page.Pages.Count());
         Assert.Equal(10, page.RegularPages.Count());
+    }
+
+    [Fact]
+    public void ConfiguredTaxonomies_ShouldBuildTermsAndExposeTemplateData()
+    {
+        var source = Path.GetFullPath(Path.Combine(TestSitesPath, ".TestSites/12-taxonomies"));
+        var options = new GenerateOptions { SourceArgument = source };
+        var parser = new YamlParser();
+        var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        var post = Assert.Single(site.RegularPages,
+            page => page.Title == "First post" && page.OutputFormat == "html");
+        Assert.Single(post.Taxonomies["tags"]);
+        Assert.Single(post.Taxonomies["categories"]);
+        Assert.Equal("The Trilogy", post.Taxonomies["series"].Single().Title);
+        Assert.Single(post.TagsReference);
+
+        var term = Assert.IsType<Page>(site.OutputReferences[
+            new Uri("/series/trilogy/index.html", UriKind.RelativeOrAbsolute)]);
+        Assert.Equal("A three-book story.", term.Description);
+        Assert.Equal(7, term.Weight);
+        Assert.Equal(2, term.RegularPages.Count());
+
+        var siteOutput = (ISiteOutput)post.Site;
+        var trilogy = Assert.Single(siteOutput.Taxonomies["series"], term => term.Name == "trilogy");
+        Assert.Equal(["trilogy", "another", "duology"],
+            siteOutput.Taxonomies["series"].Select(term => term.Name));
+        Assert.Equal(["another", "duology", "trilogy"],
+            siteOutput.Taxonomies["series"].ByName.Select(term => term.Name));
+        Assert.Equal(["trilogy", "another", "duology"],
+            siteOutput.Taxonomies["series"].ByCount.Select(term => term.Name));
+        Assert.Equal("trilogy", trilogy.Name);
+        Assert.Equal(2, trilogy.Count);
+        Assert.Equal(2, trilogy.Pages.Count);
+
+        var seriesPage = Assert.IsAssignableFrom<IPage>(site.OutputReferences[
+            new Uri("/series/index.html", UriKind.RelativeOrAbsolute)]);
+        Assert.Equal("series", seriesPage.Title);
+        var renderedTerms = site.TemplateEngine.RenderInline(
+            "{% for term in site.Taxonomies[page.Section] %}{{ term.Name }}{% endfor %}",
+            site, seriesPage);
+        Assert.Equal("trilogyanotherduology", renderedTerms);
+
+        var renderedTermsByName = site.TemplateEngine.RenderInline(
+            "{% assign termsByName = site.Taxonomies.series | sort: 'Name' %}"
+            + "{% for term in termsByName %}{{ term.Name }}{% endfor %}",
+            site, seriesPage);
+        Assert.Equal("anotherduologytrilogy", renderedTermsByName);
+    }
+
+    [Fact]
+    public void EmptyTaxonomyConfiguration_ShouldDisableGeneratedTaxonomyPages()
+    {
+        var options = new GenerateOptions
+        {
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst04))
+        };
+        var site = new Site(options, new SiteSettings { Taxonomies = [] },
+            FrontMatterParser, LoggerMock, SystemClockMock);
+
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        Assert.DoesNotContain(site.Pages, page => page.Kind is Kind.taxonomy or Kind.term);
     }
 
     [Theory]

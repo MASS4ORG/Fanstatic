@@ -35,6 +35,51 @@ public class RegisteredPageRequestHandlerTests : TestSetup
         Assert.Equal(exist, registeredPageRequest.Check(new(requestPath, UriKind.RelativeOrAbsolute)));
     }
 
+    [Fact]
+    public async Task Check_RegistersCompactPaginatedTaxonomyUrl()
+    {
+        var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, ".TestSites/12-taxonomies"));
+        var options = new GenerateOptions { SourceArgument = siteFullPath };
+        var site = SiteHelper.Init(
+            "fanstatic.yaml",
+            options,
+            new YamlParser(),
+            LoggerMock,
+            new StopwatchReporter(LoggerMock),
+            _fs);
+        var registeredPageRequest = new RegisteredPageRequest(site);
+
+        var found = registeredPageRequest.Check(new Uri("/tags/release/2", UriKind.Relative));
+        var foundCanonical = registeredPageRequest.Check(
+            new Uri("/tags/release/page/2", UriKind.Relative));
+        var foundFirstPageAlias = registeredPageRequest.Check(
+            new Uri("/tags/release/1", UriKind.Relative));
+        var foundInvalidPageAlias = registeredPageRequest.Check(
+            new Uri("/tags/release/not-a-page", UriKind.Relative));
+        var foundFirstCanonicalPage = registeredPageRequest.Check(
+            new Uri("/tags/release/page/1", UriKind.Relative));
+
+        Assert.True(found);
+        Assert.True(foundCanonical);
+        Assert.False(foundFirstPageAlias);
+        Assert.False(foundInvalidPageAlias);
+        Assert.False(foundFirstCanonicalPage);
+        var paginatedPage = Assert.IsType<Page>(
+            site.OutputReferences[new Uri("/tags/release/2/index.html", UriKind.Relative)]);
+        Assert.Equal(2, paginatedPage.PageIndex);
+
+        var response = Substitute.For<IHttpListenerResponse>();
+        var stream = new MemoryStream();
+        _ = response.OutputStream.Returns(stream);
+        var result = await registeredPageRequest.Handle(
+            response,
+            new Uri("/tags/release/2", UriKind.Relative),
+            DateTime.Now);
+
+        Assert.Equal("dict", result);
+        Assert.True(stream.Length > 0);
+    }
+
     [Theory]
     [InlineData("/", TestSitePathConst06, false)]
     [InlineData("/", TestSitePathConst08, true)]

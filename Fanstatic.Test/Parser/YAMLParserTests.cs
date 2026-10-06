@@ -289,6 +289,17 @@ public class YamlParserTests : TestSetup
         Assert.Equal(new("https://www.example.com/"), siteSettings.BaseUrl);
     }
 
+    [Fact]
+    public void ParseSiteSettings_ShouldDefaultAndAllowDisablingTaxonomies()
+    {
+        var defaults = _parser.Parse<SiteSettings>("Title: Test");
+        var disabled = _parser.Parse<SiteSettings>("Title: Test\nTaxonomies: {}");
+
+        Assert.Equal("tags", defaults.Taxonomies["tag"]);
+        Assert.Equal("categories", defaults.Taxonomies["category"]);
+        Assert.Empty(disabled.Taxonomies);
+    }
+
 
     [Fact]
     public void SiteParams_ShouldHandleEmptyContent()

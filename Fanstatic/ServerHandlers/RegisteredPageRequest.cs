@@ -73,20 +73,51 @@ public class RegisteredPageRequest : IServerHandlers
     Uri? TryGetPaginatedParentUrl(Uri url)
     {
         var path = url.ToString();
+        return TryGetCanonicalPaginatedParentUrl(path)
+               ?? TryGetCompactPaginatedParentUrl(path);
+    }
+
+    Uri? TryGetCanonicalPaginatedParentUrl(string path)
+    {
         var marker = "/" + _site.PaginatePath + "/";
         var idx = path.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0) return null;
+        if (idx < 0)
+        {
+            return null;
+        }
 
         var afterMarker = path[(idx + marker.Length)..];
         var slashIdx = afterMarker.IndexOf('/');
-        if (slashIdx < 0) return null;
-
-        if (!int.TryParse(afterMarker[..slashIdx], out var pageNum) || pageNum < 2) return null;
+        if (slashIdx < 0 || !IsPaginatedPageNumber(afterMarker[..slashIdx]))
+        {
+            return null;
+        }
 
         var filename = afterMarker[(slashIdx + 1)..];
-        var basePath = path[..idx];
-        return new Uri($"{basePath}/{filename}", UriKind.Relative);
+        return new Uri($"{path[..idx]}/{filename}", UriKind.Relative);
     }
+
+    static Uri? TryGetCompactPaginatedParentUrl(string path)
+    {
+        var filenameSeparator = path.LastIndexOf('/');
+        if (filenameSeparator < 0)
+        {
+            return null;
+        }
+        var pageSeparator = path.LastIndexOf('/', filenameSeparator - 1);
+        if (pageSeparator < 0
+            || !IsPaginatedPageNumber(path[(pageSeparator + 1)..filenameSeparator]))
+        {
+            return null;
+        }
+
+        return new Uri(
+            $"{path[..pageSeparator]}/{path[(filenameSeparator + 1)..]}",
+            UriKind.Relative);
+    }
+
+    static bool IsPaginatedPageNumber(string value) =>
+        int.TryParse(value, out var pageNumber) && pageNumber >= 2;
 
     /// <summary>
     /// Injects a reload script into the provided content.

@@ -14,6 +14,30 @@ public class SiteOutput(ISite siteImplementation, SiteOutputVariant variant) : I
 
     public IReadOnlyList<LanguageSettings> Languages => siteImplementation.LanguageList;
 
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, TaxonomyTerms> Taxonomies
+    {
+        get
+        {
+            var taxonomies = new Dictionary<string, TaxonomyTerms>(
+                StringComparer.OrdinalIgnoreCase);
+            foreach (var plural in siteImplementation.TaxonomyDefinitions.Values.Distinct(
+                         StringComparer.OrdinalIgnoreCase))
+            {
+                var terms = siteImplementation.Pages
+                    .Where(page => page.Kind == Kind.term
+                                   && page.Section?.Equals(plural, StringComparison.OrdinalIgnoreCase) == true
+                                   && page.OutputFormat == OutputFormat
+                                   && IsSameLanguage(page))
+                    .DistinctBy(page => page.ContentSource)
+                    .Select(page => new TaxonomyTerm(page));
+                taxonomies[plural] = new TaxonomyTerms(terms);
+            }
+
+            return taxonomies;
+        }
+    }
+
     public string OutputFormat => variant.outputFormat;
 
     public Dictionary<string, object> Params

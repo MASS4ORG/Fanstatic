@@ -372,6 +372,24 @@ public class PageTests : TestSetup
     }
 
     [Theory]
+    [InlineData(Kind.taxonomy, "taxonomy")]
+    [InlineData(Kind.term, "term")]
+    public void TemplateLookup_ShouldPreferTaxonomySpecificTemplates(Kind kind, string template)
+    {
+        var content = new ContentSource("categories/_index.md",
+            new FrontMatter { Section = "categories" }, string.Empty)
+        {
+            Kind = kind
+        };
+        var page = new Page(content, Site, Site, ("html", null), []);
+
+        var paths = page.GetTemplateLookupOrder(false).ToList();
+
+        Assert.Equal(Path.Combine("categories", $"{template}.html"), paths[0]);
+        Assert.Equal(Path.Combine("_default", $"{template}.html"), paths[1]);
+    }
+
+    [Theory]
     [InlineData("", "", Kind.single, 4)]
     [InlineData("page", "", Kind.single, 6)]
     [InlineData("", "blog", Kind.single, 8)]

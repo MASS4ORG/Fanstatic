@@ -90,33 +90,67 @@ public static class FileUtils
     {
         ArgumentNullException.ThrowIfNull(page);
 
-        string[] sections = page.Section is null ? [string.Empty] : [page.Section, string.Empty];
-        string[] types = page.Type is null ? [string.Empty, "_default"] : [page.Type, string.Empty, "_default"];
-        string[] outputFormats = ["." + page.OutputFormatObj.Extension, string.Empty];
+        var taxonomySpecificPaths = !isBaseTemplate && page.Kind is Kind.term or Kind.taxonomy
+            ? GetTaxonomyTemplatePaths(page)
+            : [];
+        return taxonomySpecificPaths
+            .Concat(GetFormatSpecificTemplatePaths(page))
+            .Concat(GetGenericTemplatePaths(page, isBaseTemplate))
+            .Distinct();
+    }
 
+    static IEnumerable<string> GetFormatSpecificTemplatePaths(Page page)
+    {
         var formatName = page.OutputFormat;
         var formatExt = "." + page.OutputFormatObj.Extension;
-        var formatNameDiffersFromExt =
-            !formatName.Equals(page.OutputFormatObj.Extension, StringComparison.OrdinalIgnoreCase);
-
-        // Format-name-specific paths come first (e.g. "_default/sitemap.xml" before "_default/list.xml")
-        var formatSpecificPaths = formatNameDiffersFromExt
-            ? types.SelectMany(type => new[]
+        return !formatName.Equals(page.OutputFormatObj.Extension, StringComparison.OrdinalIgnoreCase)
+            ? GetTemplateTypes(page).SelectMany(type => new[]
             {
                 Path.Combine(type, formatName + formatExt),
                 Path.Combine(type, formatName)
             })
             : [];
+    }
 
+    static IEnumerable<string> GetGenericTemplatePaths(Page page, bool isBaseTemplate)
+    {
+        string[] sections = page.Section is null ? [string.Empty] : [page.Section, string.Empty];
+        var types = GetTemplateTypes(page);
+        string[] outputFormats = ["." + page.OutputFormatObj.Extension, string.Empty];
         var kinds = isBaseTemplate ? GetAllKindsBase(page.Kind) : GetAllKinds(page.Kind);
 
-        var genericPaths = sections
+        return sections
             .SelectMany(section => types.Select(type => new { section, type }))
             .SelectMany(x => kinds.Select(kind => new { x.section, x.type, kind }))
             .SelectMany(x => outputFormats.Select(outputFormat => new { x.section, x.type, x.kind, outputFormat }))
             .Select(x => Path.Combine(x.section, x.type, x.kind) + x.outputFormat);
+    }
 
-        return formatSpecificPaths.Concat(genericPaths).Distinct();
+    static string[] GetTemplateTypes(Page page) =>
+        page.Type is null ? [string.Empty, "_default"] : [page.Type, string.Empty, "_default"];
+
+    static IEnumerable<string> GetTaxonomyTemplatePaths(Page page)
+    {
+        var templateName = page.Kind == Kind.term ? "term" : "taxonomy";
+        var sections = new[] { page.Section ?? string.Empty, "_default" };
+        var formatName = page.OutputFormat;
+        var formatExt = "." + page.OutputFormatObj.Extension;
+        var templateNames = new List<string>();
+        if (!formatName.Equals(page.OutputFormatObj.Extension, StringComparison.OrdinalIgnoreCase))
+        {
+            templateNames.Add($"{templateName}.{formatName}{formatExt}");
+            templateNames.Add($"{templateName}.{formatName}");
+        }
+
+        templateNames.Add($"{templateName}{formatExt}");
+        templateNames.Add(templateName);
+        foreach (var name in templateNames)
+        {
+            foreach (var section in sections)
+            {
+                yield return Path.Combine(section, name);
+            }
+        }
     }
 
     static readonly FrozenDictionary<Kind, string[]> KindLookup =

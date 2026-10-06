@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added: configurable taxonomies for tags, categories, and custom terms #24 #25
+- Changed: logging defaults to Information; `-v` / `--verbose` enables Debug-level logs
+- Fixed: paginated taxonomy archives accept compact URLs such as `/tags/release/2`
+- Fixed: serving a site reuses its port when only previous connections in `TIME_WAIT` remain
+- Fixed: client disconnects while serving no longer appear as unexpected listener errors
+
 ## [7.1.1] - 2026-10-04
 
 - Fixed: report parsed files and generated pages separately #12
