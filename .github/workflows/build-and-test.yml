@@ -39,14 +39,6 @@ jobs:
                     --configuration "Debug" \
                     --publish-directory "./.publish"
 
-            - name: Publish coverage to Codacy
-              continue-on-error: true
-              run: |
-                  set +e
-                  bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/coverage.xml
-              env:
-                  CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-
             - name: Upload coverage report
               uses: actions/upload-artifact@v7
               with:

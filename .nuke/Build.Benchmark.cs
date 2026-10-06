@@ -8,6 +8,8 @@ sealed partial class Build
     const int BenchmarkRunsPerScenario = 5;
     const int MaximumBenchmarkRegressionPercent = 25;
     const int BenchmarkProcessorCount = 2;
+    const string CiBenchmarkSource = "GitHub Actions";
+    const string LocalBenchmarkSource = "local";
 
     static readonly int[] BenchmarkPostCounts = [1000, 2000, 4000];
 
@@ -18,15 +20,15 @@ sealed partial class Build
         WriteIndented = true,
     };
 
-    [Parameter("Replace the checked-in benchmark baseline with the measured results")]
-    readonly bool UpdateBenchmarkBaseline;
+    [Parameter("Append the measured results to the benchmark history as the entry for the project version")]
+    readonly bool RecordBenchmark;
 
-    AbsolutePath BenchmarkBaselineFile => RootDirectory / ".nuke" / "benchmark-baseline.json";
+    AbsolutePath BenchmarkHistoryFile => RootDirectory / ".nuke" / "benchmark-history.json";
     AbsolutePath BenchmarkReportFile => RootDirectory / "artifacts" / "benchmark.json";
     AbsolutePath BenchmarkPublishDirectory => RootDirectory / ".publish" / "benchmark" / RuntimeIdentifier;
 
     [UsedImplicitly]
-    Target Benchmark => td => td
+    public Target Benchmark => td => td
         .DependsOn(Restore)
         .Produces(BenchmarkReportFile)
         .Executes(RunBenchmark);
@@ -34,12 +36,6 @@ sealed partial class Build
     void RunBenchmark()
     {
         var sdkVersion = ReadDotNetSdkVersion();
-        if (!System.Version.TryParse(sdkVersion, out var parsedSdkVersion) || parsedSdkVersion.Major != 10)
-        {
-            throw new InvalidOperationException(
-                $"Benchmarks must use the .NET 10 SDK; the selected SDK is '{sdkVersion}'.");
-        }
-
         BenchmarkReportFile.DeleteFile();
         var tempDirectory = Path.Combine(Path.GetTempPath(), $"fanstatic-benchmark-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDirectory);
@@ -70,49 +66,18 @@ sealed partial class Build
             Directory.Delete(tempDirectory, recursive: true);
         }
 
-        var baseline = UpdateBenchmarkBaseline
-            ? WriteBenchmarkBaseline(measurements, sdkVersion)
-            : ReadBenchmarkBaseline();
-        ValidateBenchmarkBaseline(baseline, sdkVersion);
+        var current = CreateBenchmarkHistoryEntry(measurements, sdkVersion);
+        var history = ReadBenchmarkHistory();
+        var reference = FindBenchmarkReference(history, current);
+        LogBenchmarkReference(reference, current);
 
-        var reportScenarios = measurements.Select(measurement =>
-        {
-            var baselineMedian = baseline.Scenarios
-                .SingleOrDefault(entry => entry.Name == measurement.Name)
-                ?? throw new InvalidDataException($"Benchmark baseline is missing scenario '{measurement.Name}'.");
-            if (baselineMedian.ParseMedianMilliseconds <= 0 || baselineMedian.CreateMedianMilliseconds <= 0)
-            {
-                throw new InvalidDataException($"Benchmark baseline phases for '{measurement.Name}' must be positive.");
-            }
-
-            var parseRegressionPercent =
-                (measurement.ParseMedianMilliseconds - baselineMedian.ParseMedianMilliseconds)
-                / baselineMedian.ParseMedianMilliseconds * 100;
-            var createRegressionPercent =
-                (measurement.CreateMedianMilliseconds - baselineMedian.CreateMedianMilliseconds)
-                / baselineMedian.CreateMedianMilliseconds * 100;
-            var passed = measurement.ParseMedianMilliseconds <=
-                         baselineMedian.ParseMedianMilliseconds * (1 + MaximumBenchmarkRegressionPercent / 100d)
-                         && measurement.CreateMedianMilliseconds <=
-                         baselineMedian.CreateMedianMilliseconds * (1 + MaximumBenchmarkRegressionPercent / 100d);
-
-            Log.Information(
-                "Benchmark {Scenario}: Parse {Parse:F1}/{BaselineParse:F1} ms ({ParseRegression:F1}%), " +
-                "Create {Create:F1}/{BaselineCreate:F1} ms ({CreateRegression:F1}%), {Status}",
-                measurement.Name, measurement.ParseMedianMilliseconds, baselineMedian.ParseMedianMilliseconds,
-                parseRegressionPercent, measurement.CreateMedianMilliseconds,
-                baselineMedian.CreateMedianMilliseconds, createRegressionPercent,
-                passed ? "PASS" : "FAIL");
-
-            return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
-                measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
-                measurement.WallMedianMilliseconds, baselineMedian.ParseMedianMilliseconds,
-                baselineMedian.CreateMedianMilliseconds, parseRegressionPercent, createRegressionPercent, passed);
-        }).ToArray();
+        var reportScenarios = measurements.Select(measurement => CompareBenchmarkScenario(measurement, reference))
+            .ToArray();
 
         var report = new BenchmarkReport(DateTimeOffset.UtcNow, RuntimeIdentifier,
             RuntimeInformation.ProcessArchitecture.ToString(), sdkVersion, Environment.Version.ToString(),
-            BenchmarkProcessorCount, reportScenarios.All(scenario => scenario.Passed), reportScenarios);
+            BenchmarkProcessorCount, reference?.Version, reportScenarios.All(scenario => scenario.Passed),
+            reportScenarios);
 
         _ = BenchmarkReportFile.Parent.CreateDirectory();
         BenchmarkReportFile.WriteAllText(JsonSerializer.Serialize(report, BenchmarkJsonOptions));
@@ -122,6 +87,54 @@ sealed partial class Build
             throw new InvalidOperationException(
                 $"Benchmark regression exceeded {MaximumBenchmarkRegressionPercent}%; see '{BenchmarkReportFile}'.");
         }
+
+        if (RecordBenchmark)
+        {
+            AppendBenchmarkHistoryEntry(history, current);
+        }
+    }
+
+    BenchmarkScenarioReport CompareBenchmarkScenario(
+        BenchmarkMeasurement measurement,
+        BenchmarkHistoryEntry? reference)
+    {
+        var referenceScenario = reference?.Scenarios.SingleOrDefault(entry => entry.Name == measurement.Name);
+        if (referenceScenario is null)
+        {
+            Log.Information("Benchmark {Scenario}: Parse {Parse:F1} ms, Create {Create:F1} ms, no reference",
+                measurement.Name, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds);
+            return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
+                measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
+                measurement.WallMedianMilliseconds, null, null, null, null, true);
+        }
+
+        if (referenceScenario.ParseMedianMilliseconds <= 0 || referenceScenario.CreateMedianMilliseconds <= 0)
+        {
+            throw new InvalidDataException(
+                $"Benchmark reference phases for '{measurement.Name}' must be positive.");
+        }
+
+        var parseRegressionPercent =
+            (measurement.ParseMedianMilliseconds - referenceScenario.ParseMedianMilliseconds)
+            / referenceScenario.ParseMedianMilliseconds * 100;
+        var createRegressionPercent =
+            (measurement.CreateMedianMilliseconds - referenceScenario.CreateMedianMilliseconds)
+            / referenceScenario.CreateMedianMilliseconds * 100;
+        var passed = parseRegressionPercent <= MaximumBenchmarkRegressionPercent
+                     && createRegressionPercent <= MaximumBenchmarkRegressionPercent;
+
+        Log.Information(
+            "Benchmark {Scenario}: Parse {Parse:F1}/{ReferenceParse:F1} ms ({ParseRegression:F1}%), " +
+            "Create {Create:F1}/{ReferenceCreate:F1} ms ({CreateRegression:F1}%), {Status}",
+            measurement.Name, measurement.ParseMedianMilliseconds, referenceScenario.ParseMedianMilliseconds,
+            parseRegressionPercent, measurement.CreateMedianMilliseconds,
+            referenceScenario.CreateMedianMilliseconds, createRegressionPercent,
+            passed ? "PASS" : "FAIL");
+
+        return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
+            measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
+            measurement.WallMedianMilliseconds, referenceScenario.ParseMedianMilliseconds,
+            referenceScenario.CreateMedianMilliseconds, parseRegressionPercent, createRegressionPercent, passed);
     }
 
     void PublishBenchmarkBinary()
@@ -317,65 +330,89 @@ sealed partial class Build
         }
     }
 
-    BenchmarkBaseline WriteBenchmarkBaseline(
+    BenchmarkHistoryEntry CreateBenchmarkHistoryEntry(
         IReadOnlyList<BenchmarkMeasurement> measurements,
-        string sdkVersion)
-    {
-        var baseline = new BenchmarkBaseline(sdkVersion, RuntimeIdentifier,
-            RuntimeInformation.ProcessArchitecture.ToString(), Environment.Version.ToString(),
-            BenchmarkProcessorCount, BenchmarkRunsPerScenario, DateTimeOffset.UtcNow,
-            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ? "GitHub Actions" : "local",
-            Environment.MachineName,
-            measurements.Select(measurement => new BenchmarkBaselineEntry(measurement.Name,
+        string sdkVersion) =>
+        new(Version, DateTimeOffset.UtcNow,
+            Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ? CiBenchmarkSource : LocalBenchmarkSource,
+            Environment.MachineName, sdkVersion, Environment.Version.ToString(), RuntimeIdentifier,
+            RuntimeInformation.ProcessArchitecture.ToString(), BenchmarkProcessorCount, BenchmarkRunsPerScenario,
+            measurements.Select(measurement => new BenchmarkHistoryScenario(measurement.Name,
                 measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds)).ToArray());
 
-        BenchmarkBaselineFile.WriteAllText(JsonSerializer.Serialize(baseline, BenchmarkJsonOptions));
-        Log.Information("Updated benchmark baseline at {Path}", BenchmarkBaselineFile);
-        return baseline;
-    }
-
-    BenchmarkBaseline ReadBenchmarkBaseline()
+    BenchmarkHistory ReadBenchmarkHistory()
     {
-        if (!BenchmarkBaselineFile.FileExists())
+        if (!BenchmarkHistoryFile.FileExists())
         {
-            throw new FileNotFoundException(
-                $"Benchmark baseline is missing. Create it with './build.sh Benchmark --update-benchmark-baseline'.",
-                BenchmarkBaselineFile);
+            return new BenchmarkHistory([]);
         }
 
-        return JsonSerializer.Deserialize<BenchmarkBaseline>(
-                   BenchmarkBaselineFile.ReadAllText(), BenchmarkJsonOptions)
-               ?? throw new InvalidDataException($"Could not deserialize benchmark baseline '{BenchmarkBaselineFile}'.");
+        return JsonSerializer.Deserialize<BenchmarkHistory>(
+                   BenchmarkHistoryFile.ReadAllText(), BenchmarkJsonOptions)
+               ?? throw new InvalidDataException($"Could not deserialize benchmark history '{BenchmarkHistoryFile}'.");
     }
 
-    void ValidateBenchmarkBaseline(BenchmarkBaseline baseline, string sdkVersion)
+    void AppendBenchmarkHistoryEntry(BenchmarkHistory history, BenchmarkHistoryEntry entry)
     {
-        if (baseline.RunsPerScenario != BenchmarkRunsPerScenario)
+        if (history.Entries.Any(existing => IsSameBenchmarkSeries(existing, entry) && existing.Version == entry.Version))
         {
-            throw new InvalidDataException(
-                $"Benchmark baseline uses {baseline.RunsPerScenario} runs per scenario; " +
-                $"expected {BenchmarkRunsPerScenario}.");
+            throw new InvalidOperationException(
+                $"The benchmark history already has an entry for version {entry.Version} from this runner. " +
+                "Remove it from the history file first to record it again.");
         }
 
-        if (!StringComparer.Ordinal.Equals(baseline.SdkVersion, sdkVersion) ||
-            !StringComparer.Ordinal.Equals(baseline.RuntimeVersion, Environment.Version.ToString()))
+        var updated = new BenchmarkHistory([.. history.Entries, entry]);
+        BenchmarkHistoryFile.WriteAllText(JsonSerializer.Serialize(updated, BenchmarkJsonOptions));
+        Log.Information("Recorded benchmark entry for version {Version} in {Path}", entry.Version,
+            BenchmarkHistoryFile);
+    }
+
+    /// <summary>
+    /// The newest history entry measured under the same conditions, so the gate never compares a CI runner with a
+    /// developer machine or different parallelism. A different SDK or runtime does not prevent the comparison.
+    /// </summary>
+    static BenchmarkHistoryEntry? FindBenchmarkReference(BenchmarkHistory history, BenchmarkHistoryEntry current) =>
+        history.Entries
+            .Where(entry => IsSameBenchmarkSeries(entry, current))
+            .OrderByDescending(entry => entry.RecordedAtUtc)
+            .FirstOrDefault();
+
+    static bool IsSameBenchmarkSeries(BenchmarkHistoryEntry entry, BenchmarkHistoryEntry other) =>
+        entry.Source == other.Source
+        && (entry.Source != LocalBenchmarkSource || entry.Runner == other.Runner)
+        && entry.RuntimeIdentifier == other.RuntimeIdentifier
+        && entry.Architecture == other.Architecture
+        && entry.ProcessorCount == other.ProcessorCount
+        && entry.RunsPerScenario == other.RunsPerScenario;
+
+    static void LogBenchmarkReference(BenchmarkHistoryEntry? reference, BenchmarkHistoryEntry current)
+    {
+        if (reference is null)
         {
-            throw new InvalidDataException(
-                $"Benchmark baseline was measured with SDK/runtime {baseline.SdkVersion}/{baseline.RuntimeVersion}; " +
-                $"this run uses {sdkVersion}/{Environment.Version}. Refresh the baseline on the benchmark runner.");
+            Log.Warning(
+                "The benchmark history has no comparable entry for {Source}/{Runner}; nothing is gated. " +
+                "Record one with './build.sh Benchmark --record-benchmark'.", current.Source, current.Runner);
+            return;
         }
 
-        if (baseline.RuntimeIdentifier != RuntimeIdentifier ||
-            baseline.Architecture != RuntimeInformation.ProcessArchitecture.ToString() ||
-            baseline.ProcessorCount != BenchmarkProcessorCount)
+        Log.Information("Comparing with the benchmark entry for version {Version} recorded {RecordedAt:u}",
+            reference.Version, reference.RecordedAtUtc);
+        if (!HaveSameMajorVersion(reference.SdkVersion, current.SdkVersion)
+            || !HaveSameMajorVersion(reference.RuntimeVersion, current.RuntimeVersion))
         {
-            throw new InvalidDataException(
-                $"Benchmark baseline targets {baseline.RuntimeIdentifier}/{baseline.Architecture}/" +
-                $"{baseline.ProcessorCount} processors, but this run targets {RuntimeIdentifier}/" +
-                $"{RuntimeInformation.ProcessArchitecture}/{BenchmarkProcessorCount} processors. " +
-                "Refresh the baseline on the benchmark runner.");
+            Log.Warning("The reference was measured with SDK/runtime {Reference}, this run uses {Current}",
+                $"{reference.SdkVersion}/{reference.RuntimeVersion}",
+                $"{current.SdkVersion}/{current.RuntimeVersion}");
         }
     }
+
+    /// <summary>
+    /// Patch releases change with every runner image update, so only a major version change is worth a warning.
+    /// </summary>
+    static bool HaveSameMajorVersion(string left, string right) =>
+        int.TryParse(left.Split('.')[0], out var leftMajor)
+        && int.TryParse(right.Split('.')[0], out var rightMajor)
+        && leftMajor == rightMajor;
 
     sealed record BenchmarkScenario(int PostCount, bool HasSidebar)
     {
@@ -393,19 +430,22 @@ sealed partial class Build
 
     sealed record BenchmarkRun(double ParseMilliseconds, double CreateMilliseconds, double WallMilliseconds);
 
-    sealed record BenchmarkBaseline(
-        string SdkVersion,
-        string RuntimeIdentifier,
-        string Architecture,
-        string RuntimeVersion,
-        int ProcessorCount,
-        int RunsPerScenario,
-        DateTimeOffset UpdatedAtUtc,
+    sealed record BenchmarkHistory(IReadOnlyList<BenchmarkHistoryEntry> Entries);
+
+    sealed record BenchmarkHistoryEntry(
+        string Version,
+        DateTimeOffset RecordedAtUtc,
         string Source,
         string Runner,
-        IReadOnlyList<BenchmarkBaselineEntry> Scenarios);
+        string SdkVersion,
+        string RuntimeVersion,
+        string RuntimeIdentifier,
+        string Architecture,
+        int ProcessorCount,
+        int RunsPerScenario,
+        IReadOnlyList<BenchmarkHistoryScenario> Scenarios);
 
-    sealed record BenchmarkBaselineEntry(
+    sealed record BenchmarkHistoryScenario(
         string Name, double ParseMedianMilliseconds, double CreateMedianMilliseconds);
 
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]
@@ -416,6 +456,7 @@ sealed partial class Build
         string SdkVersion,
         string RuntimeVersion,
         int ProcessorCount,
+        string? ReferenceVersion,
         bool Passed,
         IReadOnlyList<BenchmarkScenarioReport> Scenarios);
 
@@ -428,9 +469,9 @@ sealed partial class Build
         double ParseMedianMilliseconds,
         double CreateMedianMilliseconds,
         double WallMedianMilliseconds,
-        double BaselineParseMedianMilliseconds,
-        double BaselineCreateMedianMilliseconds,
-        double ParseRegressionPercent,
-        double CreateRegressionPercent,
+        double? ReferenceParseMedianMilliseconds,
+        double? ReferenceCreateMedianMilliseconds,
+        double? ParseRegressionPercent,
+        double? CreateRegressionPercent,
         bool Passed);
 }
