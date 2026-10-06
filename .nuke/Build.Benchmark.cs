@@ -210,9 +210,11 @@ sealed partial class Build
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
+            Environment =
+            {
+                ["DOTNET_PROCESSOR_COUNT"] = BenchmarkProcessorCount.ToString(CultureInfo.InvariantCulture)
+            }
         };
-        startInfo.Environment["DOTNET_PROCESSOR_COUNT"] =
-            BenchmarkProcessorCount.ToString(CultureInfo.InvariantCulture);
         startInfo.ArgumentList.Add("build");
         startInfo.ArgumentList.Add("--source");
         startInfo.ArgumentList.Add(siteDirectory);

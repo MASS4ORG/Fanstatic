@@ -56,7 +56,7 @@ public static partial class RefShortcodeParser
         if (target is null)
         {
             site.Logger.Error("ref/relref: unable to resolve {Path} referenced in {File}", path,
-                page.SourceRelativePath);
+                page.SourceFullPath(site.SourceContentPath));
             return "#";
         }
 

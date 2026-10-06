@@ -1,6 +1,7 @@
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using NSubstitute;
 using Xunit;
 
 namespace Fanstatic.Test.Parser;
@@ -97,6 +98,17 @@ public class RefShortcodeParserTests : TestSetup
         var about = Page("about.md");
 
         Assert.Contains("Missing: #", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ref_WithUnresolvablePath_ShouldLogTheAbsoluteSourcePath()
+    {
+        var about = Page("about.md");
+
+        _ = about.ContentPreRendered;
+
+        LoggerMock.Received().Error("ref/relref: unable to resolve {Path} referenced in {File}",
+            "posts/does-not-exist.md", Path.Combine(_site.SourceContentPath, "about.md"));
     }
 
     [Fact]

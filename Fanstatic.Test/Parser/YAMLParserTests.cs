@@ -12,6 +12,17 @@ public class YamlParserTests : TestSetup
     readonly YamlParser _parser = new();
 
     [Fact]
+    public void Parse_WithScalarWhereListExpected_ShouldThrowConciseFormatException()
+    {
+        var exception = Assert.Throws<FormatException>(() => _parser.Parse<FrontMatter>("aliases: single"));
+
+        Assert.Contains("front matter line 1", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("single value where a list is expected", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("   at ", exception.Message, StringComparison.Ordinal);
+        Assert.NotNull(exception.InnerException);
+    }
+
+    [Fact]
     public void Parse_ShouldSupportConcurrentCallsOnSharedParser()
     {
         var parsedTitles = new ConcurrentBag<string>();

@@ -932,8 +932,8 @@ public class Site : ISite
         Logger.Error(
             "Duplicate RelPermalink '{Permalink}' from `{File}`. It is already from '{From}'",
             permalink,
-            page.SourceRelativePath,
-            (OutputReferences[permalink] as IFile)!.SourceRelativePath
+            page.SourceFullPath(SourceContentPath),
+            (OutputReferences[permalink] as IFile)!.SourceFullPath(SourceContentPath)
         );
     }
 
@@ -1265,6 +1265,11 @@ public class Site : ISite
             }
 
             return (cascade.Merge(frontMatter), rawContent);
+        }
+        catch (FormatException ex)
+        {
+            Logger.Error("Error parsing file {File}: {Reason}", fileFullPath, ex.Message);
+            Logger.Debug(ex, "Front matter details for {File}", fileFullPath);
         }
         catch (Exception ex)
         {
