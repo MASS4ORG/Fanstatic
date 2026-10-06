@@ -24,6 +24,7 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
+        "Benchmark",
         "CheckNewCommits",
         "Clean",
         "Compile",
@@ -193,6 +194,10 @@
         "Solution": {
           "type": "string",
           "description": "Path to a solution file that is automatically loaded"
+        },
+        "UpdateBenchmarkBaseline": {
+          "type": "boolean",
+          "description": "Replace the checked-in benchmark baseline with the measured results"
         },
         "WingetInstallerUrl": {
           "type": "string",

@@ -1,0 +1,33 @@
+{
+  "runtimeIdentifier": "linux-x64",
+  "architecture": "X64",
+  "processorCount": 2,
+  "runsPerScenario": 3,
+  "updatedAtUtc": "2026-10-06T06:48:03.0844314+00:00",
+  "scenarios": [
+    {
+      "name": "1000-posts-sidebar-off",
+      "medianMilliseconds": 349.0212
+    },
+    {
+      "name": "1000-posts-sidebar-on",
+      "medianMilliseconds": 353.4704
+    },
+    {
+      "name": "2000-posts-sidebar-off",
+      "medianMilliseconds": 395.7432
+    },
+    {
+      "name": "2000-posts-sidebar-on",
+      "medianMilliseconds": 403.1135
+    },
+    {
+      "name": "4000-posts-sidebar-off",
+      "medianMilliseconds": 508.366
+    },
+    {
+      "name": "4000-posts-sidebar-on",
+      "medianMilliseconds": 516.9798
+    }
+  ]
+}

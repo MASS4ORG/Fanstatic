@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed: key compiled file templates by normalized path #18
 - Changed: parse content files in parallel and link them deterministically #19
 - Added: optional per-template render metrics with `build --template-metrics` #20
+- Added: benchmark target with a 25% performance regression gate #21
 
 ## [7.1.1] - 2026-10-04
 
