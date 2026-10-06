@@ -363,6 +363,61 @@ public class PageTests : TestSetup
         }
     }
 
+    [Fact]
+    public void Content_ShouldAvoidDeadlockForConcurrentPageCycles()
+    {
+        var site = Substitute.For<ISite>();
+        using var initialRenders = new Barrier(2);
+        Page? first = null;
+        Page? second = null;
+        var firstRenderCount = 0;
+        var secondRenderCount = 0;
+        site.ParseAndRenderTemplate(Arg.Any<Page>(), false)
+            .Returns(call =>
+            {
+                var page = call.Arg<Page>();
+                var renderCount = ReferenceEquals(page, first)
+                    ? Interlocked.Increment(ref firstRenderCount)
+                    : Interlocked.Increment(ref secondRenderCount);
+                if (renderCount == 1 && !initialRenders.SignalAndWait(TimeSpan.FromSeconds(5)))
+                {
+                    throw new TimeoutException("Both page renders did not start concurrently.");
+                }
+
+                return ReferenceEquals(page, first) ? second!.Content : first!.Content;
+            });
+
+        first = new Page(new("first.md", new FrontMatter(), "first"), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
+        second = new Page(new("second.md", new FrontMatter(), "second"), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
+
+        var exceptions = new Exception?[2];
+        var firstThread = new Thread(() => exceptions[0] = Record.Exception(() => _ = first.Content))
+        {
+            IsBackground = true
+        };
+        var secondThread = new Thread(() => exceptions[1] = Record.Exception(() => _ = second.Content))
+        {
+            IsBackground = true
+        };
+        firstThread.Start();
+        secondThread.Start();
+
+        var firstCompleted = firstThread.Join(TimeSpan.FromSeconds(5));
+        var secondCompleted = secondThread.Join(TimeSpan.FromSeconds(5));
+        Assert.True(firstCompleted && secondCompleted, "Concurrent content cycles must not deadlock.");
+        Assert.All(exceptions, exception =>
+        {
+            Assert.IsType<InvalidOperationException>(exception);
+            Assert.Contains("Recursive content rendering", exception!.Message, StringComparison.Ordinal);
+        });
+    }
+
     [Theory]
     // [InlineData("/pages/page-01", 3)]
     // [InlineData("/pages/page-01/page-01", 3)]

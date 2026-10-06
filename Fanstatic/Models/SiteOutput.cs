@@ -14,6 +14,8 @@ public class SiteOutput : ISiteOutput
 
     readonly SiteOutputVariant variant;
 
+    readonly Lazy<IReadOnlyDictionary<string, TaxonomyTerms>> _taxonomiesCached;
+
     readonly Lazy<IReadOnlyList<IPage>> _regularPagesByDateCached;
 
     readonly Lazy<IReadOnlyList<IPage>> _regularPagesByLastModCached;
@@ -26,6 +28,7 @@ public class SiteOutput : ISiteOutput
     {
         this.siteImplementation = siteImplementation;
         this.variant = variant;
+        _taxonomiesCached = new(CreateTaxonomies);
         _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
@@ -38,26 +41,26 @@ public class SiteOutput : ISiteOutput
 
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, TaxonomyTerms> Taxonomies
-    {
-        get
-        {
-            var taxonomies = new Dictionary<string, TaxonomyTerms>(
-                StringComparer.OrdinalIgnoreCase);
-            foreach (var plural in siteImplementation.TaxonomyDefinitions.Values.Distinct(
-                         StringComparer.OrdinalIgnoreCase))
-            {
-                var terms = siteImplementation.Pages
-                    .Where(page => page.Kind == Kind.term
-                                   && page.Section?.Equals(plural, StringComparison.OrdinalIgnoreCase) == true
-                                   && page.OutputFormat == OutputFormat
-                                   && IsSameLanguage(page))
-                    .DistinctBy(page => page.ContentSource)
-                    .Select(page => new TaxonomyTerm(page));
-                taxonomies[plural] = new TaxonomyTerms(terms);
-            }
+        => _taxonomiesCached.Value;
 
-            return taxonomies;
+    IReadOnlyDictionary<string, TaxonomyTerms> CreateTaxonomies()
+    {
+        var taxonomies = new Dictionary<string, TaxonomyTerms>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var plural in siteImplementation.TaxonomyDefinitions.Values.Distinct(
+                     StringComparer.OrdinalIgnoreCase))
+        {
+            var terms = siteImplementation.Pages
+                .Where(page => page.Kind == Kind.term
+                               && page.Section?.Equals(plural, StringComparison.OrdinalIgnoreCase) == true
+                               && page.OutputFormat == OutputFormat
+                               && IsSameLanguage(page))
+                .DistinctBy(page => page.ContentSource)
+                .Select(page => new TaxonomyTerm(page));
+            taxonomies[plural] = new TaxonomyTerms(terms);
         }
+
+        return taxonomies;
     }
 
     public string OutputFormat => variant.outputFormat;

@@ -302,6 +302,47 @@ public class SiteTests : TestSetup
     }
 
     [Fact]
+    public void RegularPagesByTitle_ShouldMatchLiquidSortForMixedCaseTitles()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var options = new GenerateOptions { SourceArgument = Path.GetTempPath() };
+        var settings = new SiteSettings { BaseUrl = new("https://example.test/") };
+        var site = new Site(options, settings, new YamlParser(), LoggerMock, SystemClockMock);
+        var siteOutput = new SiteOutput(site, ("html", settings.DefaultLanguage));
+        var titles = new[] { "alpha", "Bravo", "ALPHA", "bravo" };
+        for (var index = 0; index < titles.Length; index++)
+        {
+            var source = new ContentSource($"{index}.md", new FrontMatter { Title = titles[index] }, titles[index])
+            {
+                Language = settings.DefaultLanguage
+            };
+            var outputPage = new Page(source, site, siteOutput, ("html", settings.DefaultLanguage), [])
+            {
+                RelPermalink = new Uri($"/{index}/", UriKind.Relative)
+            };
+            site.OutputReferences.TryAdd(outputPage.RelPermalink, outputPage);
+        }
+
+        var page = site.RegularPages.First();
+        var rendered = site.TemplateEngine.RenderInline(
+            "{% assign sorted = site.RegularPages | sort: 'Title' %}"
+            + "{% for item in sorted %}{{ item.Title }}\n{% endfor %}",
+            site,
+            page);
+        var liquidSortedTitles = rendered.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(liquidSortedTitles, siteOutput.RegularPagesByTitle.Select(item => item.Title));
+        Assert.Contains("ALPHA", liquidSortedTitles);
+        Assert.Contains("alpha", liquidSortedTitles);
+        Assert.Contains("Bravo", liquidSortedTitles);
+        Assert.Contains("bravo", liquidSortedTitles);
+    }
+
+    [Fact]
     public void ProcessPages_ShouldNotCacheCollectionsDuringResourceRendering()
     {
         var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst11));
@@ -481,6 +522,7 @@ public class SiteTests : TestSetup
         Assert.Single(post.Taxonomies["tags"]);
         Assert.Single(post.Taxonomies["categories"]);
         Assert.Equal("The Trilogy", post.Taxonomies["series"].Single().Title);
+        Assert.Same(post.Taxonomies, post.Taxonomies);
         Assert.Single(post.TagsReference);
         Assert.Same(post.TagsReference, post.TagsReference);
 
@@ -491,6 +533,8 @@ public class SiteTests : TestSetup
         Assert.Equal(2, term.RegularPages.Count());
 
         var siteOutput = post.Site;
+        Assert.Same(siteOutput.Taxonomies, siteOutput.Taxonomies);
+        Assert.Same(((ISiteOutput)site).Taxonomies, ((ISiteOutput)site).Taxonomies);
         var trilogy = Assert.Single(siteOutput.Taxonomies["series"], t => t.Name == "trilogy");
         Assert.Equal(["trilogy", "another", "duology"],
             siteOutput.Taxonomies["series"].Select(t => t.Name));

@@ -15,6 +15,8 @@ public class Site : ISite
 {
     Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
 
+    readonly Lazy<SiteOutput> _defaultHtmlSiteOutputCached;
+
     #region IParams
 
     /// <inheritdoc/>
@@ -63,7 +65,7 @@ public class Site : ISite
     public Dictionary<string, string> TaxonomyDefinitions => _settings.Taxonomies;
 
     IReadOnlyDictionary<string, TaxonomyTerms> ISiteOutput.Taxonomies =>
-        new SiteOutput(this, ("html", DefaultLanguage)).Taxonomies;
+        _defaultHtmlSiteOutputCached.Value.Taxonomies;
 
     /// <inheritdoc/>
     public Dictionary<string, LanguageSettings> Languages => _settings.Languages;
@@ -280,6 +282,8 @@ public class Site : ISite
         {
             if (_processingPages)
             {
+                // Processing can add outputs after intermediate reads; avoid caching a partial snapshot.
+                // BuildPages excludes virtual pagination pages, so their registration cannot stale the cache.
                 return BuildPages();
             }
 
@@ -311,6 +315,8 @@ public class Site : ISite
         {
             if (_processingPages)
             {
+                // Processing can add outputs after intermediate reads; avoid caching a partial snapshot.
+                // BuildRegularPages excludes virtual pages, so their registration cannot stale the cache.
                 return BuildRegularPages();
             }
 
@@ -479,6 +485,7 @@ public class Site : ISite
         Logger = logger;
         Parser = parser;
         TemplateEngine = new FluidTemplateEngine();
+        _defaultHtmlSiteOutputCached = new(() => new SiteOutput(this, ("html", DefaultLanguage)));
 
         _clock = clock ?? new SystemClock();
 
