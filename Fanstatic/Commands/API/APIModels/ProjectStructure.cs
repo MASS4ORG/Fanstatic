@@ -19,7 +19,7 @@ public record ProjectStructure(
     /// and the values are lists of <c>ClassInfo</c> objects that detail classes within that namespace.
     /// It facilitates structured access to classes grouped by their corresponding namespace.
     /// </remarks>
-    public Dictionary<string, List<ClassInfo>> NamespaceClasses { get; init; } = NamespaceClasses ?? new();
+    public Dictionary<string, List<ClassInfo>> NamespaceClasses { get; init; } = NamespaceClasses ?? [];
 
     /// <summary>
     /// Represents a collection of all classes identified within a project.
@@ -29,5 +29,5 @@ public record ProjectStructure(
     /// about a specific class, such as its name, namespace, type kind, and other associated information.
     /// It provides a centralized repository for access to all class-level structures found in the analyzed project.
     /// </remarks>
-    public List<ClassInfo> AllClasses { get; init; } = AllClasses ?? new();
+    public List<ClassInfo> AllClasses { get; init; } = AllClasses ?? [];
 }

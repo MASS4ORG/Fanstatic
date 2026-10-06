@@ -1,3 +1,5 @@
+using JetBrains.Annotations;
+
 namespace Fanstatic.Models;
 
 /// <summary>
@@ -41,5 +43,6 @@ public record OutputFormat
     /// <summary>
     /// If true, enables uglyURLs for this output format when uglyURLs is false in your site configuration.
     /// </summary>
+    [UsedImplicitly]
     public bool Ugly { get; init; }
 }

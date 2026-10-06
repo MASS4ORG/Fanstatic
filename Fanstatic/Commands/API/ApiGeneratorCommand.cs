@@ -9,10 +9,10 @@ namespace Fanstatic.Commands.API;
 /// </summary>
 public sealed class ApiGeneratorCommand : BaseGeneratorCommand
 {
-    ILogger _logger = null!;
+    readonly ILogger _logger;
     static CodeAnalyzer? _analyzer;
     static DocumentationGenerator? _generator;
-    readonly ApiGeneratorOptions _options = null!;
+    readonly ApiGeneratorOptions _options;
 
     /// <inheritdoc />
     public ApiGeneratorCommand(ApiGeneratorOptions options, ILogger logger, IFileSystem fileSystem)
@@ -61,7 +61,7 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
         var structure = await ScanProjectsAsync(_options.SourceProjects);
 
         var outputDir = Path.Combine(Site.SourceContentPath, _options.Output);
-        _logger.Debug("********* Output directory: {outputDir}", outputDir);
+        _logger.Debug("********* Output directory: {OutputDir}", outputDir);
 
         try
         {
@@ -73,7 +73,7 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
         }
         catch (InvalidOperationException ex)
         {
-            _logger.Information("Error generating documentation: {ExMessage}", ex.Message);
+            _logger.Information(ex, "Error generating documentation");
         }
 
         return 0;
@@ -96,7 +96,7 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
             {
                 if (!combinedStructure.NamespaceClasses.ContainsKey(kvp.Key))
                 {
-                    combinedStructure.NamespaceClasses[kvp.Key] = new List<ClassInfo>();
+                    combinedStructure.NamespaceClasses[kvp.Key] = [];
                 }
 
                 combinedStructure.NamespaceClasses[kvp.Key].AddRange(kvp.Value);
@@ -112,7 +112,7 @@ public sealed class ApiGeneratorCommand : BaseGeneratorCommand
         var groupedClasses = PartialClassMerger.GroupPartialClasses(structure.AllClasses);
         var totalMethods = groupedClasses.Sum(c => c.PublicMethods.Count);
 
-        _logger.Information($"Analysis complete! Found:");
+        _logger.Information("Analysis complete! Found:");
         _logger.Information("- {AllClassesCount} total type declarations", structure.AllClasses.Count);
         _logger.Information("- {GroupedClassesCount} unique types (after grouping partials)", groupedClasses.Count);
         _logger.Information("- {NamespaceClassesCount} namespaces", structure.NamespaceClasses.Count);

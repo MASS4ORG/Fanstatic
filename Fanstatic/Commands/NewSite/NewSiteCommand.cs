@@ -77,7 +77,7 @@ public sealed class NewSiteCommand(NewSiteOptions options, ILogger logger, IFile
         }
         catch (Exception ex)
         {
-            logger.Error("Failed to export site settings: {ex}", ex);
+            logger.Error(ex, "Failed to export site settings");
             return 1;
         }
 
@@ -93,7 +93,7 @@ public sealed class NewSiteCommand(NewSiteOptions options, ILogger logger, IFile
     {
         foreach (var folder in folders)
         {
-            logger.Information("Creating {folder}", folder);
+            logger.Information("Creating {Folder}", folder);
             fileSystem.DirectoryCreateDirectory(folder);
         }
     }

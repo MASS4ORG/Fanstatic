@@ -41,7 +41,7 @@ public class CodeAnalyzer(ILogger logger)
                 {
                     if (!structure.NamespaceClasses.ContainsKey(kvp.Key))
                     {
-                        structure.NamespaceClasses[kvp.Key] = new List<ClassInfo>();
+                        structure.NamespaceClasses[kvp.Key] = [];
                     }
 
                     structure.NamespaceClasses[kvp.Key].AddRange(kvp.Value);
@@ -49,7 +49,7 @@ public class CodeAnalyzer(ILogger logger)
             }
             catch (Exception ex)
             {
-                logger.Information("Error reading file {FilePath}: {ExMessage}", filePath, ex.Message);
+                logger.Information(ex, "Error reading file {FilePath}", filePath);
             }
         }
 
@@ -93,7 +93,7 @@ public class CodeAnalyzer(ILogger logger)
         {
             if (!structure.NamespaceClasses.ContainsKey(classInfo.Namespace))
             {
-                structure.NamespaceClasses[classInfo.Namespace] = new List<ClassInfo>();
+                structure.NamespaceClasses[classInfo.Namespace] = [];
             }
 
             structure.NamespaceClasses[classInfo.Namespace].Add(classInfo);
@@ -137,7 +137,7 @@ public class CodeAnalyzer(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Information("Error analyzing source code from {SourceFileName}: {ExMessage}", sourceFileName, ex.Message);
+            logger.Information(ex, "Error analyzing source code from {SourceFileName}", sourceFileName);
         }
 
         return classes;
@@ -246,7 +246,6 @@ public class CodeAnalyzer(ILogger logger)
             var propertyInfo = new PropertyInfo(
                 Name: property.Identifier.ValueText,
                 Type: property.Type.ToString(),
-                Modifiers: string.Join(" ", property.Modifiers.Select(m => m.ValueText)),
                 HasGetter: hasGetter,
                 HasSetter: hasSetter,
                 DefaultValue: property.Initializer?.Value.ToString(),

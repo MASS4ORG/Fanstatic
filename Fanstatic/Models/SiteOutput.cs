@@ -43,7 +43,7 @@ public class SiteOutput(ISite siteImplementation, SiteOutputVariant variant) : I
     public Dictionary<string, object> Params
     {
         get => siteImplementation.Params;
-        set => siteImplementation.Params = value;
+        init => siteImplementation.Params = value;
     }
 
     public string Title => siteImplementation.Title;

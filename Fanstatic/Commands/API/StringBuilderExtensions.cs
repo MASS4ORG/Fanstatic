@@ -216,8 +216,6 @@ public static class StringBuilderExtensions
         return sb.AppendLines(sortedClasses.Select(classInfo =>
         {
             var icon = GetTypeIcon(classInfo);
-            var modifierIcons =
-                GetModifierIcons(classInfo.Properties.FirstOrDefault()?.Modifiers ?? "");
             var fileName = GetTypeFileName(classInfo);
 
             return $"- {icon} [{classInfo.Name}](./{fileName})";
@@ -352,26 +350,4 @@ public static class StringBuilderExtensions
             _ => "🅃"
         };
 
-    static string GetModifierIcons(string modifiers) =>
-        modifiers.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(modifier => modifier.ToLower() switch
-            {
-                "abstract" => "🅐",
-                "async" => "ⓐ",
-                "const" => "🅒",
-                "internal" => "🅘",
-                "override" => "🅞",
-                "partial" => "🅣",
-                "private" => "Ⓟ",
-                "protected" => "🅡",
-                "public" => "🅟",
-                "readonly" => "🅡",
-                "sealed" => "Ⓢ",
-                "static" => "🅢",
-                "virtual" => "🅥",
-                "volatile" => "ⓥ",
-                _ => string.Empty
-            })
-            .Where(icon => !string.IsNullOrEmpty(icon))
-            .Aggregate("", (acc, icon) => acc + icon);
 }

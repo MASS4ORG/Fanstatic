@@ -52,7 +52,7 @@ public sealed class NewThemeCommand(NewThemeOptions options, ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Error("Failed to export site settings: {ex}", ex);
+            logger.Error(ex, "Failed to export site settings");
             return 1;
         }
 
@@ -68,7 +68,7 @@ public sealed class NewThemeCommand(NewThemeOptions options, ILogger logger)
     {
         foreach (var folder in folders)
         {
-            logger.Information("Creating {folder}", folder);
+            logger.Information("Creating {Folder}", folder);
             Directory.CreateDirectory(folder);
         }
     }

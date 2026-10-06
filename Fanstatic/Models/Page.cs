@@ -26,7 +26,9 @@ public class Page : IPage
     /// <inheritdoc/>
     public ISiteOutput Site { get; init; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The full site instance, used for internal access to the template engine and other services.
+    /// </summary>
     public ISite SiteInternal { get; init; }
 
     /// <inheritdoc/>
@@ -296,8 +298,11 @@ public class Page : IPage
     /// <inheritdoc/>
     public string? Url => ContentSource.Url;
 
-    /// <inheritdoc/>
-    public string? UrlTemplate => Url ?? (SourceFileNameWithoutExtension == "index" ? UrlForIndex : UrlForNonIndex);
+    /// <summary>
+    /// The URL template used to build the permalink, derived from <see cref="Url"/>
+    /// or the default index/non-index templates.
+    /// </summary>
+    public string UrlTemplate => Url ?? (SourceFileNameWithoutExtension == "index" ? UrlForIndex : UrlForNonIndex);
 
     /// <inheritdoc/>
     public bool? Draft => ContentSource.Draft;
@@ -436,7 +441,7 @@ echo page.SourceFileNameWithoutExtension
 endif
 -%}";
 
-    Dictionary<Uri, IOutput> _allOutputUrLs = [];
+    Dictionary<Uri, IOutput> _allOutputUrLs;
 
     /// <summary>
     /// Constructor
