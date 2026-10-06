@@ -49,7 +49,7 @@ public class CodeAnalyzer(ILogger logger)
             }
             catch (Exception ex)
             {
-                logger.Information("Error reading file {FilePath}: {ExMessage}", filePath, ex.Message);
+                logger.Information(ex, "Error reading file {FilePath}", filePath);
             }
         }
 
@@ -137,7 +137,7 @@ public class CodeAnalyzer(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.Information("Error analyzing source code from {SourceFileName}: {ExMessage}", sourceFileName, ex.Message);
+            logger.Information(ex, "Error analyzing source code from {SourceFileName}", sourceFileName);
         }
 
         return classes;

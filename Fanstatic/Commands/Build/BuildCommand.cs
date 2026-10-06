@@ -29,7 +29,7 @@ public class BuildCommand : BaseGeneratorCommand
     /// </summary>
     public int Run()
     {
-        Logger.Information("Output path: {output}", _options.Output);
+        Logger.Information("Output path: {Output}", _options.Output);
 
         // Generate the site pages
         CreateOutputFiles();
@@ -73,7 +73,7 @@ public class BuildCommand : BaseGeneratorCommand
         }
         catch (Exception ex)
         {
-            logger.Error($"Build failed: {ex.Message}");
+            logger.Error(ex, "Build failed");
             return Task.FromResult(1);
         }
     }
@@ -115,7 +115,7 @@ public class BuildCommand : BaseGeneratorCommand
             Fs.FileWriteAllText(outputAbsolutePath, result);
 
             _ = Interlocked.Increment(ref pagesCreated);
-            Logger.Debug("Page created {pagesCreated}: {Permalink}", pagesCreated, outputAbsolutePath);
+            Logger.Debug("Page created {PagesCreated}: {Permalink}", pagesCreated, outputAbsolutePath);
         }
         else if (output is IResource resource)
         {

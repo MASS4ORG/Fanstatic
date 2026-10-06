@@ -83,6 +83,6 @@ public abstract class BaseGeneratorCommand
             report.AppendLine(page.OriginalString);
         }
 
-        Logger.Debug(report.ToString());
+        Logger.Debug("{Report}", report);
     }
 }

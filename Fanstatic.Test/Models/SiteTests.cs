@@ -262,14 +262,14 @@ public class SiteTests : TestSetup
         Assert.Equal(7, term.Weight);
         Assert.Equal(2, term.RegularPages.Count());
 
-        var siteOutput = (ISiteOutput)post.Site;
-        var trilogy = Assert.Single(siteOutput.Taxonomies["series"], term => term.Name == "trilogy");
+        var siteOutput = post.Site;
+        var trilogy = Assert.Single(siteOutput.Taxonomies["series"], t => t.Name == "trilogy");
         Assert.Equal(["trilogy", "another", "duology"],
-            siteOutput.Taxonomies["series"].Select(term => term.Name));
+            siteOutput.Taxonomies["series"].Select(t => t.Name));
         Assert.Equal(["another", "duology", "trilogy"],
-            siteOutput.Taxonomies["series"].ByName.Select(term => term.Name));
+            siteOutput.Taxonomies["series"].ByName.Select(t => t.Name));
         Assert.Equal(["trilogy", "another", "duology"],
-            siteOutput.Taxonomies["series"].ByCount.Select(term => term.Name));
+            siteOutput.Taxonomies["series"].ByCount.Select(t => t.Name));
         Assert.Equal("trilogy", trilogy.Name);
         Assert.Equal(2, trilogy.Count);
         Assert.Equal(2, trilogy.Pages.Count);

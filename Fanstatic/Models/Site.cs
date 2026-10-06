@@ -37,7 +37,9 @@ public class Site : ISite
     /// <inheritdoc/>
     public string? Copyright => _settings.Copyright;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The base URL that will be used to build public links.
+    /// </summary>
     public Uri BaseUrl
     {
         get => _settings.BaseUrl;
@@ -87,6 +89,8 @@ public class Site : ISite
 
     /// <inheritdoc/>
     LanguageSettings ISiteOutput.Language => DefaultLanguageObj;
+
+    IReadOnlyList<LanguageSettings> ISite.Languages => LanguageList;
 
     /// <inheritdoc/>
     IReadOnlyList<LanguageSettings> ISiteOutput.Languages => LanguageList;
@@ -207,7 +211,7 @@ public class Site : ISite
         {
             var langCode = Path.GetFileNameWithoutExtension(file);
             var yamlContent = File.ReadAllText(file);
-            var raw = deserializer.Deserialize<Dictionary<string, object?>>(yamlContent);
+            var raw = deserializer.Deserialize<Dictionary<string, object?>?>(yamlContent);
             if (raw is null)
             {
                 continue;

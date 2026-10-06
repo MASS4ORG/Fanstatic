@@ -12,6 +12,24 @@ namespace Fanstatic.Models;
 public interface ISite : ISiteSettings, ISiteOutput
 {
     /// <summary>
+    /// The base URL that will be used to build public links.
+    /// </summary>
+    /// <remarks>
+    /// Explicitly redeclared to resolve the ambiguity between
+    /// <see cref="ISiteSettings.BaseUrl"/> (get/set) and <see cref="ISiteOutput.BaseUrl"/> (get).
+    /// </remarks>
+    new Uri BaseUrl { get; set; }
+
+    /// <summary>
+    /// All languages configured for the site, sorted by weight.
+    /// </summary>
+    /// <remarks>
+    /// Explicitly redeclared to resolve the ambiguity between
+    /// <see cref="ISiteSettings.Languages"/> (dictionary) and <see cref="ISiteOutput.Languages"/> (list).
+    /// </remarks>
+    new IReadOnlyList<LanguageSettings> Languages { get; }
+
+    /// <summary>
     /// Command line options
     /// </summary>
     IGenerateOptions Options { get; set; }
