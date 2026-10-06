@@ -25,6 +25,12 @@ jobs:
                   fetch-depth: 0
                   fetch-tags: true
 
+            # The release commit also carries the benchmark entry for the new version, measured on this runner.
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
             - name: Tag release if there are new commits
               run: |
                   echo "HEAD_BEFORE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"

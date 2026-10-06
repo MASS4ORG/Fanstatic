@@ -31,9 +31,19 @@ sealed partial class Build
     public Target Benchmark => td => td
         .DependsOn(Restore)
         .Produces(BenchmarkReportFile)
-        .Executes(RunBenchmark);
+        .Executes(() => RunBenchmark(RecordBenchmark, failOnRegression: true));
 
-    void RunBenchmark()
+    /// <summary>
+    /// Records the benchmark entry for the version being released, so the release commit carries it. A regression
+    /// is logged but does not stop the release: the history must show what was shipped.
+    /// </summary>
+    [UsedImplicitly]
+    public Target RecordReleaseBenchmark => td => td
+        .DependsOn(CheckNewCommits, Restore)
+        .OnlyWhenDynamic(() => HasNewCommits)
+        .Executes(() => RunBenchmark(record: true, failOnRegression: false));
+
+    void RunBenchmark(bool record, bool failOnRegression)
     {
         var sdkVersion = ReadDotNetSdkVersion();
         BenchmarkReportFile.DeleteFile();
@@ -84,11 +94,17 @@ sealed partial class Build
 
         if (!report.Passed)
         {
-            throw new InvalidOperationException(
-                $"Benchmark regression exceeded {MaximumBenchmarkRegressionPercent}%; see '{BenchmarkReportFile}'.");
+            var message =
+                $"Benchmark regression exceeded {MaximumBenchmarkRegressionPercent}%; see '{BenchmarkReportFile}'.";
+            if (failOnRegression)
+            {
+                throw new InvalidOperationException(message);
+            }
+
+            Log.Warning(message);
         }
 
-        if (RecordBenchmark)
+        if (record)
         {
             AppendBenchmarkHistoryEntry(history, current);
         }
@@ -96,7 +112,7 @@ sealed partial class Build
 
     BenchmarkScenarioReport CompareBenchmarkScenario(
         BenchmarkMeasurement measurement,
-        BenchmarkHistoryEntry? reference)
+        BenchmarkHistoryEntry reference)
     {
         var referenceScenario = reference?.Scenarios.SingleOrDefault(entry => entry.Name == measurement.Name);
         if (referenceScenario is null)
@@ -371,7 +387,7 @@ sealed partial class Build
     /// The newest history entry measured under the same conditions, so the gate never compares a CI runner with a
     /// developer machine or different parallelism. A different SDK or runtime does not prevent the comparison.
     /// </summary>
-    static BenchmarkHistoryEntry? FindBenchmarkReference(BenchmarkHistory history, BenchmarkHistoryEntry current) =>
+    static BenchmarkHistoryEntry FindBenchmarkReference(BenchmarkHistory history, BenchmarkHistoryEntry current) =>
         history.Entries
             .Where(entry => IsSameBenchmarkSeries(entry, current))
             .OrderByDescending(entry => entry.RecordedAtUtc)
@@ -385,7 +401,7 @@ sealed partial class Build
         && entry.ProcessorCount == other.ProcessorCount
         && entry.RunsPerScenario == other.RunsPerScenario;
 
-    static void LogBenchmarkReference(BenchmarkHistoryEntry? reference, BenchmarkHistoryEntry current)
+    static void LogBenchmarkReference(BenchmarkHistoryEntry reference, BenchmarkHistoryEntry current)
     {
         if (reference is null)
         {
@@ -456,7 +472,7 @@ sealed partial class Build
         string SdkVersion,
         string RuntimeVersion,
         int ProcessorCount,
-        string? ReferenceVersion,
+        string ReferenceVersion,
         bool Passed,
         IReadOnlyList<BenchmarkScenarioReport> Scenarios);
 

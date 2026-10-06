@@ -40,6 +40,7 @@
         "GitLabCreateTag",
         "Pack",
         "Publish",
+        "RecordReleaseBenchmark",
         "Restore",
         "ShowCurrentVersion",
         "Test",
