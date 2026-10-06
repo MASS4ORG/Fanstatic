@@ -43,6 +43,50 @@
           "createMedianMilliseconds": 213
         }
       ]
+    },
+    {
+      "version": "7.2.0",
+      "recordedAtUtc": "2026-10-06T15:09:29.9174697+00:00",
+      "source": "GitHub Actions",
+      "runner": "runnervm8df0l",
+      "sdkVersion": "10.0.401",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "linux-x64",
+      "architecture": "X64",
+      "processorCount": 2,
+      "runsPerScenario": 5,
+      "scenarios": [
+        {
+          "name": "1000-posts-sidebar-off",
+          "parseMedianMilliseconds": 123,
+          "createMedianMilliseconds": 337
+        },
+        {
+          "name": "1000-posts-sidebar-on",
+          "parseMedianMilliseconds": 127,
+          "createMedianMilliseconds": 269
+        },
+        {
+          "name": "2000-posts-sidebar-off",
+          "parseMedianMilliseconds": 186,
+          "createMedianMilliseconds": 440
+        },
+        {
+          "name": "2000-posts-sidebar-on",
+          "parseMedianMilliseconds": 189,
+          "createMedianMilliseconds": 427
+        },
+        {
+          "name": "4000-posts-sidebar-off",
+          "parseMedianMilliseconds": 346,
+          "createMedianMilliseconds": 905
+        },
+        {
+          "name": "4000-posts-sidebar-on",
+          "parseMedianMilliseconds": 381,
+          "createMedianMilliseconds": 870
+        }
+      ]
     }
   ]
 }
