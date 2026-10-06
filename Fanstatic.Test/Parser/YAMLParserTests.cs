@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
@@ -9,6 +10,22 @@ namespace Fanstatic.Test.Parser;
 public class YamlParserTests : TestSetup
 {
     readonly YamlParser _parser = new();
+
+    [Fact]
+    public void Parse_ShouldSupportConcurrentCallsOnSharedParser()
+    {
+        var parsedTitles = new ConcurrentBag<string>();
+
+        Parallel.For(0, 1_000, index =>
+        {
+            var result = _parser.Parse<FrontMatter>($"title: title-{index}");
+            parsedTitles.Add(result.Title
+                ?? throw new InvalidOperationException("Concurrent YAML parsing returned a null title."));
+        });
+
+        Assert.Equal(1_000, parsedTitles.Count);
+        Assert.Equal(1_000, parsedTitles.Distinct(StringComparer.Ordinal).Count());
+    }
 
     // TODO: consider using these
     // Date: 2023-07-01
