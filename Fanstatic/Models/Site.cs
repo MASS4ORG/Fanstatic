@@ -274,13 +274,23 @@ public class Site : ISite
     {
         get
         {
-            _pagesCache ??= OutputReferences.Values
-                .Where(output => output is IPage)
-                .Select(output => (output as IPage)!)
-                .OrderBy(page => -page.Weight);
-            return _pagesCache!;
+            if (_processingPages)
+            {
+                return BuildPages();
+            }
+
+            _pagesCache ??= BuildPages();
+            return _pagesCache;
         }
     }
+
+    IReadOnlyList<IPage> BuildPages() =>
+        OutputReferences.Values
+            .Where(output => output is IPage)
+            .Select(output => (output as IPage)!)
+            .Where(page => page is not Page { PageIndex: > 1 })
+            .OrderBy(page => -page.Weight)
+            .ToList();
 
     /// <inheritdoc/>
     public IEnumerable<IPage> AllRegularPages =>
@@ -291,18 +301,28 @@ public class Site : ISite
     {
         get
         {
-            _regularPagesCache ??= OutputReferences
-                .Where(pair =>
-                    pair.Value is IPage
-                    {
-                        IsPage: true
-                    } page &&
-                    pair.Key == page.RelPermalink)
-                .Select(pair => (pair.Value as IPage)!)
-                .OrderBy(page => -page.Weight);
+            if (_processingPages)
+            {
+                return BuildRegularPages();
+            }
+
+            _regularPagesCache ??= BuildRegularPages();
             return _regularPagesCache;
         }
     }
+
+    IReadOnlyList<IPage> BuildRegularPages() =>
+        OutputReferences
+            .Where(pair =>
+                pair.Value is IPage
+                {
+                    IsPage: true
+                } page &&
+                page is not Page { PageIndex: > 1 } &&
+                pair.Key == page.RelPermalink)
+            .Select(pair => (pair.Value as IPage)!)
+            .OrderBy(page => -page.Weight)
+            .ToList();
 
     /// <inheritdoc/>
     public IPage? Home { get; private set; }
@@ -383,6 +403,8 @@ public class Site : ISite
     {
         CacheManager.ResetCache();
         OutputReferences.Clear();
+        _pagesCache = null;
+        _regularPagesCache = null;
 
         lock (_templateErrorLock)
         {
@@ -416,9 +438,11 @@ public class Site : ISite
     /// </summary>
     readonly Lock _syncLockPostProcess = new();
 
-    IEnumerable<IPage>? _pagesCache;
+    IReadOnlyList<IPage>? _pagesCache;
 
-    IEnumerable<IPage>? _regularPagesCache;
+    IReadOnlyList<IPage>? _regularPagesCache;
+
+    bool _processingPages;
 
     readonly SiteSettings _settings;
 
@@ -697,14 +721,25 @@ public class Site : ISite
     /// </summary>
     public void ProcessPages()
     {
-        GenerateTaxonomies();
-        _contentSources
-            .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
-            .OrderBy(cs => cs.Value.BundleType == BundleType.None)
-            .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
-            .Select(cs => cs.Value)
-            .ToList()
-            .ForEach(cs => PageCreate(cs));
+        _pagesCache = null;
+        _regularPagesCache = null;
+        _processingPages = true;
+
+        try
+        {
+            GenerateTaxonomies();
+            _contentSources
+                .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
+                .OrderBy(cs => cs.Value.BundleType == BundleType.None)
+                .ThenBy(cs => cs.Value.SourceRelativePathDirectory)
+                .Select(cs => cs.Value)
+                .ToList()
+                .ForEach(cs => PageCreate(cs));
+        }
+        finally
+        {
+            _processingPages = false;
+        }
     }
 
     /// <inheritdoc/>

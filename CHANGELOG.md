@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: paginated taxonomy archives accept compact URLs such as `/tags/release/2`
 - Fixed: serving a site reuses its port when only previous connections in `TIME_WAIT` remain
 - Fixed: client disconnects while serving no longer appear as unexpected listener errors
+- Changed: materialize cached page collections after page processing #14
 
 ## [7.1.1] - 2026-10-04
 

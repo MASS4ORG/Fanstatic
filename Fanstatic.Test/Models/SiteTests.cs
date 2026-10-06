@@ -186,6 +186,124 @@ public class SiteTests : TestSetup
     }
 
     [Fact]
+    public void PageCollections_ShouldCacheMaterializedLists()
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst03))
+        };
+        var parser = new YamlParser();
+        var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        Assert.Same(site.Pages, site.Pages);
+        Assert.Same(site.RegularPages, site.RegularPages);
+        var page = site.Pages.First();
+        Assert.Same(page.RegularPages, page.RegularPages);
+    }
+
+    [Fact]
+    public void ProcessPages_ShouldNotCacheCollectionsDuringResourceRendering()
+    {
+        var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst11));
+        GenerateOptions options = new() { SourceArgument = siteFullPath };
+        var parser = new YamlParser();
+        var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+        site.TemplateEngine.Initialize(site);
+
+        var contentSource = new ContentSource("customized/index.md",
+            new FrontMatter
+            {
+                Title = "Customized",
+                ResourceDefinitions =
+                [
+                    new FrontMatterResources
+                    {
+                        Src = "*.webp",
+                        Name = "{{ site.Pages | size }}-{{ site.RegularPages | size }}-rendered"
+                    }
+                ]
+            }, string.Empty)
+        {
+            BundleType = BundleType.Leaf
+        };
+        contentSource.ScanForResources(site);
+        Assert.Single(contentSource.RawResources!);
+        site.ContentSourceAdd(contentSource);
+
+        site.ProcessPages();
+
+        var page = Assert.IsType<Page>(site.RegularPages.First(page =>
+            page.SourceRelativePath == "customized/index.md" && page.OutputFormat == "html"));
+        Assert.Contains(page.Resources!, resource =>
+            resource.RelPermalink.ToString().EndsWith("0-0-rendered.webp", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PageCollections_ShouldExcludeVirtualPages()
+    {
+        var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, ".TestSites/12-taxonomies"));
+        GenerateOptions options = new()
+        {
+            SourceArgument = siteFullPath
+        };
+        var site = SiteHelper.Init(
+            "fanstatic.yaml",
+            options,
+            new YamlParser(),
+            LoggerMock,
+            new StopwatchReporter(LoggerMock),
+            _fs);
+
+        var pages = site.Pages;
+        var regularPages = site.RegularPages;
+        var termPage = Assert.IsAssignableFrom<IPage>(
+            site.OutputReferences[new Uri("/tags/release/index.html", UriKind.Relative)]);
+
+        _ = site.TemplateEngine.RenderInline(
+            "{% assign pager = page.RegularPages | paginate: 1 %}",
+            site,
+            termPage);
+
+        var virtualPage = Assert.IsType<Page>(site.OutputReferences.Values
+            .First(page => page is Page { PageIndex: > 1 }));
+        Assert.DoesNotContain(virtualPage, pages);
+        Assert.DoesNotContain(virtualPage, regularPages);
+    }
+
+    [Fact]
+    public void ResetCache_ShouldClearPageCollectionCaches()
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst03))
+        };
+        var parser = new YamlParser();
+        var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+        var pages = site.Pages;
+        var regularPages = site.RegularPages;
+        var page = pages.First();
+        var regularPage = regularPages.First();
+
+        site.ResetCache();
+        site.OutputReferences.TryAdd(page.RelPermalink, page);
+        site.OutputReferences.TryAdd(regularPage.RelPermalink, regularPage);
+
+        Assert.NotSame(pages, site.Pages);
+        Assert.NotSame(regularPages, site.RegularPages);
+        Assert.Contains(page, site.Pages);
+        Assert.Contains(regularPage, site.RegularPages);
+    }
+
+    [Fact]
     public void TagSectionPage_Pages_ShouldReturnNumberTagPages()
     {
         GenerateOptions options = new()

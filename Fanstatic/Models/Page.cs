@@ -205,7 +205,8 @@ public class Page : IPage
         get
         {
             field ??= Pages
-                .Where(page => page.IsPage);
+                .Where(page => page.IsPage && page is not Page { PageIndex: > 1 })
+                .ToList();
             return field;
         }
     }
