@@ -286,6 +286,11 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         _logger.Information("Site created");
     }
 
+    static string SanitizeForLog(string value)
+    {
+        return value.Replace("\r", "").Replace("\n", "");
+    }
+
     /// <summary>
     /// Handles the HTTP request asynchronously.
     /// </summary>
@@ -313,7 +318,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         }
         catch (HttpListenerException ex) when (IsClientDisconnected(ex))
         {
-            _logger.Debug("Client disconnected while serving {RequestPath}", requestPath);
+            _logger.Debug("Client disconnected while serving {RequestPath}", SanitizeForLog(requestPath.ToString()));
         }
     }
 
