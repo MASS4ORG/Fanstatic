@@ -1,5 +1,6 @@
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Fanstatic.TemplateEngine;
 using Serilog;
 
 namespace Fanstatic.Commands.Build;
@@ -45,6 +46,11 @@ public class BuildCommand : BaseGeneratorCommand
 
         // Generate the build report
         Stopwatch.LogReport(Site.Title);
+
+        if (_options.TemplateMetrics)
+        {
+            Logger.Information("{Report}", TemplateMetricsReport.Format(Site.TemplateEngine.GetTemplateMetrics()));
+        }
 
         if (Site.TemplateErrors.Count > 0)
         {

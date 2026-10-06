@@ -1,5 +1,6 @@
 using System.Reflection;
 using Fanstatic.Commands;
+using Fanstatic.Commands.Build;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 using Fanstatic.Parsers;
@@ -60,6 +61,56 @@ public class FluidTemplateEngineTests : TestSetup
     }
 
     [Fact]
+    public void Render_ShouldCollectTemplateMetricsWhenEnabled()
+    {
+        var site = CreateSite(TestSitePathConst06, templateMetrics: true);
+        Assert.True(site.Options.TemplateMetrics);
+        var page = GetPage(site, "/index.html");
+        var engine = new FluidTemplateEngine();
+        engine.Initialize(site);
+        var themePath = CreateTemporaryTheme(("single.html", "file body"));
+        var templatePath = Path.Combine(themePath, "single.html");
+
+        try
+        {
+            Assert.Equal("file body", engine.Render(templatePath, site, page));
+            Assert.Equal("file body", engine.Render(templatePath, site, page));
+            Assert.Equal("inline body", engine.RenderInline("inline body", site, page));
+            Assert.Equal("inline body", engine.RenderInline("inline body", site, page));
+
+            var metrics = engine.GetTemplateMetrics().ToDictionary(metric => metric.TemplatePath);
+            Assert.True(metrics.TryGetValue(templatePath.Replace('\\', '/'), out var fileMetric),
+                $"Collected metrics: {string.Join(", ", metrics.Keys)}");
+            Assert.NotNull(fileMetric);
+            Assert.Equal(2, fileMetric.CallCount);
+            Assert.Equal(1, fileMetric.CacheHits);
+            Assert.True(fileMetric.TotalTime >= fileMetric.MaximumTime);
+            Assert.True(fileMetric.MaximumTime >= TimeSpan.Zero);
+
+            var inlineMetric = Assert.IsType<TemplateMetric>(metrics["(inline template)"]);
+            Assert.Equal(2, inlineMetric.CallCount);
+            Assert.Equal(1, inlineMetric.CacheHits);
+            Assert.True(inlineMetric.TotalTime >= inlineMetric.MaximumTime);
+        }
+        finally
+        {
+            Directory.Delete(themePath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Render_ShouldNotCollectTemplateMetricsWhenDisabled()
+    {
+        var site = CreateSite(TestSitePathConst06);
+        var page = GetPage(site, "/index.html");
+        var engine = new FluidTemplateEngine();
+        engine.Initialize(site);
+
+        Assert.Equal("inline body", engine.RenderInline("inline body", site, page));
+        Assert.Empty(engine.GetTemplateMetrics());
+    }
+
+    [Fact]
     public void Initialize_ShouldRecompileChangedFileTemplate()
     {
         var site = CreateSite(TestSitePathConst06);
@@ -91,11 +142,13 @@ public class FluidTemplateEngineTests : TestSetup
         }
     }
 
-    Site CreateSite(string testSitePath)
+    Site CreateSite(string testSitePath, bool templateMetrics = false)
     {
-        var options = new GenerateOptions
+        var options = new BuildOptions
         {
-            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, testSitePath))
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, testSitePath)),
+            Output = string.Empty,
+            TemplateMetrics = templateMetrics,
         };
 
         return SiteHelper.Init(

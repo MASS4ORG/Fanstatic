@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Fanstatic.Models;
 using Fluid;
 using Fluid.Values;
@@ -40,6 +41,11 @@ public class FluidTemplateEngine : ITemplateEngine
     readonly ConcurrentDictionary<string, string> _templateBodyByKey =
         new(StringComparer.OrdinalIgnoreCase);
 
+    readonly ConcurrentDictionary<string, TemplateMetricCounter> _templateMetrics =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    bool _templateMetricsEnabled;
+
     /// <summary>
     /// Current initialized theme path.
     /// </summary>
@@ -77,10 +83,12 @@ public class FluidTemplateEngine : ITemplateEngine
 
         _site = site;
         _themePath = Path.GetFullPath(site.SourceThemePath);
+        _templateMetricsEnabled = site.Options.TemplateMetrics;
 
         _compiledTemplateByPath.Clear();
         _compiledInlineTemplateCache.Clear();
         _templateBodyByKey.Clear();
+        _templateMetrics.Clear();
 
         TemplateOptions.FileProvider = new LiquidPhysicalFileProvider(_themePath);
     }
@@ -139,14 +147,43 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(page);
 
-        var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
-        var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
-        var template = templatePath is null
-            ? GetCompiledInlineTemplate(templateBody)
-            : GetCompiledTemplate(templatePath, templateBody);
+        var metricsEnabled = _templateMetricsEnabled;
+        if (!metricsEnabled)
+        {
+            var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
+            var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
+            var template = templatePath is null
+                ? GetCompiledInlineTemplate(templateBody)
+                : GetCompiledTemplate(templatePath, templateBody);
 
-        var context = SeedContext(site, page, counter);
-        return RenderTemplate(template, templateBody, context);
+            var context = SeedContext(site, page, counter);
+            return RenderTemplate(template, templateBody, context);
+        }
+
+        var startedAt = Stopwatch.GetTimestamp();
+        var metricPath = "(inline template)";
+        var cacheHit = false;
+
+        try
+        {
+            var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
+            if (templatePath is not null)
+            {
+                metricPath = templatePath;
+            }
+
+            var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
+            var template = templatePath is null
+                ? GetCompiledInlineTemplate(templateBody, out cacheHit)
+                : GetCompiledTemplate(templatePath, templateBody, out cacheHit);
+
+            var context = SeedContext(site, page, counter);
+            return RenderTemplate(template, templateBody, context);
+        }
+        finally
+        {
+            RecordTemplateMetric(metricPath, startedAt, cacheHit);
+        }
     }
 
     static string RenderTemplate(IFluidTemplate template, string templateBody, TemplateContext context)
@@ -168,11 +205,32 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(page);
 
-        var template = GetCompiledInlineTemplate(templateBody);
+        var metricsEnabled = _templateMetricsEnabled;
+        if (!metricsEnabled)
+        {
+            var unmeasuredTemplate = GetCompiledInlineTemplate(templateBody);
+            var unmeasuredContext = SeedContext(site, page);
+            return RenderTemplate(unmeasuredTemplate, templateBody, unmeasuredContext);
+        }
 
-        var context = SeedContext(site, page);
-        return RenderTemplate(template, templateBody, context);
+        var startedAt = Stopwatch.GetTimestamp();
+        var cacheHit = false;
+
+        try
+        {
+            var template = GetCompiledInlineTemplate(templateBody, out cacheHit);
+            var context = SeedContext(site, page);
+            return RenderTemplate(template, templateBody, context);
+        }
+        finally
+        {
+            RecordTemplateMetric("(inline template)", startedAt, cacheHit);
+        }
     }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<TemplateMetric> GetTemplateMetrics() =>
+        _templateMetrics.Select(pair => pair.Value.Snapshot(pair.Key)).ToArray();
 
     TemplateContext SeedContext(ISite site, IPage page, int? counter = null)
     {
@@ -203,6 +261,42 @@ public class FluidTemplateEngine : ITemplateEngine
             body => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null);
 
         return template ?? ThrowTemplateParseError(templateBody);
+    }
+
+    IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody, out bool cacheHit)
+    {
+        if (_compiledTemplateByPath.TryGetValue(templatePath, out var cached))
+        {
+            cacheHit = true;
+            return cached ?? ThrowTemplateParseError(templateBody);
+        }
+
+        cacheHit = false;
+        var template = _compiledTemplateByPath.GetOrAdd(templatePath,
+            _ => FluidParser.TryParse(templateBody, out var parsed, out _) ? parsed : null);
+
+        return template ?? ThrowTemplateParseError(templateBody);
+    }
+
+    IFluidTemplate GetCompiledInlineTemplate(string templateBody, out bool cacheHit)
+    {
+        if (_compiledInlineTemplateCache.TryGetValue(templateBody, out var cached))
+        {
+            cacheHit = true;
+            return cached ?? ThrowTemplateParseError(templateBody);
+        }
+
+        cacheHit = false;
+        var template = _compiledInlineTemplateCache.GetOrAdd(templateBody,
+            body => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null);
+
+        return template ?? ThrowTemplateParseError(templateBody);
+    }
+
+    void RecordTemplateMetric(string templatePath, long startedAt, bool cacheHit)
+    {
+        var elapsedTicks = Stopwatch.GetElapsedTime(startedAt).Ticks;
+        _templateMetrics.GetOrAdd(templatePath, _ => new TemplateMetricCounter()).Add(elapsedTicks, cacheHit);
     }
 
     IFluidTemplate ThrowTemplateParseError(string templateBody)

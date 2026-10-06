@@ -31,6 +31,9 @@ public class GenerateOptions : IGenerateOptions
     [Option('e', "expired", Required = false, HelpText = "Include content with ExpiredDate dates from the past")]
     public bool Expired { get; init; }
 
+    /// <inheritdoc/>
+    public virtual bool TemplateMetrics { get; init; }
+
     /// <summary>
     /// The path of the source files
     /// </summary>
