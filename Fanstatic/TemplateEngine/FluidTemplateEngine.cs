@@ -168,7 +168,7 @@ public class FluidTemplateEngine : ITemplateEngine
             var templateBody = ResolveTemplateBody(templatePathOrInlineKey, templatePath);
             var template = templatePath is null
                 ? GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit)
-                : GetCompiledTemplate(templatePath, templateBody, metricsEnabled, out cacheHit);
+                : GetCompiledTemplate(templatePath, templateBody, out cacheHit);
 
             var context = SeedContext(site, page, counter);
             return RenderTemplate(template, templateBody, context);
@@ -239,18 +239,14 @@ public class FluidTemplateEngine : ITemplateEngine
         return context;
     }
 
-    IFluidTemplate GetCompiledTemplate(
-        string templatePath, string templateBody, bool metricsEnabled, out bool cacheHit)
+    IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody, out bool cacheHit)
     {
-        if (metricsEnabled && _compiledTemplateByPath.TryGetValue(templatePath, out var cached))
+        cacheHit = _compiledTemplateByPath.TryGetValue(templatePath, out var template);
+        if (!cacheHit)
         {
-            cacheHit = true;
-            return cached ?? ThrowTemplateParseError(templateBody);
+            var parsedTemplate = FluidParser.TryParse(templateBody, out var parsed, out _) ? parsed : null;
+            template = _compiledTemplateByPath.GetOrAdd(templatePath, parsedTemplate);
         }
-
-        cacheHit = false;
-        var template = _compiledTemplateByPath.GetOrAdd(templatePath,
-            (_, body) => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null, templateBody);
 
         return template ?? ThrowTemplateParseError(templateBody);
     }

@@ -408,7 +408,6 @@ public class PageTests : TestSetup
             var cycle = Assert.IsType<InvalidOperationException>(exception);
             Assert.Contains("Recursive content rendering", cycle.Message, StringComparison.Ordinal);
         }
-        initialRenders.Dispose();
     }
 
     [Theory]
