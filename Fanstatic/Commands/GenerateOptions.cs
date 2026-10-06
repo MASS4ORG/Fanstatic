@@ -8,7 +8,7 @@ namespace Fanstatic.Commands;
 public class GenerateOptions : IGenerateOptions
 {
     /// <inheritdoc/>
-    [Option('v', "verbose", Required = false, HelpText = "How verbose it must be")]
+    [Option('v', "verbose", Required = false, HelpText = "Enable debug-level logging (default: information)")]
     public bool Verbose { get; init; }
 
     /// <inheritdoc/>

@@ -14,6 +14,7 @@ public class ProgramTests : TestSetup
         var logger = Program.CreateLogger(verbose);
 
         // Assert
-        Assert.True(logger.IsEnabled(expected));
+        Assert.Equal(expected == LogEventLevel.Debug, logger.IsEnabled(LogEventLevel.Debug));
+        Assert.True(logger.IsEnabled(LogEventLevel.Information));
     }
 }

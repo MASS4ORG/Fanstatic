@@ -40,7 +40,8 @@ public class DefaultPortSelector(ILogger logger) : IPortSelector
         var activeTcpConnections = properties.GetActiveTcpConnections();
         var activeTcpListeners = properties.GetActiveTcpListeners();
 
-        return activeTcpConnections.All(conn => conn.LocalEndPoint.Port != port)
+        return activeTcpConnections.All(conn =>
+                   conn.LocalEndPoint.Port != port || conn.State == TcpState.TimeWait)
                && activeTcpListeners.All(endpoint => endpoint.Port != port);
     }
 }

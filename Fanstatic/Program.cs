@@ -70,13 +70,13 @@ public class Program(ILogger loggerInitial)
                 NewThemeOptions,
                 ApiGeneratorOptions,
                 ValidateLinksOptions>(args)
-            .WithParsed<GenerateOptions>(options => _logger = CreateLogger(options.Verbose))
             .WithParsed<BuildOptions>(options => options.Output = string.IsNullOrEmpty(options.Output)
                     ? Path.Combine(options.Source, "public")
                     : options.Output)
             .MapResult(
-                (BuildOptions options) => BuildCommand.Create(options, _logger),
-                async (ServeOptions options) => await ServeCommand.Create(options, _logger),
+                (BuildOptions options) => BuildCommand.Create(options, CreateLogger(options.Verbose)),
+                async (ServeOptions options) =>
+                    await ServeCommand.Create(options, CreateLogger(options.Verbose)),
                 (NewSiteOptions options) => NewSiteCommand.Create(options, _logger),
                 (NewThemeOptions options) => NewThemeCommand.Create(options, _logger),
                 (ApiGeneratorOptions options) => ApiGeneratorCommand.Create(options, _logger, new FileSystem()),
