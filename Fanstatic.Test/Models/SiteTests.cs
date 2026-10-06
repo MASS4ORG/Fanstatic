@@ -99,11 +99,11 @@ public class SiteTests : TestSetup
             Assert.Equal(
                 new[] { "blog/a.md", "blog/m.md", "blog/z.md" },
                 children.Select(page => page.SourceRelativePath));
-            Assert.All(children, page =>
+            foreach (var child in children)
             {
-                Assert.Equal(7, page.Weight);
-                Assert.Equal("inherited-value", page.Params["inherited"]);
-            });
+                Assert.Equal(7, child.Weight);
+                Assert.Equal("inherited-value", child.Params["inherited"]);
+            }
 
             var tag = site.OutputReferences.Values
                 .OfType<IPage>()

@@ -316,8 +316,21 @@ public class PageTests : TestSetup
     {
         var templateEngine = Substitute.For<ITemplateEngine>();
         var site = Substitute.For<ISite>();
-        var children = new List<Page>();
-        Page? parent = null;
+        var children = Enumerable.Range(1, 3)
+            .Select(index => new Page(
+                new($"content-{index}.md", new FrontMatter(), $"Content {index}"),
+                Site,
+                Site,
+                ("html", null),
+                [])
+            {
+                SiteInternal = site
+            })
+            .ToList();
+        var parent = new Page(new("index.md", new FrontMatter(), string.Empty), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
         site.TemplateEngine.Returns(templateEngine);
         site.ParseAndRenderTemplate(Arg.Any<Page>(), false)
             .Returns(call =>
@@ -339,22 +352,6 @@ public class PageTests : TestSetup
         templateEngine.Render(Arg.Any<string>(), site, Arg.Any<IPage>(), Arg.Any<int?>())
             .Returns(call => ((IPage)call[2]!).SourceRelativePath);
 
-        children.AddRange(Enumerable.Range(1, 3)
-            .Select(index => new Page(
-                new($"content-{index}.md", new FrontMatter(), $"Content {index}"),
-                Site,
-                Site,
-                ("html", null),
-                [])
-            {
-                SiteInternal = site
-            })
-            .ToList());
-        parent = new Page(new("index.md", new FrontMatter(), string.Empty), Site, Site, ("html", null), [])
-        {
-            SiteInternal = site
-        };
-
         Assert.Equal("Parent output", parent.Content);
         Assert.Equal("Parent output", parent.Content);
         foreach (var child in children)
@@ -367,34 +364,29 @@ public class PageTests : TestSetup
     public void Content_ShouldAvoidDeadlockForConcurrentPageCycles()
     {
         var site = Substitute.For<ISite>();
-        using var initialRenders = new Barrier(2);
-        Page? first = null;
-        Page? second = null;
-        var firstRenderCount = 0;
-        var secondRenderCount = 0;
+        var initialRenders = new Barrier(2);
+        var renderCounts = new int[2];
+        var first = new Page(new("first.md", new FrontMatter(), "first"), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
+        var second = new Page(new("second.md", new FrontMatter(), "second"), Site, Site, ("html", null), [])
+        {
+            SiteInternal = site
+        };
         site.ParseAndRenderTemplate(Arg.Any<Page>(), false)
             .Returns(call =>
             {
                 var page = call.Arg<Page>();
-                var renderCount = ReferenceEquals(page, first)
-                    ? Interlocked.Increment(ref firstRenderCount)
-                    : Interlocked.Increment(ref secondRenderCount);
+                var isFirst = ReferenceEquals(page, first);
+                var renderCount = Interlocked.Increment(ref renderCounts[isFirst ? 0 : 1]);
                 if (renderCount == 1 && !initialRenders.SignalAndWait(TimeSpan.FromSeconds(5)))
                 {
                     throw new TimeoutException("Both page renders did not start concurrently.");
                 }
 
-                return ReferenceEquals(page, first) ? second!.Content : first!.Content;
+                return isFirst ? second.Content : first.Content;
             });
-
-        first = new Page(new("first.md", new FrontMatter(), "first"), Site, Site, ("html", null), [])
-        {
-            SiteInternal = site
-        };
-        second = new Page(new("second.md", new FrontMatter(), "second"), Site, Site, ("html", null), [])
-        {
-            SiteInternal = site
-        };
 
         var exceptions = new Exception?[2];
         var firstThread = new Thread(() => exceptions[0] = Record.Exception(() => _ = first.Content))
@@ -411,11 +403,12 @@ public class PageTests : TestSetup
         var firstCompleted = firstThread.Join(TimeSpan.FromSeconds(5));
         var secondCompleted = secondThread.Join(TimeSpan.FromSeconds(5));
         Assert.True(firstCompleted && secondCompleted, "Concurrent content cycles must not deadlock.");
-        Assert.All(exceptions, exception =>
+        foreach (var exception in exceptions)
         {
-            Assert.IsType<InvalidOperationException>(exception);
-            Assert.Contains("Recursive content rendering", exception!.Message, StringComparison.Ordinal);
-        });
+            var cycle = Assert.IsType<InvalidOperationException>(exception);
+            Assert.Contains("Recursive content rendering", cycle.Message, StringComparison.Ordinal);
+        }
+        initialRenders.Dispose();
     }
 
     [Theory]

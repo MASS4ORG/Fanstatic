@@ -10,9 +10,9 @@ namespace Fanstatic.Models;
 
 public class SiteOutput : ISiteOutput
 {
-    readonly ISite siteImplementation;
+    readonly ISite _siteImplementation;
 
-    readonly SiteOutputVariant variant;
+    readonly SiteOutputVariant _variant;
 
     readonly Lazy<IReadOnlyDictionary<string, TaxonomyTerms>> _taxonomiesCached;
 
@@ -26,8 +26,8 @@ public class SiteOutput : ISiteOutput
 
     public SiteOutput(ISite siteImplementation, SiteOutputVariant variant)
     {
-        this.siteImplementation = siteImplementation;
-        this.variant = variant;
+        _siteImplementation = siteImplementation;
+        _variant = variant;
         _taxonomiesCached = new(CreateTaxonomies);
         _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
@@ -35,9 +35,9 @@ public class SiteOutput : ISiteOutput
         _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
     }
 
-    public LanguageSettings Language => siteImplementation.GetLanguage(variant.language);
+    public LanguageSettings Language => _siteImplementation.GetLanguage(_variant.language);
 
-    public IReadOnlyList<LanguageSettings> Languages => siteImplementation.LanguageList;
+    public IReadOnlyList<LanguageSettings> Languages => _siteImplementation.LanguageList;
 
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, TaxonomyTerms> Taxonomies
@@ -47,10 +47,10 @@ public class SiteOutput : ISiteOutput
     {
         var taxonomies = new Dictionary<string, TaxonomyTerms>(
             StringComparer.OrdinalIgnoreCase);
-        foreach (var plural in siteImplementation.TaxonomyDefinitions.Values.Distinct(
+        foreach (var plural in _siteImplementation.TaxonomyDefinitions.Values.Distinct(
                      StringComparer.OrdinalIgnoreCase))
         {
-            var terms = siteImplementation.Pages
+            var terms = _siteImplementation.Pages
                 .Where(page => page.Kind == Kind.term
                                && page.Section?.Equals(plural, StringComparison.OrdinalIgnoreCase) == true
                                && page.OutputFormat == OutputFormat
@@ -63,90 +63,90 @@ public class SiteOutput : ISiteOutput
         return taxonomies;
     }
 
-    public string OutputFormat => variant.outputFormat;
+    public string OutputFormat => _variant.outputFormat;
 
     public Dictionary<string, object> Params
     {
-        get => siteImplementation.Params;
-        init => siteImplementation.Params = value;
+        get => _siteImplementation.Params;
+        init => _siteImplementation.Params = value;
     }
 
-    public string Title => siteImplementation.Title;
+    public string Title => _siteImplementation.Title;
 
-    public string? Description => siteImplementation.Description;
+    public string? Description => _siteImplementation.Description;
 
-    public string? Copyright => siteImplementation.Copyright;
+    public string? Copyright => _siteImplementation.Copyright;
 
-    public Uri BaseUrl => (siteImplementation as ISiteOutput).BaseUrl;
+    public Uri BaseUrl => (_siteImplementation as ISiteOutput).BaseUrl;
 
-    public bool UglyUrLs => siteImplementation.UglyUrLs;
+    public bool UglyUrLs => _siteImplementation.UglyUrLs;
 
-    public int Paginate => siteImplementation.Paginate;
+    public int Paginate => _siteImplementation.Paginate;
 
-    public string PaginatePath => siteImplementation.PaginatePath;
+    public string PaginatePath => _siteImplementation.PaginatePath;
 
-    public Dictionary<Kind, List<string>> KindOutputFormats => siteImplementation.KindOutputFormats;
+    public Dictionary<Kind, List<string>> KindOutputFormats => _siteImplementation.KindOutputFormats;
 
-    public FanstaticInfo Fanstatic => siteImplementation.Fanstatic;
+    public FanstaticInfo Fanstatic => _siteImplementation.Fanstatic;
 
-    public Theme? Theme => siteImplementation.Theme;
+    public Theme? Theme => _siteImplementation.Theme;
 
-    public string SourceContentPath => siteImplementation.SourceContentPath;
+    public string SourceContentPath => _siteImplementation.SourceContentPath;
 
-    public string SourceStaticPath => siteImplementation.SourceStaticPath;
+    public string SourceStaticPath => _siteImplementation.SourceStaticPath;
 
-    public string SourceThemePath => siteImplementation.SourceThemePath;
+    public string SourceThemePath => _siteImplementation.SourceThemePath;
 
-    public ConcurrentDictionary<Uri, IOutput> OutputReferences => siteImplementation.OutputReferences;
+    public ConcurrentDictionary<Uri, IOutput> OutputReferences => _siteImplementation.OutputReferences;
 
     /// <inheritdoc/>
     public IEnumerable<IPage> Pages =>
-        siteImplementation.Pages
+        _siteImplementation.Pages
             .Where(output => output.OutputFormat == OutputFormat && IsSameLanguage(output));
 
     public IEnumerable<IPage> RegularPages =>
-        siteImplementation.RegularPages
+        _siteImplementation.RegularPages
             .Where(output => output.OutputFormat == OutputFormat && IsSameLanguage(output));
 
     /// <summary>
-    /// Regular pages ordered by date and cached for this output variant.
+    /// Regular pages ordered by date and cached for this output _variant.
     /// </summary>
     public IReadOnlyList<IPage> RegularPagesByDate => _regularPagesByDateCached.Value;
 
     /// <summary>
-    /// Regular pages ordered by last modification date and cached for this output variant.
+    /// Regular pages ordered by last modification date and cached for this output _variant.
     /// </summary>
     public IReadOnlyList<IPage> RegularPagesByLastMod => _regularPagesByLastModCached.Value;
 
     /// <summary>
-    /// Regular pages ordered by weight and cached for this output variant.
+    /// Regular pages ordered by weight and cached for this output _variant.
     /// </summary>
     public IReadOnlyList<IPage> RegularPagesByWeight => _regularPagesByWeightCached.Value;
 
     /// <summary>
-    /// Regular pages ordered by title and cached for this output variant.
+    /// Regular pages ordered by title and cached for this output _variant.
     /// </summary>
     public IReadOnlyList<IPage> RegularPagesByTitle => _regularPagesByTitleCached.Value;
 
     // AllRegularPages intentionally spans every language: it is the cross-cutting accessor
     // used by outputs such as sitemaps that should list the whole site.
     public IEnumerable<IPage> AllRegularPages =>
-        siteImplementation.RegularPages.Where(p => p.OutputFormat == "html");
+        _siteImplementation.RegularPages.Where(p => p.OutputFormat == "html");
 
     bool IsSameLanguage(IPage page) =>
         string.Equals(page.ContentSource.Language, Language.Code, StringComparison.OrdinalIgnoreCase);
 
-    public IPage? Home => siteImplementation.Home;
+    public IPage? Home => _siteImplementation.Home;
 
-    public SiteCacheManager CacheManager => siteImplementation.CacheManager;
+    public SiteCacheManager CacheManager => _siteImplementation.CacheManager;
 
-    public IFrontMatterParser Parser => siteImplementation.Parser;
+    public IFrontMatterParser Parser => _siteImplementation.Parser;
 
-    public ITemplateEngine TemplateEngine => siteImplementation.TemplateEngine;
+    public ITemplateEngine TemplateEngine => _siteImplementation.TemplateEngine;
 
-    public ILogger Logger => siteImplementation.Logger;
+    public ILogger Logger => _siteImplementation.Logger;
 
-    public IEnumerable<string> SourceFolders => siteImplementation.SourceFolders;
+    public IEnumerable<string> SourceFolders => _siteImplementation.SourceFolders;
 
-    public void ProcessPages() => siteImplementation.ProcessPages();
+    public void ProcessPages() => _siteImplementation.ProcessPages();
 }

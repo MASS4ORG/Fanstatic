@@ -250,7 +250,7 @@ public class FluidTemplateEngine : ITemplateEngine
 
         cacheHit = false;
         var template = _compiledTemplateByPath.GetOrAdd(templatePath,
-            _ => FluidParser.TryParse(templateBody, out var parsed, out _) ? parsed : null);
+            (_, body) => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null, templateBody);
 
         return template ?? ThrowTemplateParseError(templateBody);
     }

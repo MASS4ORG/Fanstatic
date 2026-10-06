@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace Fanstatic.NUKE;
 
@@ -24,6 +25,7 @@ sealed partial class Build
     AbsolutePath BenchmarkReportFile => RootDirectory / "artifacts" / "benchmark.json";
     AbsolutePath BenchmarkPublishDirectory => RootDirectory / ".publish" / "benchmark" / RuntimeIdentifier;
 
+    [UsedImplicitly]
     Target Benchmark => td => td
         .DependsOn(Restore)
         .Produces(BenchmarkReportFile)
@@ -404,6 +406,7 @@ sealed partial class Build
     sealed record BenchmarkBaselineEntry(
         string Name, double ParseMedianMilliseconds, double CreateMedianMilliseconds);
 
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     sealed record BenchmarkReport(
         DateTimeOffset GeneratedAtUtc,
         string RuntimeIdentifier,
@@ -414,6 +417,7 @@ sealed partial class Build
         bool Passed,
         IReadOnlyList<BenchmarkScenarioReport> Scenarios);
 
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     sealed record BenchmarkScenarioReport(
         string Name,
         int PostCount,
