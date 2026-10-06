@@ -13,13 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed: serving a site reuses its port when only previous connections in `TIME_WAIT` remain
 - Fixed: client disconnects while serving no longer appear as unexpected listener errors
 - Changed: materialize cached page collections after page processing #14
-- Changed: cache per-page plain text, word count, and tag references #15
-- Changed: cache rendered page content once per page #16
-- Changed: cache date, last-modified, weight, and title page views #17
+- Breaking: require `IPage` implementations to provide cached `Plain` and `WordCount` values #15
+- Changed: cache rendered page content once per page and report recursive content cycles #16
+- Breaking: add cached date, last-modified, weight, and title views to `IPage` #17
 - Changed: key compiled file templates by normalized path #18
-- Changed: parse content files in parallel and link them deterministically #19
+- Changed: parse content files in parallel and stabilize equal-weight ordering by source path #19
 - Added: optional per-template render metrics with `build --template-metrics` #20
 - Added: benchmark target with a 25% performance regression gate #21
+- Fixed: `ref`/`relref` fall back to the default-language page, in the requested output format, when a translation is missing
 
 ## [7.1.1] - 2026-10-04
 
