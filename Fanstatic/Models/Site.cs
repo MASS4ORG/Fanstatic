@@ -541,7 +541,7 @@ public class Site : ISite
 
             try
             {
-                relPermalink = TemplateEngine.RenderInline(urlTemplate!, this, page);
+                relPermalink = TemplateEngine.RenderInline(urlTemplate, this, page);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 using Fanstatic.Models;
+using JetBrains.Annotations;
 
 namespace Fanstatic.Helpers;
 
@@ -9,6 +10,7 @@ namespace Fanstatic.Helpers;
 /// <param name="Kind">Page kind flags.</param>
 /// <param name="Type">Page type.</param>
 /// <param name="OutputFormat">Output format name.</param>
+[UsedImplicitly]
 public readonly record struct CacheTemplateIndex(
     string? Section,
     Kind? Kind,

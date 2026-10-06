@@ -434,7 +434,7 @@ echo page.SourceFileNameWithoutExtension
 endif
 -%}";
 
-    Dictionary<Uri, IOutput> _allOutputUrLs = [];
+    Dictionary<Uri, IOutput> _allOutputUrLs;
 
     /// <summary>
     /// Constructor

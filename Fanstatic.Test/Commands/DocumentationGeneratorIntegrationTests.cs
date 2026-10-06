@@ -195,7 +195,7 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         {
             if (!combinedStructure.NamespaceClasses.ContainsKey(kvp.Key))
             {
-                combinedStructure.NamespaceClasses[kvp.Key] = new List<ClassInfo>();
+                combinedStructure.NamespaceClasses[kvp.Key] = [];
             }
 
             combinedStructure.NamespaceClasses[kvp.Key].AddRange(kvp.Value);
