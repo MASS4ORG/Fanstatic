@@ -206,6 +206,46 @@ public class SiteTests : TestSetup
     }
 
     [Fact]
+    public void SortedPageViews_ShouldBeOrderedAndCached()
+    {
+        GenerateOptions options = new()
+        {
+            SourceArgument = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst03))
+        };
+        var parser = new YamlParser();
+        var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+        var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+        site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+        site.ProcessPages();
+
+        var siteOutput = Assert.IsType<SiteOutput>(site.RegularPages.First().Site);
+        var pagesByDate = siteOutput.RegularPagesByDate;
+        Assert.Same(pagesByDate, siteOutput.RegularPagesByDate);
+        Assert.Equal(
+            pagesByDate.OrderBy(page => page.Date).Select(page => page.SourceRelativePath),
+            pagesByDate.Select(page => page.SourceRelativePath));
+        Assert.Same(siteOutput.RegularPagesByLastMod, siteOutput.RegularPagesByLastMod);
+        Assert.Same(siteOutput.RegularPagesByWeight, siteOutput.RegularPagesByWeight);
+        Assert.Same(siteOutput.RegularPagesByTitle, siteOutput.RegularPagesByTitle);
+
+        var section = site.Pages.FirstOrDefault(page =>
+            page.Section == "blog" && page.RegularPages.Any());
+        Assert.NotNull(section);
+        var sectionPagesByWeight = section.RegularPagesByWeight;
+        Assert.Same(sectionPagesByWeight, section.RegularPagesByWeight);
+        Assert.Equal(
+            section.RegularPages.OrderBy(page => page.Weight).Select(page => page.SourceRelativePath),
+            sectionPagesByWeight.Select(page => page.SourceRelativePath));
+        Assert.Same(section.PagesByDate, section.PagesByDate);
+        Assert.Same(section.PagesByLastMod, section.PagesByLastMod);
+        Assert.Same(section.PagesByTitle, section.PagesByTitle);
+        Assert.Same(section.RegularPagesByDate, section.RegularPagesByDate);
+        Assert.Same(section.RegularPagesByLastMod, section.RegularPagesByLastMod);
+        Assert.Same(section.RegularPagesByTitle, section.RegularPagesByTitle);
+    }
+
+    [Fact]
     public void ProcessPages_ShouldNotCacheCollectionsDuringResourceRendering()
     {
         var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst11));

@@ -210,6 +210,30 @@ public class Page : IPage
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByDate => _pagesByDateCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByLastMod => _pagesByLastModCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByWeight => _pagesByWeightCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> PagesByTitle => _pagesByTitleCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByDate => _regularPagesByDateCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByLastMod => _regularPagesByLastModCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByWeight => _regularPagesByWeightCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByTitle => _regularPagesByTitleCached.Value;
+
+    /// <inheritdoc/>
     public Dictionary<Uri, IOutput> AllOutputUrLs => _allOutputUrLs;
 
     /// <summary>
@@ -415,6 +439,22 @@ public class Page : IPage
 
     readonly Lazy<List<IPage>> _tagsReferenceCached;
 
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByDateCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByLastModCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByWeightCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _pagesByTitleCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByDateCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByLastModCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByWeightCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByTitleCached;
+
     static readonly char[] NonWords = [' ', ',', ';', '.', '!', '"', '(', ')', '?', '\n', '\r'];
 
     const string UrlForIndex = @"{%- liquid
@@ -465,6 +505,14 @@ endif
         _wordCountCached = new(() => Plain
             .Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length);
         _tagsReferenceCached = new(CreateTagsReference);
+        _pagesByDateCached = new(() => Pages.OrderBy(page => page.Date).ToList());
+        _pagesByLastModCached = new(() => Pages.OrderBy(page => page.LastMod).ToList());
+        _pagesByWeightCached = new(() => Pages.OrderBy(page => page.Weight).ToList());
+        _pagesByTitleCached = new(() => Pages.OrderBy(page => page.Title).ToList());
+        _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
+        _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
+        _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
+        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
         _contentPreRenderedCached = new(() =>
         {
             var content = RefShortcodeParser.Process(RawContent, SiteInternal, this);

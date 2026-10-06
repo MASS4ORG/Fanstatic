@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed: materialize cached page collections after page processing #14
 - Changed: cache per-page plain text, word count, and tag references #15
 - Changed: cache rendered page content once per page #16
+- Changed: cache date, last-modified, weight, and title page views #17
 
 ## [7.1.1] - 2026-10-04
 

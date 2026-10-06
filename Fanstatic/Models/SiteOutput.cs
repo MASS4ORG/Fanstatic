@@ -8,8 +8,30 @@ using Serilog;
 
 namespace Fanstatic.Models;
 
-public class SiteOutput(ISite siteImplementation, SiteOutputVariant variant) : ISiteOutput
+public class SiteOutput : ISiteOutput
 {
+    readonly ISite siteImplementation;
+
+    readonly SiteOutputVariant variant;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByDateCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByLastModCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByWeightCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByTitleCached;
+
+    public SiteOutput(ISite siteImplementation, SiteOutputVariant variant)
+    {
+        this.siteImplementation = siteImplementation;
+        this.variant = variant;
+        _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
+        _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
+        _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
+        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
+    }
+
     public LanguageSettings Language => siteImplementation.GetLanguage(variant.language);
 
     public IReadOnlyList<LanguageSettings> Languages => siteImplementation.LanguageList;
@@ -82,6 +104,26 @@ public class SiteOutput(ISite siteImplementation, SiteOutputVariant variant) : I
     public IEnumerable<IPage> RegularPages =>
         siteImplementation.RegularPages
             .Where(output => output.OutputFormat == OutputFormat && IsSameLanguage(output));
+
+    /// <summary>
+    /// Regular pages ordered by date and cached for this output variant.
+    /// </summary>
+    public IReadOnlyList<IPage> RegularPagesByDate => _regularPagesByDateCached.Value;
+
+    /// <summary>
+    /// Regular pages ordered by last modification date and cached for this output variant.
+    /// </summary>
+    public IReadOnlyList<IPage> RegularPagesByLastMod => _regularPagesByLastModCached.Value;
+
+    /// <summary>
+    /// Regular pages ordered by weight and cached for this output variant.
+    /// </summary>
+    public IReadOnlyList<IPage> RegularPagesByWeight => _regularPagesByWeightCached.Value;
+
+    /// <summary>
+    /// Regular pages ordered by title and cached for this output variant.
+    /// </summary>
+    public IReadOnlyList<IPage> RegularPagesByTitle => _regularPagesByTitleCached.Value;
 
     // AllRegularPages intentionally spans every language: it is the cross-cutting accessor
     // used by outputs such as sitemaps that should list the whole site.

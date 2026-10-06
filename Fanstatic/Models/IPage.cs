@@ -153,6 +153,46 @@ public interface IPage : IOutput, IFile, IContentSource
     IEnumerable<IPage> RegularPages { get; }
 
     /// <summary>
+    /// Pages ordered by date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByDate { get; }
+
+    /// <summary>
+    /// Pages ordered by last modification date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByLastMod { get; }
+
+    /// <summary>
+    /// Pages ordered by weight, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByWeight { get; }
+
+    /// <summary>
+    /// Pages ordered by title, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> PagesByTitle { get; }
+
+    /// <summary>
+    /// Regular pages ordered by date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByDate { get; }
+
+    /// <summary>
+    /// Regular pages ordered by last modification date, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByLastMod { get; }
+
+    /// <summary>
+    /// Regular pages ordered by weight, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByWeight { get; }
+
+    /// <summary>
+    /// Regular pages ordered by title, computed once for this page.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByTitle { get; }
+
+    /// <summary>
     /// Get all URLs related to this content.
     /// </summary>
     Dictionary<Uri, IOutput> AllOutputUrLs { get; }
