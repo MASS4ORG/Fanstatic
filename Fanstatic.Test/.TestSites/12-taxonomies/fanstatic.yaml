@@ -1,0 +1,7 @@
+Title: Taxonomy Fixture
+Theme: test
+Paginate: 1
+Taxonomies:
+  tag: tags
+  category: categories
+  series: series

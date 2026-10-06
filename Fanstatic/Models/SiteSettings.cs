@@ -36,6 +36,18 @@ public class SiteSettings : ISiteSettings
             { Kind.rss, ["rss"] },
         };
 
+    /// <summary>
+    /// Taxonomy names and their content path segments.
+    /// </summary>
+    public Dictionary<string, string> Taxonomies { get; set; } =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "tag", "tags" },
+            { "category", "categories" }
+        };
+
+    Dictionary<string, string> ISiteSettings.TaxonomyDefinitions => Taxonomies;
+
     #endregion ISiteSettings
 
     /// <inheritdoc/>

@@ -18,6 +18,9 @@ public class ContentSource : IContentSource, IFile
     public string? Title => FrontMatter.Title;
 
     /// <inheritdoc />
+    public string? Description => FrontMatter.Description;
+
+    /// <inheritdoc />
     public string? Section => FrontMatter.Section;
 
     /// <inheritdoc />
@@ -82,6 +85,12 @@ public class ContentSource : IContentSource, IFile
 
     /// <inheritdoc />
     public List<ContentSource> ContentSourceTags { get; } = [];
+
+    /// <summary>
+    /// Term sources grouped by taxonomy path segment.
+    /// </summary>
+    public Dictionary<string, List<ContentSource>> ContentSourceTaxonomies { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
 
     #endregion IContentSource
 

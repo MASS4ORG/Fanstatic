@@ -1,0 +1,2 @@
+{% assign pager = page.RegularPages | paginate: 1 %}
+{% for post in pager.PageItems %}{{ post.Title }}{% endfor %}

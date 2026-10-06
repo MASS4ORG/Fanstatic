@@ -11,10 +11,36 @@ namespace Fanstatic.Models;
 [YamlSerializable]
 public class FrontMatter : IFrontMatter
 {
+    static readonly HashSet<string> KnownFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        nameof(Title),
+        nameof(Description),
+        nameof(Type),
+        nameof(Url),
+        nameof(Draft),
+        nameof(Aliases),
+        nameof(Section),
+        nameof(Date),
+        nameof(LastMod),
+        nameof(PublishDate),
+        nameof(ExpiryDate),
+        nameof(Weight),
+        nameof(Tags),
+        nameof(ResourceDefinitions),
+        nameof(Params),
+        nameof(Cascade)
+    };
+
+    internal Dictionary<string, object> AdditionalFields { get; } =
+        new(StringComparer.OrdinalIgnoreCase);
+
     #region IFrontMatter
 
     /// <inheritdoc/>
     public string? Title { get; set; } = string.Empty;
+
+    /// <inheritdoc/>
+    public string? Description { get; set; }
 
     /// <inheritdoc/>
     public string? Type { get; set; } = "page";
@@ -98,6 +124,18 @@ public class FrontMatter : IFrontMatter
         ArgumentNullException.ThrowIfNull(parser);
 
         var frontMatter = parser.Parse<FrontMatter>(frontMatterString);
+        if (!string.IsNullOrWhiteSpace(frontMatterString))
+        {
+            var fields = parser.Parse<Dictionary<string, object>>(frontMatterString);
+            foreach (var (key, value) in fields)
+            {
+                if (!KnownFields.Contains(key))
+                {
+                    frontMatter.AdditionalFields[key] = value;
+                }
+            }
+        }
+
         var section = SiteHelper.GetSection(fileRelativePath);
         frontMatter.Section = section;
         frontMatter.Type ??= section;
@@ -135,23 +173,61 @@ public class FrontMatter : IFrontMatter
     {
         ArgumentNullException.ThrowIfNull(other);
 
-        return new FrontMatter
+        var merged = new FrontMatter();
+        MergeIdentity(other, merged);
+        MergeDates(other, merged);
+        MergeCollections(other, merged);
+        merged.MergeAdditionalFields(other);
+        merged.MergeAdditionalFields(this, overwrite: false);
+        return merged;
+    }
+
+    void MergeIdentity(FrontMatter other, FrontMatter merged)
+    {
+        MergeTitles(other, merged);
+        MergeTypeAndLocation(other, merged);
+    }
+
+    void MergeTitles(FrontMatter other, FrontMatter merged)
+    {
+        merged.Title = string.IsNullOrEmpty(other.Title) ? Title : other.Title;
+        merged.Description = string.IsNullOrEmpty(other.Description) ? Description : other.Description;
+    }
+
+    void MergeTypeAndLocation(FrontMatter other, FrontMatter merged)
+    {
+        merged.Type = string.IsNullOrEmpty(other.Type) || other.Type == "page" ? Type : other.Type;
+        merged.Url = string.IsNullOrEmpty(other.Url) ? Url : other.Url;
+        merged.Draft = other.Draft ?? Draft;
+        merged.Section = string.IsNullOrEmpty(other.Section) ? Section : other.Section;
+    }
+
+    void MergeDates(FrontMatter other, FrontMatter merged)
+    {
+        merged.Date = other.Date ?? Date;
+        merged.LastMod = other.LastMod ?? LastMod;
+        merged.PublishDate = other.PublishDate ?? PublishDate;
+        merged.ExpiryDate = other.ExpiryDate ?? ExpiryDate;
+        merged.Weight = other.Weight != 0 ? other.Weight : Weight;
+    }
+
+    void MergeCollections(FrontMatter other, FrontMatter merged)
+    {
+        merged.Aliases = other.Aliases ?? Aliases;
+        merged.Tags = other.Tags ?? Tags;
+        merged.ResourceDefinitions = other.ResourceDefinitions ?? ResourceDefinitions;
+        merged.Params = other.Params.Count != 0 ? other.Params : Params;
+        merged.Cascade = other.Cascade ?? Cascade;
+    }
+
+    internal void MergeAdditionalFields(FrontMatter other, bool overwrite = true)
+    {
+        foreach (var (key, value) in other.AdditionalFields)
         {
-            Title = string.IsNullOrEmpty(other.Title) ? Title : other.Title,
-            Type = string.IsNullOrEmpty(other.Type) || other.Type == "page" ? Type : other.Type,
-            Url = string.IsNullOrEmpty(other.Url) ? Url : other.Url,
-            Draft = other.Draft ?? Draft,
-            Aliases = other.Aliases ?? Aliases,
-            Section = string.IsNullOrEmpty(other.Section) ? Section : other.Section,
-            Date = other.Date ?? Date,
-            LastMod = other.LastMod ?? LastMod,
-            PublishDate = other.PublishDate ?? PublishDate,
-            ExpiryDate = other.ExpiryDate ?? ExpiryDate,
-            Weight = other.Weight != 0 ? other.Weight : Weight,
-            Tags = other.Tags ?? Tags,
-            ResourceDefinitions = other.ResourceDefinitions ?? ResourceDefinitions,
-            Params = other.Params.Count != 0 ? other.Params : Params,
-            Cascade = other.Cascade ?? Cascade
-        };
+            if (overwrite || !AdditionalFields.ContainsKey(key))
+            {
+                AdditionalFields[key] = value;
+            }
+        }
     }
 }

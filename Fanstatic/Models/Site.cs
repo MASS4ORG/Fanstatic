@@ -13,7 +13,7 @@ namespace Fanstatic.Models;
 /// </summary>
 public class Site : ISite
 {
-    Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = new();
+    Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
 
     #region IParams
 
@@ -56,6 +56,12 @@ public class Site : ISite
     /// <inheritdoc/>
     public Dictionary<Kind, List<string>> KindOutputFormats =>
         _settings.KindOutputFormats;
+
+    /// <inheritdoc/>
+    public Dictionary<string, string> TaxonomyDefinitions => _settings.Taxonomies;
+
+    IReadOnlyDictionary<string, TaxonomyTerms> ISiteOutput.Taxonomies =>
+        new SiteOutput(this, ("html", DefaultLanguage)).Taxonomies;
 
     /// <inheritdoc/>
     public Dictionary<string, LanguageSettings> Languages => _settings.Languages;
@@ -420,6 +426,8 @@ public class Site : ISite
 
     readonly ConcurrentDictionary<string, ContentSource> _contentSources = [];
 
+    bool _taxonomiesGenerated;
+
     /// <summary>
     /// Constructor
     /// </summary>
@@ -687,7 +695,9 @@ public class Site : ISite
     /// <summary>
     /// Create pages from content source
     /// </summary>
-    public void ProcessPages() =>
+    public void ProcessPages()
+    {
+        GenerateTaxonomies();
         _contentSources
             .Where(cs => cs.Value.ContentSourceToPages.Count == 0)
             .OrderBy(cs => cs.Value.BundleType == BundleType.None)
@@ -695,6 +705,7 @@ public class Site : ISite
             .Select(cs => cs.Value)
             .ToList()
             .ForEach(cs => PageCreate(cs));
+    }
 
     /// <inheritdoc/>
     public void RegisterPaginatedUrls()
@@ -714,15 +725,7 @@ public class Site : ISite
 
             for (var i = 2; i <= pager.Count; i++)
             {
-                var url = new Uri(
-                    $"{pager.BaseUrl.TrimEnd('/')}/{pager.PaginatePath}/{i}/{filename}",
-                    UriKind.Relative);
-                var paginatedPage = new Page(page.ContentSource, this, siteOutput, siteVariant, page.OutputFormats)
-                {
-                    PageIndex = i,
-                    RelPermalink = url
-                };
-                OutputReferences.TryAdd(url, paginatedPage);
+                RegisterPaginatedPage(page, siteOutput, pager, i, filename, siteVariant);
             }
         }
     }
@@ -744,20 +747,39 @@ public class Site : ISite
 
         for (var i = 2; i <= count; i++)
         {
-            var url = new Uri(
-                $"{pager.BaseUrl.TrimEnd('/')}/{pager.PaginatePath}/{i}/{filename}",
-                UriKind.Relative);
-            var virtualPage = new Page(
-                sourcePage.ContentSource,
-                this,
-                siteOutput,
-                siteVariant,
-                sourcePage.OutputFormats)
-            {
-                PageIndex = i,
-                RelPermalink = url
-            };
-            OutputReferences.TryAdd(url, virtualPage);
+            RegisterPaginatedPage(sourcePage, siteOutput, pager, i, filename, siteVariant);
+        }
+    }
+
+    void RegisterPaginatedPage(
+        Page sourcePage,
+        SiteOutput siteOutput,
+        Pager pager,
+        int pageIndex,
+        string filename,
+        SiteOutputVariant siteVariant)
+    {
+        var baseUrl = pager.BaseUrl.TrimEnd('/');
+        var canonicalUrl = new Uri(
+            $"{baseUrl}/{pager.PaginatePath}/{pageIndex}/{filename}",
+            UriKind.Relative);
+        var paginatedPage = new Page(
+            sourcePage.ContentSource,
+            this,
+            siteOutput,
+            siteVariant,
+            sourcePage.OutputFormats)
+        {
+            PageIndex = pageIndex,
+            RelPermalink = canonicalUrl
+        };
+
+        OutputReferences.TryAdd(canonicalUrl, paginatedPage);
+
+        var compactUrl = new Uri($"{baseUrl}/{pageIndex}/{filename}", UriKind.Relative);
+        if (compactUrl != canonicalUrl)
+        {
+            OutputReferences.TryAdd(compactUrl, paginatedPage);
         }
     }
 
@@ -1166,7 +1188,6 @@ public class Site : ISite
             LinkToLangSection(contentSource, section);
         }
 
-        GenerateTags(contentSource);
         return contentSource;
     }
 
@@ -1179,7 +1200,12 @@ public class Site : ISite
             var fileContent = File.ReadAllText(fileFullPath);
             var (frontMatter, rawContent) = FrontMatter.Parse(fileFullPath, fileRelativePath, Parser, fileContent);
 
-            return (cascade is not null ? cascade.Merge(frontMatter) : frontMatter, rawContent);
+            if (cascade is null)
+            {
+                return (frontMatter, rawContent);
+            }
+
+            return (cascade.Merge(frontMatter), rawContent);
         }
         catch (Exception ex)
         {
@@ -1189,52 +1215,219 @@ public class Site : ISite
         return (null, string.Empty);
     }
 
-    // TODO: taxonomy should be customizable
-    void GenerateTags(ContentSource contentSource)
+    void GenerateTaxonomies()
     {
-        if (contentSource.Tags == null)
+        if (_taxonomiesGenerated)
         {
             return;
         }
 
-        var basePath = "tags";
-
-        if (!_contentSources.TryGetValue(Path.Combine(basePath, "_index.md"), out var tagSection))
+        var contentSources = _contentSources.Values.ToList();
+        foreach (var (taxonomyName, plural) in TaxonomyDefinitions)
         {
-            tagSection = CreateSystemContentSource(basePath, "Tags");
-            if (!_contentSources.TryAdd(tagSection.SourceRelativePath, tagSection))
+            foreach (var contentSource in contentSources)
             {
-                Log.Error("already exist!");
-            }
-
-            if (IsMultilingual)
-            {
-                CreateSystemContentSourcesForOtherLanguages(tagSection);
+                GenerateTaxonomyForSource(contentSource, taxonomyName, plural);
             }
         }
 
-        LinkContent(contentSource, tagSection, false);
-        LinkToLangSection(contentSource, tagSection);
-
-        foreach (var tag in contentSource.Tags)
+        if (IsMultilingual)
         {
-            var path = AddIndexAtPath(Path.Combine(basePath, tag));
-            if (!_contentSources.TryGetValue(path, out var tagContentSource))
-            {
-                tagContentSource = CreateSystemContentSource(Path.Combine(basePath, tag), tag);
-                tagContentSource.ContentSourceParent = tagSection;
-                _contentSources.TryAdd(tagContentSource.SourceRelativePath, tagContentSource);
+            BuildTranslationGroups();
+        }
 
-                if (IsMultilingual)
-                {
-                    CreateSystemContentSourcesForOtherLanguages(tagContentSource);
-                }
-            }
+        _taxonomiesGenerated = true;
+    }
 
-            LinkContent(contentSource, tagContentSource, true);
-            LinkToLangSection(contentSource, tagContentSource);
+    void GenerateTaxonomyForSource(ContentSource contentSource, string taxonomyName, string plural)
+    {
+        if (contentSource.Kind is Kind.taxonomy or Kind.term)
+        {
+            return;
+        }
+
+        var terms = GetTaxonomyTerms(contentSource, taxonomyName, plural);
+        if (terms.Count == 0)
+        {
+            return;
+        }
+
+        var section = GetTaxonomySection(taxonomyName, plural);
+        if (taxonomyName.Equals("tag", StringComparison.OrdinalIgnoreCase))
+        {
+            LinkContent(contentSource, section, false);
+            LinkToLangSection(contentSource, section);
+        }
+
+        foreach (var term in terms)
+        {
+            AssignTaxonomyTerm(contentSource, taxonomyName, plural, term);
         }
     }
+
+    void AssignTaxonomyTerm(ContentSource contentSource, string taxonomyName, string plural, string term)
+    {
+        var isTag = taxonomyName.Equals("tag", StringComparison.OrdinalIgnoreCase);
+        var termSource = GetTaxonomyTerm(taxonomyName, plural, term);
+        LinkContent(contentSource, termSource, false);
+        LinkToLangSection(contentSource, termSource);
+
+        var languageTerm = GetTermForLanguage(termSource, contentSource.Language, taxonomyName, plural);
+        if (!contentSource.ContentSourceTaxonomies.TryGetValue(plural, out var assignedTerms))
+        {
+            assignedTerms = [];
+            contentSource.ContentSourceTaxonomies[plural] = assignedTerms;
+        }
+
+        if (!assignedTerms.Contains(languageTerm))
+        {
+            assignedTerms.Add(languageTerm);
+        }
+
+        if (isTag && !contentSource.ContentSourceTags.Contains(languageTerm))
+        {
+            contentSource.ContentSourceTags.Add(languageTerm);
+        }
+    }
+
+    ContentSource GetTaxonomySection(string taxonomyName, string plural)
+    {
+        var sectionPath = UrlExtension.NormalizeToUnix(Path.Combine(plural, "_index.md"));
+        var leafPath = UrlExtension.NormalizeToUnix(Path.Combine(plural, "index.md"));
+        if (!_contentSources.TryGetValue(sectionPath, out var section)
+            && !_contentSources.TryGetValue(leafPath, out section))
+        {
+            section = CreateSystemContentSource(plural, plural);
+            _contentSources.TryAdd(section.SourceRelativePath, section);
+        }
+
+        section.Kind = Kind.taxonomy;
+        section.Type = taxonomyName;
+        section.FrontMatter.Section = plural;
+        if (string.IsNullOrWhiteSpace(section.Url))
+        {
+            section.FrontMatter.Url = plural;
+        }
+        if (string.IsNullOrWhiteSpace(section.Title))
+        {
+            section.FrontMatter.Title = plural;
+        }
+
+        ConfigureTaxonomySectionLanguages(section, taxonomyName, plural);
+
+        return section;
+    }
+
+    void ConfigureTaxonomySectionLanguages(ContentSource section, string taxonomyName, string plural)
+    {
+        if (!IsMultilingual)
+        {
+            return;
+        }
+
+        CreateSystemContentSourcesForOtherLanguages(section);
+        foreach (var language in LanguageList.Where(language => !language.IsDefault))
+        {
+            var languagePath = LanguageSuffixedPath(section.SourceRelativePath, language.Code);
+            if (!_contentSources.TryGetValue(languagePath, out var languageSection))
+            {
+                continue;
+            }
+
+            languageSection.Kind = Kind.taxonomy;
+            languageSection.Type = taxonomyName;
+            languageSection.FrontMatter.Section = plural;
+        }
+    }
+
+    ContentSource GetTaxonomyTerm(string taxonomyName, string plural, string term)
+    {
+        var termPath = UrlExtension.NormalizeToUnix(Path.Combine(plural, term));
+        var branchPath = UrlExtension.NormalizeToUnix(Path.Combine(termPath, "_index.md"));
+        var leafPath = UrlExtension.NormalizeToUnix(Path.Combine(termPath, "index.md"));
+        if (!_contentSources.TryGetValue(branchPath, out var termSource)
+            && !_contentSources.TryGetValue(leafPath, out termSource))
+        {
+            termSource = CreateSystemContentSource(termPath, term);
+            _contentSources.TryAdd(termSource.SourceRelativePath, termSource);
+        }
+
+        termSource.Kind = Kind.term;
+        termSource.Type = taxonomyName;
+        termSource.FrontMatter.Section = plural;
+        if (string.IsNullOrWhiteSpace(termSource.Url))
+        {
+            termSource.FrontMatter.Url = termPath;
+        }
+        if (string.IsNullOrWhiteSpace(termSource.Title))
+        {
+            termSource.FrontMatter.Title = term;
+        }
+
+        var section = GetTaxonomySection(taxonomyName, plural);
+        termSource.ContentSourceParent = section;
+        if (!taxonomyName.Equals("tag", StringComparison.OrdinalIgnoreCase))
+        {
+            section.Children.Add(termSource);
+        }
+
+        if (IsMultilingual)
+        {
+            CreateSystemContentSourcesForOtherLanguages(termSource);
+        }
+
+        return termSource;
+    }
+
+    ContentSource GetTermForLanguage(ContentSource termSource, string language, string taxonomyName, string plural)
+    {
+        if (string.Equals(language, DefaultLanguage, StringComparison.OrdinalIgnoreCase))
+        {
+            return termSource;
+        }
+
+        var languagePath = LanguageSuffixedPath(termSource.SourceRelativePath, language);
+        if (_contentSources.TryGetValue(languagePath, out var languageTerm))
+        {
+            languageTerm.Kind = Kind.term;
+            languageTerm.Type = taxonomyName;
+            languageTerm.FrontMatter.Section = plural;
+            return languageTerm;
+        }
+
+        return termSource;
+    }
+
+    static List<string> GetTaxonomyTerms(ContentSource contentSource, string taxonomyName, string plural)
+    {
+        var values = GetTaxonomyValues(contentSource, taxonomyName, plural);
+        return values?
+            .Select(value => value.Trim())
+            .Where(value => value.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+    }
+
+    static IEnumerable<string>? GetTaxonomyValues(ContentSource contentSource, string taxonomyName, string plural)
+    {
+        if (taxonomyName.Equals("tag", StringComparison.OrdinalIgnoreCase) && contentSource.Tags is not null)
+        {
+            return contentSource.Tags;
+        }
+
+        var rawValues = GetTaxonomyValue(contentSource.Params, taxonomyName, plural)
+                        ?? GetTaxonomyValue(contentSource.FrontMatter.AdditionalFields, taxonomyName, plural);
+        return rawValues switch
+        {
+            string value => [value],
+            IEnumerable<object> sequence => sequence.OfType<string>(),
+            _ => null
+        };
+    }
+
+    static object? GetTaxonomyValue(Dictionary<string, object> values, string taxonomyName, string plural) =>
+        values.FirstOrDefault(pair => pair.Key.Equals(taxonomyName, StringComparison.OrdinalIgnoreCase)
+                                      || pair.Key.Equals(plural, StringComparison.OrdinalIgnoreCase)).Value;
 
     /// <summary>
     /// If multilingual, also links a non-default-language content source to the

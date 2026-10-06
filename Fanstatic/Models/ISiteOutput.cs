@@ -30,6 +30,11 @@ public interface ISiteOutput
     IReadOnlyList<LanguageSettings> Languages { get; }
 
     /// <summary>
+    /// Terms grouped by taxonomy path segment for the current language and output format.
+    /// </summary>
+    IReadOnlyDictionary<string, TaxonomyTerms> Taxonomies { get; }
+
+    /// <summary>
     /// List of all pages, including generated, by their permalink.
     /// </summary>
     ConcurrentDictionary<Uri, IOutput> OutputReferences { get; }

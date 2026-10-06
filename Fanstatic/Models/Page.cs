@@ -73,14 +73,32 @@ public class Page : IPage
     {
         get
         {
-            List<IPage> tagsReferences = [];
-            foreach (var tag in ContentSourceTags)
+            var tagPlural = SiteInternal.TaxonomyDefinitions
+                .FirstOrDefault(taxonomy => taxonomy.Key.Equals("tag", StringComparison.OrdinalIgnoreCase))
+                .Value ?? "tags";
+            return Taxonomies.TryGetValue(tagPlural, out var tags) ? [.. tags] : [];
+        }
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, IReadOnlyList<IPage>> Taxonomies
+    {
+        get
+        {
+            var taxonomies = new Dictionary<string, IReadOnlyList<IPage>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (plural, termSources) in ContentSource.ContentSourceTaxonomies)
             {
-                tagsReferences.AddRange(tag.ContentSourceToPages
-                    .Where(page => page.OutputFormat == OutputFormat));
+                var terms = termSources
+                    .SelectMany(source => source.ContentSourceToPages)
+                    .Where(page => page.OutputFormat == OutputFormat
+                                   && string.Equals(page.ContentSource.Language, ContentSource.Language,
+                                       StringComparison.OrdinalIgnoreCase))
+                    .DistinctBy(page => page.ContentSource)
+                    .ToList();
+                taxonomies[plural] = terms;
             }
 
-            return tagsReferences;
+            return taxonomies;
         }
     }
 
@@ -273,6 +291,9 @@ public class Page : IPage
     public string? Title => ContentSource.Title;
 
     /// <inheritdoc/>
+    public string? Description => ContentSource.Description;
+
+    /// <inheritdoc/>
     public string? Section => ContentSource.Section;
 
     /// <inheritdoc/>
@@ -343,6 +364,10 @@ public class Page : IPage
     public List<ContentSource> ContentSourceTags =>
         ContentSource.ContentSourceTags;
 
+    /// <inheritdoc/>
+    public Dictionary<string, List<ContentSource>> ContentSourceTaxonomies =>
+        ContentSource.ContentSourceTaxonomies;
+
     #endregion IContentSource
 
     #region IParams
@@ -404,7 +429,7 @@ echo page.SourceFileNameWithoutExtension
 endif
 -%}";
 
-    Dictionary<Uri, IOutput> _allOutputUrLs = new();
+    Dictionary<Uri, IOutput> _allOutputUrLs = [];
 
     /// <summary>
     /// Constructor

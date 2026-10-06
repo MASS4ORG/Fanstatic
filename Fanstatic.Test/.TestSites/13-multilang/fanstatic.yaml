@@ -1,6 +1,9 @@
 title: Multi Site
 baseURL: https://example.com/
 defaultLanguage: en
+taxonomies:
+  tag: tags
+  series: series
 languages:
   en:
     languageName: English

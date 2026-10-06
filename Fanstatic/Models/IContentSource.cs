@@ -32,6 +32,11 @@ public interface IContentSource : IFrontMatter
     List<ContentSource> ContentSourceTags { get; }
 
     /// <summary>
+    /// Term sources grouped by taxonomy path segment.
+    /// </summary>
+    Dictionary<string, List<ContentSource>> ContentSourceTaxonomies { get; }
+
+    /// <summary>
     /// The Content Source parent content
     /// </summary>
     ContentSource? ContentSourceParent { get; }

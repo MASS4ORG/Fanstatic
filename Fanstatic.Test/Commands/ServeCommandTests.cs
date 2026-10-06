@@ -111,6 +111,18 @@ public class ServeCommandTests : TestSetup
         _mockFileWatcher.Received(1).Stop();
     }
 
+    [Fact]
+    public void IsClientDisconnected_RecognizesPlatformClientDisconnectErrors()
+    {
+        var disconnectErrors = OperatingSystem.IsWindows()
+            ? new[] { 64, 995, 10053, 10054, 10058 }
+            : [32, 53, 54, 57, 103, 104, 107];
+
+        Assert.All(disconnectErrors, errorCode =>
+            Assert.True(ServeCommand.IsClientDisconnected(new HttpListenerException(errorCode))));
+        Assert.False(ServeCommand.IsClientDisconnected(new HttpListenerException(5)));
+    }
+
     ServeCommand CreateServeCommand()
     {
         // Helper method to create a ServeCommand with mocked dependencies
