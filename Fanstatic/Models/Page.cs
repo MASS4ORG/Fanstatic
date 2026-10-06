@@ -64,20 +64,18 @@ public class Page : IPage
     }
 
     /// <inheritdoc/>
-    public string Plain =>
-        Markdown.ToPlainText(RawContent, SiteHelper.MarkdownPipeline);
+    public string Plain => _plainCached.Value;
 
     /// <inheritdoc/>
     // TODO:
-    public List<IPage> TagsReference
+    public List<IPage> TagsReference => _tagsReferenceCached.Value;
+
+    List<IPage> CreateTagsReference()
     {
-        get
-        {
-            var tagPlural = SiteInternal.TaxonomyDefinitions
-                .FirstOrDefault(taxonomy => taxonomy.Key.Equals("tag", StringComparison.OrdinalIgnoreCase))
-                .Value ?? "tags";
-            return Taxonomies.TryGetValue(tagPlural, out var tags) ? [.. tags] : [];
-        }
+        var tagPlural = SiteInternal.TaxonomyDefinitions
+            .FirstOrDefault(taxonomy => taxonomy.Key.Equals("tag", StringComparison.OrdinalIgnoreCase))
+            .Value ?? "tags";
+        return Taxonomies.TryGetValue(tagPlural, out var tags) ? [.. tags] : [];
     }
 
     /// <inheritdoc/>
@@ -112,9 +110,7 @@ public class Page : IPage
     public bool IsSection => Type == "section";
 
     /// <inheritdoc/>
-    public int WordCount => Plain
-        .Split(IPage.NonWords,
-            StringSplitOptions.RemoveEmptyEntries).Length;
+    public int WordCount => _wordCountCached.Value;
 
     /// <inheritdoc/>
     public string ContentPreRendered => _contentPreRenderedCached.Value;
@@ -406,6 +402,14 @@ public class Page : IPage
     /// </summary>
     readonly Lazy<string> _contentPreRenderedCached;
 
+    readonly Lazy<string> _plainCached;
+
+    readonly Lazy<int> _wordCountCached;
+
+    readonly Lazy<List<IPage>> _tagsReferenceCached;
+
+    static readonly char[] NonWords = [' ', ',', ';', '.', '!', '"', '(', ')', '?', '\n', '\r'];
+
     const string UrlForIndex = @"{%- liquid
 if page.Parent
 echo page.Parent.RelPermalinkDir
@@ -450,6 +454,10 @@ endif
                           throw new ArgumentException("No output format for {OutputFormat}", OutputFormat);
 
         _allOutputUrLs = BuildAllOutputUrLs();
+        _plainCached = new(() => Markdown.ToPlainText(RawContent, SiteHelper.MarkdownPipeline));
+        _wordCountCached = new(() => Plain
+            .Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length);
+        _tagsReferenceCached = new(CreateTagsReference);
         _contentPreRenderedCached = new(() =>
         {
             var content = RefShortcodeParser.Process(RawContent, SiteInternal, this);

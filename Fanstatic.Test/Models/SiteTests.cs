@@ -373,6 +373,7 @@ public class SiteTests : TestSetup
         Assert.Single(post.Taxonomies["categories"]);
         Assert.Equal("The Trilogy", post.Taxonomies["series"].Single().Title);
         Assert.Single(post.TagsReference);
+        Assert.Same(post.TagsReference, post.TagsReference);
 
         var term = Assert.IsType<Page>(site.OutputReferences[
             new Uri("/series/trilogy/index.html", UriKind.RelativeOrAbsolute)]);

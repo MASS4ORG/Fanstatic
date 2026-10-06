@@ -290,8 +290,8 @@ public class PageTests : TestSetup
     {
         var page = new Page(new(SourcePathConst, new(), rawContent), Site, Site, ("html", null), []);
 
-        // Assert
-        Assert.Equal(wordCountExpected, page.WordCount);
+        Parallel.For(0, 1_000, _ => Assert.Equal(wordCountExpected, page.WordCount));
+        Assert.Same(page.Plain, page.Plain);
     }
 
     [Theory]
@@ -307,6 +307,7 @@ public class PageTests : TestSetup
 
         // Assert
         Assert.Equal(plain, page.Plain);
+        Assert.Same(page.Plain, page.Plain);
     }
 
     [Theory]

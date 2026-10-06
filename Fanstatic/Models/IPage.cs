@@ -1,7 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using Fanstatic.Helpers;
-using Markdig;
 
 namespace Fanstatic.Models;
 
@@ -44,7 +42,7 @@ public interface IPage : IOutput, IFile, IContentSource
     /// <summary>
     /// Plain markdown content, without HTML.
     /// </summary>
-    string Plain => Markdown.ToPlainText(ContentSource.RawContent, SiteHelper.MarkdownPipeline);
+    string Plain { get; }
 
     /// <summary>
     /// A list of tags, if any.
@@ -74,12 +72,7 @@ public interface IPage : IOutput, IFile, IContentSource
     /// <summary>
     /// The number of words in the main content
     /// </summary>
-    int WordCount => Plain.Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length;
-
-    /// <summary>
-    /// Characters that are not considered as words
-    /// </summary>
-    protected static readonly char[] NonWords = [' ', ',', ';', '.', '!', '"', '(', ')', '?', '\n', '\r'];
+    int WordCount { get; }
 
     /// <summary>
     /// The markdown content converted to HTML
