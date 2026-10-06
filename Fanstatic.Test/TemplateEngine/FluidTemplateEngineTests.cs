@@ -46,6 +46,31 @@ public class FluidTemplateEngineTests : TestSetup
     }
 
     [Fact]
+    public void Render_ShouldKeepCaseDistinctTemplatePathsDistinct()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var site = CreateSite(TestSitePathConst06);
+        var page = GetPage(site, "/index.html");
+        var engine = new FluidTemplateEngine();
+        engine.Initialize(site);
+        var themePath = CreateTemporaryTheme(("single.html", "lower"), ("Single.html", "upper"));
+
+        try
+        {
+            Assert.Equal("lower", engine.Render(Path.Combine(themePath, "single.html"), site, page));
+            Assert.Equal("upper", engine.Render(Path.Combine(themePath, "Single.html"), site, page));
+        }
+        finally
+        {
+            Directory.Delete(themePath, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RenderInline_ShouldCacheCompiledTemplatesByBody()
     {
         var site = CreateSite(TestSitePathConst06);

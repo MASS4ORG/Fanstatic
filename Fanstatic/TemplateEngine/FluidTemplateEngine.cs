@@ -28,7 +28,7 @@ public class FluidTemplateEngine : ITemplateEngine
     /// Cache of compiled file templates by normalized path.
     /// </summary>
     readonly ConcurrentDictionary<string, IFluidTemplate?> _compiledTemplateByPath =
-        new(StringComparer.OrdinalIgnoreCase);
+        new(StringComparer.Ordinal);
 
     /// <summary>
     /// Cache of compiled inline templates by template content.
@@ -39,10 +39,13 @@ public class FluidTemplateEngine : ITemplateEngine
     /// Cache of template body by template key/path.
     /// </summary>
     readonly ConcurrentDictionary<string, string> _templateBodyByKey =
-        new(StringComparer.OrdinalIgnoreCase);
+        new(StringComparer.Ordinal);
 
     readonly ConcurrentDictionary<string, TemplateMetricCounter> _templateMetrics =
-        new(StringComparer.OrdinalIgnoreCase);
+        new(StringComparer.Ordinal);
+
+    readonly ConcurrentDictionary<string, string> _resolvedTemplatePathByKey =
+        new(StringComparer.Ordinal);
 
     bool _templateMetricsEnabled;
 
@@ -88,6 +91,7 @@ public class FluidTemplateEngine : ITemplateEngine
         _compiledTemplateByPath.Clear();
         _compiledInlineTemplateCache.Clear();
         _templateBodyByKey.Clear();
+        _resolvedTemplatePathByKey.Clear();
         _templateMetrics.Clear();
 
         TemplateOptions.FileProvider = new LiquidPhysicalFileProvider(_themePath);
@@ -108,6 +112,7 @@ public class FluidTemplateEngine : ITemplateEngine
         _compiledTemplateByPath.Clear();
         _compiledInlineTemplateCache.Clear();
         _templateBodyByKey.Clear();
+        _resolvedTemplatePathByKey.Clear();
 
         List<TemplateError> errors = [];
 
@@ -148,41 +153,32 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(page);
 
         var metricsEnabled = _templateMetricsEnabled;
-        if (!metricsEnabled)
-        {
-            var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
-            var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
-            var template = templatePath is null
-                ? GetCompiledInlineTemplate(templateBody)
-                : GetCompiledTemplate(templatePath, templateBody);
-
-            var context = SeedContext(site, page, counter);
-            return RenderTemplate(template, templateBody, context);
-        }
-
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0;
         var metricPath = "(inline template)";
         var cacheHit = false;
 
         try
         {
             var templatePath = ResolveTemplatePath(templatePathOrInlineKey);
-            if (templatePath is not null)
+            if (metricsEnabled && templatePath is not null)
             {
                 metricPath = templatePath;
             }
 
-            var templateBody = ResolveTemplateBody(templatePathOrInlineKey);
+            var templateBody = ResolveTemplateBody(templatePathOrInlineKey, templatePath);
             var template = templatePath is null
-                ? GetCompiledInlineTemplate(templateBody, out cacheHit)
-                : GetCompiledTemplate(templatePath, templateBody, out cacheHit);
+                ? GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit)
+                : GetCompiledTemplate(templatePath, templateBody, metricsEnabled, out cacheHit);
 
             var context = SeedContext(site, page, counter);
             return RenderTemplate(template, templateBody, context);
         }
         finally
         {
-            RecordTemplateMetric(metricPath, startedAt, cacheHit);
+            if (metricsEnabled)
+            {
+                RecordTemplateMetric(metricPath, startedAt, cacheHit);
+            }
         }
     }
 
@@ -206,25 +202,21 @@ public class FluidTemplateEngine : ITemplateEngine
         ArgumentNullException.ThrowIfNull(page);
 
         var metricsEnabled = _templateMetricsEnabled;
-        if (!metricsEnabled)
-        {
-            var unmeasuredTemplate = GetCompiledInlineTemplate(templateBody);
-            var unmeasuredContext = SeedContext(site, page);
-            return RenderTemplate(unmeasuredTemplate, templateBody, unmeasuredContext);
-        }
-
-        var startedAt = Stopwatch.GetTimestamp();
+        var startedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0;
         var cacheHit = false;
 
         try
         {
-            var template = GetCompiledInlineTemplate(templateBody, out cacheHit);
+            var template = GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit);
             var context = SeedContext(site, page);
             return RenderTemplate(template, templateBody, context);
         }
         finally
         {
-            RecordTemplateMetric("(inline template)", startedAt, cacheHit);
+            if (metricsEnabled)
+            {
+                RecordTemplateMetric("(inline template)", startedAt, cacheHit);
+            }
         }
     }
 
@@ -247,25 +239,10 @@ public class FluidTemplateEngine : ITemplateEngine
         return context;
     }
 
-    IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody)
+    IFluidTemplate GetCompiledTemplate(
+        string templatePath, string templateBody, bool metricsEnabled, out bool cacheHit)
     {
-        var template = _compiledTemplateByPath.GetOrAdd(templatePath,
-            _ => FluidParser.TryParse(templateBody, out var parsed, out _) ? parsed : null);
-
-        return template ?? ThrowTemplateParseError(templateBody);
-    }
-
-    IFluidTemplate GetCompiledInlineTemplate(string templateBody)
-    {
-        var template = _compiledInlineTemplateCache.GetOrAdd(templateBody,
-            body => FluidParser.TryParse(body, out var parsed, out _) ? parsed : null);
-
-        return template ?? ThrowTemplateParseError(templateBody);
-    }
-
-    IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody, out bool cacheHit)
-    {
-        if (_compiledTemplateByPath.TryGetValue(templatePath, out var cached))
+        if (metricsEnabled && _compiledTemplateByPath.TryGetValue(templatePath, out var cached))
         {
             cacheHit = true;
             return cached ?? ThrowTemplateParseError(templateBody);
@@ -278,9 +255,9 @@ public class FluidTemplateEngine : ITemplateEngine
         return template ?? ThrowTemplateParseError(templateBody);
     }
 
-    IFluidTemplate GetCompiledInlineTemplate(string templateBody, out bool cacheHit)
+    IFluidTemplate GetCompiledInlineTemplate(string templateBody, bool metricsEnabled, out bool cacheHit)
     {
-        if (_compiledInlineTemplateCache.TryGetValue(templateBody, out var cached))
+        if (metricsEnabled && _compiledInlineTemplateCache.TryGetValue(templateBody, out var cached))
         {
             cacheHit = true;
             return cached ?? ThrowTemplateParseError(templateBody);
@@ -307,22 +284,31 @@ public class FluidTemplateEngine : ITemplateEngine
 
     string? ResolveTemplatePath(string templatePathOrInlineKey)
     {
+        if (_resolvedTemplatePathByKey.TryGetValue(templatePathOrInlineKey, out var cached))
+        {
+            return cached.Length == 0 ? null : cached;
+        }
+
+        string? resolvedPath = null;
         if (File.Exists(templatePathOrInlineKey))
         {
-            return NormalizeTemplatePath(templatePathOrInlineKey);
+            resolvedPath = NormalizeTemplatePath(templatePathOrInlineKey);
         }
-
-        if (string.IsNullOrEmpty(_themePath))
+        else if (!string.IsNullOrEmpty(_themePath))
         {
-            return null;
+            var normalizedKey = UrlifyPath(templatePathOrInlineKey);
+            var combined = Path.Combine(_themePath, normalizedKey.TrimStart('/'));
+            if (File.Exists(combined))
+            {
+                resolvedPath = NormalizeTemplatePath(combined);
+            }
         }
 
-        var normalizedKey = UrlifyPath(templatePathOrInlineKey);
-        var combined = Path.Combine(_themePath, normalizedKey.TrimStart('/'));
-        return File.Exists(combined) ? NormalizeTemplatePath(combined) : null;
+        return _resolvedTemplatePathByKey.GetOrAdd(templatePathOrInlineKey, resolvedPath ?? string.Empty)
+            is { Length: > 0 } path ? path : null;
     }
 
-    string ResolveTemplateBody(string templatePathOrInlineKey)
+    string ResolveTemplateBody(string templatePathOrInlineKey, string? resolvedTemplatePath)
     {
         if (_templateBodyByKey.TryGetValue(templatePathOrInlineKey, out var cached))
         {
@@ -335,29 +321,19 @@ public class FluidTemplateEngine : ITemplateEngine
             return cached;
         }
 
-        if (File.Exists(templatePathOrInlineKey))
+        if (resolvedTemplatePath is not null)
         {
-            var body = File.ReadAllText(templatePathOrInlineKey);
-            _templateBodyByKey[UrlifyPath(templatePathOrInlineKey)] = body;
+            var body = File.ReadAllText(resolvedTemplatePath);
+            _templateBodyByKey[templatePathOrInlineKey] = body;
+            _templateBodyByKey[normalizedKey] = body;
+            var fullKey = UrlifyPath(resolvedTemplatePath);
+            var relativeKey = !string.IsNullOrEmpty(_themePath)
+                ? UrlifyPath(Path.GetRelativePath(_themePath, resolvedTemplatePath))
+                : fullKey;
+            _templateBodyByKey[fullKey] = body;
+            _templateBodyByKey[relativeKey] = body;
+            _templateBodyByKey['/' + relativeKey] = body;
             return body;
-        }
-
-        if (!string.IsNullOrEmpty(_themePath))
-        {
-            var combined = Path.Combine(_themePath, normalizedKey.TrimStart('/'));
-            if (File.Exists(combined))
-            {
-                var body = File.ReadAllText(combined);
-
-                var fullKey = UrlifyPath(combined);
-                var relKey = UrlifyPath(Path.GetRelativePath(_themePath, combined));
-
-                _templateBodyByKey[fullKey] = body;
-                _templateBodyByKey[relKey] = body;
-                _templateBodyByKey['/' + relKey] = body;
-
-                return body;
-            }
         }
 
         return templatePathOrInlineKey;
