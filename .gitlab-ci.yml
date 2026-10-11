@@ -15,6 +15,12 @@ variables:
     PUBLISH_SINGLE_FILE: "true"
     PUBLISH_TRIMMED: "true"
     GITLAB_REPOSITORY_PATH: "$CI_PROJECT_PATH"
+    GITLAB_RELEASE_TOKEN: "$GITLAB_PRIVATE_TOKEN"
+
+cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+        - .nuget/
 
 # ------------------------------------------------------------
 # Shared templates used by every job: same image, same tools.
@@ -94,14 +100,14 @@ release-check:
     <<: *build_job_template
     stage: release-check
     rules:
-        - if: '$CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"'
+        - if: '$RELEASE_REPOSITORY != "" && ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web")'
     before_script:
         - !reference [.build_tools, before_script]
     script:
         - |
             ./build.sh GitLabCreateTag \
               --gitlab-project-path "$GITLAB_REPOSITORY_PATH" \
-              --gitlab-token "$GITLAB_PRIVATE_TOKEN" \
+              --gitlab-token "$GITLAB_RELEASE_TOKEN" \
               --release-branch "$CI_DEFAULT_BRANCH" \
               --verbosity minimal
 
@@ -173,7 +179,7 @@ gitlab-release:
         - |
             ./build.sh GitLabCreateRelease \
               --gitlab-project-path "$GITLAB_REPOSITORY_PATH" \
-              --gitlab-token "$GITLAB_PRIVATE_TOKEN" \
+              --gitlab-token "$GITLAB_RELEASE_TOKEN" \
               --verbosity minimal
 
 # Pushes the container image to this project's GitLab Container Registry. The image is pushed directly

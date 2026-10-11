@@ -24,13 +24,13 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: ubuntu-24.04
+                    - os: ubuntu-26.04
                       rid: win-x64
-                    - os: ubuntu-24.04
+                    - os: ubuntu-26.04
                       rid: linux-x64
-                    - os: ubuntu-24.04
+                    - os: ubuntu-26.04
                       rid: linux-musl-x64
-                    - os: ubuntu-24.04
+                    - os: ubuntu-26.04
                       rid: linux-arm64
                     - os: macos-latest
                       rid: osx-x64
@@ -74,7 +74,7 @@ jobs:
     release:
         needs: build
         if: ${{ !cancelled() }}
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         env:
             FANSTATIC_BUILD_RESULT: ${{ needs.build.result }}
         steps:
@@ -112,7 +112,7 @@ jobs:
             fail-fast: false
             matrix:
                 rid: ["linux-x64", "linux-musl-x64", "linux-arm64"]
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
         steps:
             - name: Checkout
               uses: actions/checkout@v7

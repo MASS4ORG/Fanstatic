@@ -1,11 +1,14 @@
-name: build-and-test
+name: Build and test
 
 # Mirrors the GitLab `test` job: build on every commit (except tags and schedules).
 # `push` is limited to the default branch: a branch with an open pull request already runs this
 # workflow through `pull_request`, and triggering on both would run every job twice per commit.
 on:
     push:
-        branches: ["main"]
+        branches-ignore:
+            - "renovate/**"
+        tags-ignore:
+            - "v*"
     pull_request:
 
 permissions:
@@ -16,8 +19,10 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    build-and-test:
-        runs-on: ubuntu-24.04
+    test:
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
@@ -33,11 +38,11 @@ jobs:
                   sudo apt-get update -yqq
                   sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev
 
-            - name: Restore, compile, test and publish
+            - name: Restore, compile and test
               run: |
-                  ./build.sh Restore Compile TestReport Publish \
+                  ./build.sh Restore Compile TestReport \
                     --configuration "Debug" \
-                    --publish-directory "./.publish"
+                    --verbosity minimal
 
             - name: Upload coverage report
               uses: actions/upload-artifact@v7
@@ -46,17 +51,10 @@ jobs:
                   path: coverage/report/*
                   if-no-files-found: error
 
-            - name: Upload build output
-              uses: actions/upload-artifact@v7
-              with:
-                  name: publish
-                  path: .publish/*
-                  # .publish is a dot-directory and upload-artifact skips hidden paths by default.
-                  include-hidden-files: true
-                  if-no-files-found: error
-
     benchmark:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
@@ -85,7 +83,9 @@ jobs:
 
     # Validate every release format on one runner, without tagging or pushing.
     package:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-26.04
+        permissions:
+            contents: read
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
@@ -127,6 +127,8 @@ jobs:
     # site with the installed binary, uninstall silently, then validate the manifests with wingetcreate.
     windows:
         runs-on: windows-2025
+        permissions:
+            contents: read
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
