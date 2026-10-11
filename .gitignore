@@ -1,63 +1,57 @@
-# ASP.NET Core
-*.*~
-*.dll
-*.DS_Store
-*.exe
-*.nuget.targets
-*.pdb
-*.swp
-*.user
-*.xproj
-**/bin/
-**/obj/
-
-# build results
+# General
+*.userprefs
 [Dd]ebug/
+[Dd]ebugPublic/
 [Rr]elease/
-build/
+[Rr]eleases/
 x64/
-
-# IDEs
-.idea/
-.vs/
-.vscode/
-.zed/
-.delta/
-
-# MSTest test Results
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
-
-# .NET Core
-[Dd]ebugPS/
-[Rr]eleasePS/
-dlldata.c
-.nuke/temp
-*.bak
-*.cache
-*.ipch
-*.sdf
-*.sln.docstates
-*.suo
-**/*.[a-z]db*
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+project.lock.json
+project.fragment.lock.json
 artifacts/
-
-# LLMs
-.claude/
-.agents/
-AGENTS.md
-
-# Project specific
-**/.publish/
-**/public/
 .flatpak-build/
 .flatpak-repo/
-output/
-project.fragment.lock.json
-project.lock.json
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.Build.props
+!Directory.Build.props
+*.local.props
 coverage/
-qodana.yaml
-qodana.sarif.json
+.nuke/temp
+.config/
+.publish/
+*.trx
+*.user
+.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE/LLM/AI
+.idea/
+*.sln.iml
+.vscode/*
+.vs/
+[Cc]ache/
+.zed
+AGENTS.md
+.claude/
+.opencode/
+.cursor/
+.windsurf/
+.delta/
 
 docs/internal
 .script.[csp][shy]

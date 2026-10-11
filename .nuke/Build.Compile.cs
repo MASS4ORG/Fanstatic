@@ -1,4 +1,4 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -10,7 +10,7 @@ sealed partial class Build
         .Executes(() =>
         {
             Solution.AllProjects
-                .Where(project => project.Path != RootDirectory / ".nuke/Build.csproj")
+                .Where(project => project.Path != BuildProjectDirectory / "Build.csproj")
                 .SelectMany(project => new[]
                 {
                     project.Directory / "bin",
@@ -25,8 +25,10 @@ sealed partial class Build
         });
 
     Target Restore => td => td
-        .DependsOn(Clean)
-        .Executes(() => _ = DotNetRestore(s => s.SetProjectFile(Solution)));
+        .Executes(() =>
+        {
+            _ = DotNetRestore(s => WithMsBuildProperties(s.SetProjectFile(Solution)));
+        });
 
     Target Compile => td => td
         .DependsOn(Restore)
@@ -34,11 +36,34 @@ sealed partial class Build
         {
             Log.Debug("Config {Config}", Config);
 
-            _ = DotNetBuild(settings => settings
-                .SetNoLogo(true)
-                .SetProjectFile(Solution)
-                .SetConfiguration(Config)
-                .EnableNoRestore()
-            );
+            // A project opts out with <ExcludeFromBuild>true</ExcludeFromBuild>; then the projects are built one by one.
+            var excluded = Solution.AllProjects
+                .Where(project => project.Path.FileExists()
+                                  && project.Path.ReadAllText().Contains("<ExcludeFromBuild>true", StringComparison.Ordinal))
+                .ToList();
+            if (excluded.Count == 0)
+            {
+                _ = DotNetBuild(settings => WithMsBuildProperties(settings
+                    .SetNoLogo(true)
+                    .SetProjectFile(Solution)
+                    .SetConfiguration(Config)
+                    .EnableNoRestore()));
+            }
+            else
+            {
+                foreach (var project in Solution.AllProjects.Except(excluded))
+                {
+                    _ = DotNetBuild(settings => WithMsBuildProperties(settings
+                        .SetNoLogo(true)
+                        .SetProjectFile(project)
+                        .SetConfiguration(Config)
+                        .EnableNoRestore()));
+                }
+            }
+
+            OnCompiled();
         });
+
+    /// <summary>Runs after a successful build, for project specific follow-up steps.</summary>
+    partial void OnCompiled();
 }

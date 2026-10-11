@@ -1,4 +1,4 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -34,7 +34,7 @@ sealed partial class Build
             .Executes(() =>
             {
                 var grouped = CollectChangelogEntries();
-                var section = BuildChangelogSection(Version, grouped);
+                var section = BuildChangelogSection(Version, grouped, ReadUnreleasedBody());
                 WriteChangelogSection(section);
                 Log.Information("Updated {ChangelogFile} with version {Version}", ChangelogFile, Version);
             });
@@ -80,11 +80,37 @@ sealed partial class Build
         return grouped;
     }
 
-    static string BuildChangelogSection(string version, Dictionary<string, List<string>> grouped)
+    /// <summary>
+    /// The hand-written entries under "## [Unreleased]", or an empty string when there are none.
+    /// </summary>
+    static string ReadUnreleasedBody()
+    {
+        if (!ChangelogFile.FileExists())
+        {
+            return string.Empty;
+        }
+
+        var match = Regex.Match(
+            ChangelogFile.ReadAllText(),
+            $@"{Regex.Escape(UnreleasedHeader)}[^\n]*\n(?<body>.*?)(?=\n##\s|\n\[[^\]]+\]:|\z)",
+            RegexOptions.Singleline);
+        return match.Success ? match.Groups["body"].Value.Trim() : string.Empty;
+    }
+
+    /// <summary>
+    /// The new version section: the Unreleased entries when present, else the ones derived from commits.
+    /// </summary>
+    static string BuildChangelogSection(string version, Dictionary<string, List<string>> grouped, string unreleasedBody)
     {
         var builder = new StringBuilder();
         builder.AppendLine(CultureInfo.InvariantCulture, $"## [{version}] - {DateTime.UtcNow:yyyy-MM-dd}");
         builder.AppendLine();
+
+        if (unreleasedBody.Length > 0)
+        {
+            builder.Append(unreleasedBody);
+            return builder.ToString();
+        }
 
         // One line per change, "- Added: ...", grouped in the order sections are declared above.
         var orderedSections = ChangelogSections.Select(entry => entry.Section).Distinct();

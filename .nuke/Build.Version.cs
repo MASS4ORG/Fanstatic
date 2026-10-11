@@ -1,4 +1,4 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -154,6 +154,34 @@ sealed partial class Build
                 Log.Information("Current tag:\t\t{Version}", CurrentTag);
                 Log.Information("Next version:\t\t{Version}", Version);
             });
+
+    /// <summary>
+    /// Stamps the release version into every configured project with a <c>&lt;Version&gt;</c> element, so committed
+    /// project versions match the tag and local builds report it.
+    /// </summary>
+    public Target UpdateProjectVersions => td =>
+        td
+            .DependsOn(CheckNewCommits)
+            .OnlyWhenDynamic(() => HasNewCommits)
+            .Executes(() =>
+            {
+                var projects = VersionedProjects
+                    .Where(project => project.Path.ReadAllText().Contains("<Version>", StringComparison.Ordinal));
+                foreach (var project in projects)
+                {
+                    var path = project.Path;
+                    var text = File.ReadAllText(path);
+                    var stamped = ProjectVersionRegex().Replace(text, $"<Version>{Version}</Version>", 1);
+                    if (stamped == text) continue;
+
+                    var bom = File.ReadAllBytes(path) is [0xEF, 0xBB, 0xBF, ..];
+                    File.WriteAllText(path, stamped, new UTF8Encoding(bom));
+                    Log.Information("{Project}: version {Version}", project.Name, Version);
+                }
+            });
+
+    [GeneratedRegex(@"<Version>[^<]*</Version>")]
+    private static partial Regex ProjectVersionRegex();
 
     /// <summary>
     /// Checks if there are new commits since the last tag.

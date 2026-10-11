@@ -1,4 +1,4 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// Produces an independently installable Debian package for the published command-line executable.
@@ -40,7 +40,7 @@ sealed partial class Build
         documentationDirectory.CreateDirectory();
         (RootDirectory / "LICENSE.md").Copy(documentationDirectory / "copyright", ExistsPolicy.FileOverwrite);
 
-        var project = Solution.Fanstatic.GetMSBuildProject();
+        var project = ProductProject.GetMSBuildProject();
         var author = project.GetProperty("Authors")?.EvaluatedValue ?? "Bruno Massa";
         var homepage = project.GetProperty("PackageProjectUrl")?.EvaluatedValue ?? "https://fanstatic.mass4.com";
 
