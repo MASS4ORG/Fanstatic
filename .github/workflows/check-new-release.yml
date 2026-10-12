@@ -1,10 +1,10 @@
-name: check-new-release
+name: Check new release
 
 # Checks for commits since the last tag; if there are any, updates CHANGELOG.md, tags the release and
 # pushes the commit+tag to this GitHub repository, then dispatches publish-on-tag.yml for the new tag.
 on:
     schedule:
-        - cron: "0 0 * * *"
+        - cron: "0 13 * * *"
     workflow_dispatch:
 
 env:
@@ -17,7 +17,8 @@ permissions:
 
 jobs:
     release-check:
-        runs-on: ubuntu-24.04
+        if: ${{ vars.RELEASE_REPOSITORY != '' }}
+        runs-on: ubuntu-26.04
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -34,7 +35,7 @@ jobs:
             - name: Tag release if there are new commits
               run: |
                   echo "HEAD_BEFORE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-                  ./build.sh GitHubCreateTag \
+                  ./build.sh Test GitHubCreateTag \
                     --github-repository "${{ github.repository }}" \
                     --github-token "${{ secrets.GITHUB_TOKEN }}" \
                     --release-branch "${{ github.event.repository.default_branch }}" \

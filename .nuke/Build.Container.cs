@@ -1,6 +1,6 @@
 using Cri = (string identifier, string family);
 
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -87,7 +87,7 @@ sealed partial class Build
         DotNetPublish(settings =>
         {
             settings = settings
-                .SetProject(Solution.Fanstatic)
+                .SetProject(ProductProject)
                 .SetConfiguration(Config)
                 .SetOutput(PublishDir)
                 .SetRuntime(RuntimeIdentifier)

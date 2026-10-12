@@ -1,22 +1,13 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
-/// This partial is responsible for the versioning using GitVersion.
+/// This partial calculates release versions from reachable release tags and Conventional Commit messages.
 /// </summary>
 sealed partial class Build
 {
-    // NoFetch: GitVersion's own libgit2-based fetch doesn't support SSH remotes, which silently
-    // fails injection (gitVersion stays null) when the repo's remotes are SSH URLs. The checkout
-    // (local or CI) already has the history/tags it needs, so no additional fetch is required.
-    [GitVersion(NoFetch = true)]
-    readonly GitVersion GitVersion;
-
     /// <summary>
-    /// The release version. GitVersion decides it; the Conventional Commits fallback only takes over when
-    /// GitVersion does not land above the latest release tag (shallow clone, stray older tag). A publish build
-    /// checks out a tag on a detached HEAD, where GitVersion cannot run without remote credentials; the tag
-    /// being built is the version there.
+    /// The release version derived from the highest reachable release tag and commits after it.
     /// </summary>
     string Version => CachedVersion ??= ResolveVersion();
 
@@ -24,25 +15,9 @@ sealed partial class Build
 
     string ResolveVersion()
     {
-        if (GitVersion?.MajorMinorPatch is not { } gitVersion)
-        {
-            return CurrentVersion;
-        }
-
-        if (!HasAnyTags || IsVersionEarlierThan(CurrentVersion, gitVersion))
-        {
-            return gitVersion;
-        }
-
-        var messageLines = Git($"log --format=%B {CurrentTag}..HEAD", logOutput: false).Select(output => output.Text);
-        var fallback = BumpVersion(CurrentVersion, messageLines);
-        if (fallback != CurrentVersion)
-        {
-            Log.Warning("GitVersion returned {GitVersion}, which is not above release {Release}. Using {Fallback}",
-                gitVersion, CurrentVersion, fallback);
-        }
-
-        return fallback;
+        var range = HasAnyTags ? $"{CurrentTag}..HEAD" : "HEAD";
+        var messageLines = Git($"log --format=%B {range}", logOutput: false).Select(output => output.Text);
+        return BumpVersion(CurrentVersion, messageLines);
     }
 
     public string VersionMajor => Version.Split('.')[0];
@@ -57,8 +32,23 @@ sealed partial class Build
     /// <summary>
     /// Checks if there are new commits since the last tag that warrant a release.
     /// </summary>
-    bool HasNewCommits =>
-        GitVersion is not null && GitVersion.CommitsSinceVersionSource != "0" && Version != CurrentVersion;
+    bool HasNewCommits => CommitsSinceCurrentTag > 0 && Version != CurrentVersion;
+
+    int CommitsSinceCurrentTag
+    {
+        get
+        {
+            try
+            {
+                var range = HasAnyTags ? $"{CurrentTag}..HEAD" : "HEAD";
+                return int.Parse(Git($"rev-list --count {range}", logOutput: false).Single().Text, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+    }
 
     string CachedTag;
 
@@ -94,14 +84,9 @@ sealed partial class Build
     /// </summary>
     bool HasAnyTags => CurrentTag != "0.0.0";
 
-    static bool IsVersionEarlierThan(string candidate, string baseline) =>
-        System.Version.TryParse(candidate, out var candidateVersion) &&
-        System.Version.TryParse(baseline, out var baselineVersion) &&
-        candidateVersion < baselineVersion;
-
     /// <summary>
     /// Returns <paramref name="version"/> bumped by the largest change in the commit message lines, using the
-    /// GitVersion.yml rules: major for `type!:` or `BREAKING CHANGE:`, minor for `feat:`, patch for `fix:` and
+    /// release rules: major for `type!:` or `BREAKING CHANGE:`, minor for `feat:`, patch for `fix:` and
     /// `perf:`; any other type leaves the version unchanged.
     /// </summary>
     internal static string BumpVersion(string version, IEnumerable<string> messageLines)
@@ -156,6 +141,34 @@ sealed partial class Build
             });
 
     /// <summary>
+    /// Stamps the release version into every configured project with a <c>&lt;Version&gt;</c> element, so committed
+    /// project versions match the tag and local builds report it.
+    /// </summary>
+    public Target UpdateProjectVersions => td =>
+        td
+            .DependsOn(CheckNewCommits)
+            .OnlyWhenDynamic(() => HasNewCommits)
+            .Executes(() =>
+            {
+                var projects = VersionedProjects
+                    .Where(project => project.Path.ReadAllText().Contains("<Version>", StringComparison.Ordinal));
+                foreach (var project in projects)
+                {
+                    var path = project.Path;
+                    var text = File.ReadAllText(path);
+                    var stamped = ProjectVersionRegex().Replace(text, $"<Version>{Version}</Version>", 1);
+                    if (stamped == text) continue;
+
+                    var bom = File.ReadAllBytes(path) is [0xEF, 0xBB, 0xBF, ..];
+                    File.WriteAllText(path, stamped, new UTF8Encoding(bom));
+                    Log.Information("{Project}: version {Version}", project.Name, Version);
+                }
+            });
+
+    [GeneratedRegex(@"<Version>[^<]*</Version>")]
+    private static partial Regex ProjectVersionRegex();
+
+    /// <summary>
     /// Checks if there are new commits since the last tag.
     /// If there are no new commits, the whole publish process is skipped.
     /// </summary>
@@ -172,8 +185,8 @@ sealed partial class Build
                 if (HasNewCommits)
                 {
                     Log.Information(
-                        "There are {GitVersionCommitsSinceVersionSource} new commits since last tag",
-                        GitVersion.CommitsSinceVersionSource
+                        "There are {CommitsSinceCurrentTag} new commits since last tag",
+                        CommitsSinceCurrentTag
                     );
                 }
                 else

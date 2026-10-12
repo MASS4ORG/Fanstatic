@@ -39,13 +39,16 @@
         "GitLabCreateRelease",
         "GitLabCreateTag",
         "Pack",
+        "PackNuGet",
         "Publish",
+        "PushNuGet",
         "RecordReleaseBenchmark",
         "Restore",
         "ShowCurrentVersion",
         "Test",
         "TestReport",
         "UpdateChangelog",
+        "UpdateProjectVersions",
         "WindowsInstaller",
         "WingetManifest"
       ]
@@ -144,7 +147,7 @@
         },
         "GithubRepository": {
           "type": "string",
-          "description": "GitHub owner/repo path, e.g. MASS4ORG/Fanstatic (default: MASS4ORG/Fanstatic)"
+          "description": "GitHub owner/repo path (default: MASS4ORG/Fanstatic)"
         },
         "GithubToken": {
           "type": "string",
@@ -153,12 +156,21 @@
         },
         "GitlabProjectPath": {
           "type": "string",
-          "description": "GitLab group/project path, e.g. fanstatic/fanstatic (default: fanstatic/fanstatic)"
+          "description": "GitLab group/project path (default: MASS4ORG/fanstatic)"
         },
         "GitlabToken": {
           "type": "string",
           "description": "GitLab personal/project access token with api + write_repository scope. Omit to skip pushing/releasing to GitLab",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "NuGetApiKey": {
+          "type": "string",
+          "description": "NuGet API key used by PushNuGet. Absent = pack only",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "NuGetSource": {
+          "type": "string",
+          "description": "NuGet feed to push to (default: nuget.org)"
         },
         "PackagingDryRun": {
           "type": "boolean",
@@ -174,15 +186,15 @@
         },
         "PublishSelfContained": {
           "type": "boolean",
-          "description": "publish-self-contained (default: true)"
+          "description": "publish-self-contained (default: set by the project)"
         },
         "PublishSingleFile": {
           "type": "boolean",
-          "description": "publish-single-file (default: true)"
+          "description": "publish-single-file (default: set by the project)"
         },
         "PublishTrimmed": {
           "type": "boolean",
-          "description": "publish-trimmed (default: true)"
+          "description": "publish-trimmed (default: set by the project)"
         },
         "RecordBenchmark": {
           "type": "boolean",

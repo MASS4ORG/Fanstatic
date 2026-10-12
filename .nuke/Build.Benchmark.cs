@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 
-namespace Fanstatic.NUKE;
+namespace Build;
 
 sealed partial class Build
 {
@@ -55,7 +55,7 @@ sealed partial class Build
         {
             PublishBenchmarkBinary();
             var executable = Path.Combine(BenchmarkPublishDirectory,
-                OperatingSystem.IsWindows() ? "fanstatic.exe" : "fanstatic");
+                OperatingSystem.IsWindows() ? $"{ExecutableName}.exe" : ExecutableName);
             if (!File.Exists(executable))
             {
                 throw new FileNotFoundException("The published benchmark executable was not found.", executable);
@@ -159,7 +159,7 @@ sealed partial class Build
 
         _ = DotNetPublish(settings => settings
             .SetNoLogo(true)
-            .SetProject(Solution.Fanstatic)
+            .SetProject(ProductProject)
             .SetConfiguration(ConfigurationOptions.Release)
             .SetOutput(BenchmarkPublishDirectory)
             .SetRuntime(RuntimeIdentifier)

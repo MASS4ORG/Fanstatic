@@ -1,17 +1,16 @@
-namespace Fanstatic.NUKE;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
-/// This partial is responsible for the build process.
+/// This partial is responsible for testing and coverage reporting.
 /// </summary>
 sealed partial class Build
 {
-    AbsolutePath TestProjectDirectory => Solution.Fanstatic_Test.Directory;
     static AbsolutePath CoverageDirectory => RootDirectory / "coverage";
     static AbsolutePath CoverageResultFile => CoverageDirectory / "coverage.xml";
     static AbsolutePath CoverageReportDirectory => CoverageDirectory / "report";
     static AbsolutePath CoverageReportSummaryDirectory => CoverageReportDirectory / "Summary.txt";
-    AbsolutePath CoverageSettingsFile => TestProjectDirectory / "CodeCoverage.runsettings";
+    static AbsolutePath CoverageSettingsFile => RootDirectory / "CodeCoverage.runsettings";
 
     Target Test => td =>
         td
@@ -19,15 +18,17 @@ sealed partial class Build
             .Produces(CoverageResultFile)
             .Executes(() =>
             {
-                DotNetRun(settings => settings
+                DotNetRun(settings => WithMsBuildProperties(settings
                     .SetConfiguration(Config)
-                    .SetProjectFile(Solution.Fanstatic_Test.Path)
+                    .SetProjectFile(TestProject.Path)
                     .SetApplicationArguments(
                         "--coverage",
                         "--coverage-settings", CoverageSettingsFile, // Excludes source generated files
                         "--coverage-output-format", "cobertura",
-                        "--coverage-output", CoverageResultFile)
-                );
+                        "--coverage-output", CoverageResultFile,
+                        "--report-xunit-trx", // Consumed by tools/slow-tests.cs
+                        "--results-directory", CoverageDirectory)
+                ));
             });
 
     public Target TestReport => td =>

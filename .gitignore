@@ -1,66 +1,57 @@
-# ASP.NET Core
-*.*~
-*.dll
-*.DS_Store
-*.exe
-*.nuget.targets
-*.pdb
-*.swp
+# Common
+!Directory.Build.props
+*.Build.props
+*.coverage
+*.coveragexml
+*.local.props
+*.trx
 *.user
-*.xproj
-**/bin/
-**/obj/
-
-# build results
-[Dd]ebug/
-[Rr]elease/
-build/
-x64/
-
-# IDEs
-.idea/
-.vs/
-.vscode/
-.zed/
-.delta/
-
-# MSTest test Results
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
-
-# .NET Core
-[Dd]ebugPS/
-[Rr]eleasePS/
-dlldata.c
+*.userprefs
+.config/
+.DS_Store*.sln.iml
+.local
 .nuke/temp
-*.bak
-*.cache
-*.ipch
-*.sdf
-*.sln.docstates
-*.suo
-**/*.[a-z]db*
+.publish/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+[Bb]in/
+[Cc]ache/
+[Dd]ebug/
+[Ll]og/
+[Ll]ogs/
+[Oo]bj/
+[Rr]elease/
+[Rr]eleases/
+[Ww][Ii][Nn]32/
 artifacts/
-
-# LLMs
-.claude/
-.agents/
-AGENTS.md
-
-# Project specific
-**/.publish/
-**/public/
-.flatpak-build/
-.flatpak-repo/
-output/
+bld/
+coverage*.*
+coverage/
 project.fragment.lock.json
 project.lock.json
-coverage/
-qodana.yaml
-qodana.sarif.json
+Thumbs.db
+x64/
+x86/
 
-docs/internal
-.script.[csp][shy]
-.script-[0-9].[csp][shy]
-.scripts.[csp][shy]
-.scripts-[0-9].[csp][shy]
+# IDEs and assistants
+*.sln.iml
+.claude/
+.cursor/
+.delta/
+.idea/
+.opencode/
+.vs/
+.vscode/
+.windsurf/
+.zed
+AGENTS.md
+
+docs/internal/
+.script-*.cs
+.script-*.sh
+.script-*.py
+
+#### Project
+
+.flatpak-build/
+.flatpak-repo/

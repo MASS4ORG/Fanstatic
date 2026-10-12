@@ -15,14 +15,16 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <SignAssembly>true</SignAssembly>
     <Authors>Bruno Massa</Authors>
-    <PackageLicenseFile>../LICENSE.md</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageProjectUrl>https://fanstatic.mass4.com</PackageProjectUrl>
     <PackageTags>static site generator;ssg;yaml/blog</PackageTags>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <Version>7.2.0</Version>
   </PropertyGroup>
 
     <ItemGroup>
         <EmbeddedResource Include="wwwroot\js\reload.js" />
+        <None Include="..\docs\LICENSE.md" Pack="true" PackagePath="" Link="LICENSE.md" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,7 +35,7 @@
         <PackageReference Include="CommandLineParser" Version="2.9.1" />
         <PackageReference Include="Fluid.Core" Version="2.40.0" />
         <PackageReference Include="FolkerKinzel.MimeTypes" Version="5.6.0" />
-        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+        <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" PrivateAssets="all" />
         <PackageReference Include="Markdig" Version="1.4.0" />
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
         <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="10.0.12" />
