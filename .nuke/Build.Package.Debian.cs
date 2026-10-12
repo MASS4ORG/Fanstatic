@@ -38,7 +38,7 @@ sealed partial class Build
     {
         var documentationDirectory = packageRoot / "usr" / "share" / "doc" / "fanstatic";
         documentationDirectory.CreateDirectory();
-        (RootDirectory / "LICENSE.md").Copy(documentationDirectory / "copyright", ExistsPolicy.FileOverwrite);
+        (RootDirectory / "docs" / "LICENSE.md").Copy(documentationDirectory / "copyright", ExistsPolicy.FileOverwrite);
 
         var project = ProductProject.GetMSBuildProject();
         var author = project.GetProperty("Authors")?.EvaluatedValue ?? "Bruno Massa";

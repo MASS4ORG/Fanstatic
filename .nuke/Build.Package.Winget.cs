@@ -76,7 +76,7 @@ sealed partial class Build
                 PackageName: Fanstatic
                 PackageUrl: https://fanstatic.mass4.com
                 License: MIT
-                LicenseUrl: https://github.com/MASS4ORG/Fanstatic/blob/main/LICENSE.md
+                LicenseUrl: https://github.com/MASS4ORG/Fanstatic/blob/main/docs/LICENSE.md
                 Copyright: Copyright (c) 2023-2026 Bruno Massa
                 ShortDescription: static site generator for fans of a fantastic one
                 Description: Fanstatic is a static site generator. Create sites, build, serve locally, validate links and generate API reference, for fans of a fantastic static site generator.

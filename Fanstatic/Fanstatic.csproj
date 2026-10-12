@@ -15,7 +15,7 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <SignAssembly>true</SignAssembly>
     <Authors>Bruno Massa</Authors>
-    <PackageLicenseFile>../LICENSE.md</PackageLicenseFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageProjectUrl>https://fanstatic.mass4.com</PackageProjectUrl>
     <PackageTags>static site generator;ssg;yaml/blog</PackageTags>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="wwwroot\js\reload.js" />
+        <None Include="..\docs\LICENSE.md" Pack="true" PackagePath="" Link="LICENSE.md" />
     </ItemGroup>
 
     <ItemGroup>

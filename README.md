@@ -2,7 +2,7 @@
 
 <img src="docs/Fanstatic-logo.svg" width="512px" style="display: block;margin-left: auto;margin-right: auto;" alt="Fanstatic logo"/>
 
-Welcome to **Fanstatic**, for Fans of a Fantastic Static Site Generator! [MIT license](LICENSE).
+Welcome to **Fanstatic**, for Fans of a Fantastic Static Site Generator! [MIT license](docs/LICENSE.md).
 
 Official site: <https://fanstatic.mass4.com>
 
@@ -22,6 +22,10 @@ fanstatic api <YOUR_CODE_PATH> <YOUR_SITE_PATH> # To generate API reference
 
 > Windows users, use `fanstatic.exe`
 
-if `<YOUR_SITE_PATH>` not present, it will default to current folder.
+If `<YOUR_SITE_PATH>` is not present, it defaults to the current folder.
 
-Created by [Bruno MASSA](https://brunomassa.com) and contributions!
+## Contributing
+
+Read the [contribution guide](docs/CONTRIBUTING.md) before opening an issue or pull request.
+
+Created by [Bruno Massa](https://brunomassa.com).
