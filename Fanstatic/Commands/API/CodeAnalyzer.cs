@@ -64,7 +64,11 @@ public class CodeAnalyzer(ILogger logger)
             files.AddRange(Directory.GetFiles(path, "*.cs"));
             foreach (var dir in Directory.GetDirectories(path))
             {
-                if (dir.Contains("bin") || dir.Contains("obj") || dir.Contains("publish")) continue;
+                if (dir.Contains("bin") || dir.Contains("obj") || dir.Contains("publish"))
+                {
+                    continue;
+                }
+
                 files.AddRange(GetCSharpFiles(dir));
             }
         }

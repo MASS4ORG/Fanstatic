@@ -77,13 +77,24 @@ public static class PartialClassMerger
         foreach (var partialClass in partialClasses)
         {
             if (partialClass.PublicMethods.Count > 0)
+            {
                 allMethods.AddRange(partialClass.PublicMethods);
+            }
+
             if (partialClass.Properties.Count > 0)
+            {
                 allProperties.AddRange(partialClass.Properties);
+            }
+
             if (partialClass.Fields.Count > 0)
+            {
                 allFields.AddRange(partialClass.Fields);
+            }
+
             if (partialClass.EnumValues.Count > 0)
+            {
                 allEnumValues.AddRange(partialClass.EnumValues);
+            }
         }
 
         // Remove duplicates by name (in case the same member is declared in multiple partial files)

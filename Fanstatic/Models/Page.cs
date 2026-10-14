@@ -299,7 +299,11 @@ public class Page : IPage
 
     void AddAliases(Dictionary<Uri, IOutput> urls)
     {
-        if (AliasesProcessed is null) return;
+        if (AliasesProcessed is null)
+        {
+            return;
+        }
+
         foreach (var alias in AliasesProcessed)
         {
             if (!urls.ContainsKey(alias))
@@ -311,7 +315,11 @@ public class Page : IPage
 
     void AddResources(Dictionary<Uri, IOutput> urls)
     {
-        if (Resources is null) return;
+        if (Resources is null)
+        {
+            return;
+        }
+
         foreach (var resource in Resources)
         {
             urls.TryAdd(resource.RelPermalink, resource);

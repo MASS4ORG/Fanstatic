@@ -33,11 +33,15 @@ public class LiquidPhysicalFileProvider : IFileProvider
         var fullPath = Path.Combine(_root, relativePath);
 
         if (File.Exists(fullPath))
+        {
             return new PhysicalFileInfoWrapper(new FileInfo(fullPath));
+        }
 
         var key = subpath.TrimStart('/').Replace('\\', '/');
         if (BuiltinPartials.TryGetValue(key, out var content))
+        {
             return new StringFileInfo(Path.GetFileName(subpath), content);
+        }
 
         return new NotFoundFileInfo(subpath);
     }

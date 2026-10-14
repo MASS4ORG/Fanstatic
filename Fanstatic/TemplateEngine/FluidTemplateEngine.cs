@@ -355,7 +355,10 @@ public class FluidTemplateEngine : ITemplateEngine
     /// </summary>
     ValueTask<FluidValue> PaginateFilter(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        if (_site is null) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (_site is null)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         // Build items list from filter input
         var items = new List<IPage>();
@@ -363,19 +366,30 @@ public class FluidTemplateEngine : ITemplateEngine
         {
             foreach (var v in arr.Values)
             {
-                if (v.ToObjectValue() is IPage p) items.Add(p);
+                if (v.ToObjectValue() is IPage p)
+                {
+                    items.Add(p);
+                }
             }
         }
 
-        if (items.Count == 0) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (items.Count == 0)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         var pageSize = arguments.Count > 0
             ? (int)arguments.At(0).ToNumberValue()
             : _site.Paginate;
-        if (pageSize <= 0) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (pageSize <= 0)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         if (context.GetValue("page").ToObjectValue() is not Page currentPage)
+        {
             return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         var total = items.Count;
         var count = (int)Math.Ceiling(total / (double)pageSize);
@@ -392,7 +406,9 @@ public class FluidTemplateEngine : ITemplateEngine
         {
             var suffix = $"/{_site.PaginatePath}/{current}";
             if (relDir.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
                 relDir = relDir[..^suffix.Length];
+            }
         }
 
         var baseUrl = relDir + "/";
@@ -407,7 +423,9 @@ public class FluidTemplateEngine : ITemplateEngine
 
         // Register virtual pages only once, from the first page
         if (current == 1 && count > 1)
+        {
             _site.RegisterVirtualPagesFromFilter(currentPage, count);
+        }
 
         return new ValueTask<FluidValue>(FluidValue.Create(pager, context.Options));
     }
@@ -421,15 +439,27 @@ public class FluidTemplateEngine : ITemplateEngine
     /// </summary>
     ValueTask<FluidValue> I18NFilter(FluidValue input, FilterArguments arguments, TemplateContext context)
     {
-        if (_site is null) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (_site is null)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         var key = input.ToStringValue();
-        if (string.IsNullOrEmpty(key)) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (string.IsNullOrEmpty(key))
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
-        if (context.GetValue("page").ToObjectValue() is not IPage page) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (context.GetValue("page").ToObjectValue() is not IPage page)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         var translations = _site.I18N;
-        if (translations.Count == 0) return new ValueTask<FluidValue>(NilValue.Instance);
+        if (translations.Count == 0)
+        {
+            return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         // Try current language, fall back to default
         var lang = page.Language.Code;
@@ -437,11 +467,15 @@ public class FluidTemplateEngine : ITemplateEngine
         {
             lang = _site.DefaultLanguage;
             if (!translations.TryGetValue(lang, out langEntries))
+            {
                 return new ValueTask<FluidValue>(NilValue.Instance);
+            }
         }
 
         if (!langEntries.TryGetValue(key, out var entry))
+        {
             return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         string? result;
         var count = arguments.Count > 0 ? (int)arguments.At(0).ToNumberValue() : 0;
@@ -455,7 +489,9 @@ public class FluidTemplateEngine : ITemplateEngine
         }
 
         if (string.IsNullOrEmpty(result))
+        {
             return new ValueTask<FluidValue>(NilValue.Instance);
+        }
 
         // Render as inline template to support embedded Liquid expressions
         if (result.Contains('{'))

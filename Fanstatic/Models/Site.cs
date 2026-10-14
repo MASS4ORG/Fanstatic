@@ -13,7 +13,7 @@ namespace Fanstatic.Models;
 /// </summary>
 public class Site : ISite
 {
-    Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
+    readonly Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
 
     readonly Lazy<SiteOutput> _defaultHtmlSiteOutputCached;
 
@@ -773,14 +773,24 @@ public class Site : ISite
         var pages = OutputReferences.Values.OfType<Page>().ToList();
         foreach (var page in pages)
         {
-            if (page.OutputFormatObj.NoUgly) continue;
+            if (page.OutputFormatObj.NoUgly)
+            {
+                continue;
+            }
+
             var pager = page.Paginator;
-            if (pager is null || pager.Count <= 1) continue;
+            if (pager is null || pager.Count <= 1)
+            {
+                continue;
+            }
 
             var filename = $"{page.OutputFormatObj.BaseName}.{page.OutputFormatObj.Extension}";
             SiteOutputVariant siteVariant = (page.OutputFormat, page.ContentSource.Language);
             _siteVariants.TryGetValue(siteVariant, out var siteOutput);
-            if (siteOutput is null) continue;
+            if (siteOutput is null)
+            {
+                continue;
+            }
 
             for (var i = 2; i <= pager.Count; i++)
             {
@@ -795,14 +805,24 @@ public class Site : ISite
     /// </summary>
     internal void RegisterVirtualPagesFromFilter(Page sourcePage, int count)
     {
-        if (sourcePage.OutputFormatObj.NoUgly) return;
+        if (sourcePage.OutputFormatObj.NoUgly)
+        {
+            return;
+        }
+
         var pager = sourcePage.Paginator;
-        if (pager is null) return;
+        if (pager is null)
+        {
+            return;
+        }
 
         var filename = $"{sourcePage.OutputFormatObj.BaseName}.{sourcePage.OutputFormatObj.Extension}";
         SiteOutputVariant siteVariant = (sourcePage.OutputFormat, sourcePage.ContentSource.Language);
         _siteVariants.TryGetValue(siteVariant, out var siteOutput);
-        if (siteOutput is null) return;
+        if (siteOutput is null)
+        {
+            return;
+        }
 
         for (var i = 2; i <= count; i++)
         {
