@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [7.3.0] - 2026-10-16
+
 - Added: shortcodes from `shortcodes/` in the site and theme #36
 - Added: shortcode parameter schemas, list and map arguments, `:::` directives, and the `{% shortcode %}` template tag #36
 - Added: built-in `details`, `figure`, `highlight`, `instagram`, `param`, `qr`, `vimeo`, `x` and `youtube` shortcodes
@@ -36,7 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - First Commit!
 
-[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.2.0...HEAD
+[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.0...HEAD
+[7.3.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.2.0...v7.3.0
 [7.2.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.1.1...v7.2.0
 [7.1.1]: https://github.com/MASS4ORG/Fanstatic/compare/v7.1.0...v7.1.1
 [7.1.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.0.2...v7.1.0
