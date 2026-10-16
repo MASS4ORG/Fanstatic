@@ -9,8 +9,8 @@ namespace Fanstatic.Test.Commands;
 /// <summary>Covers end-to-end generation of API documentation files.</summary>
 public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
 {
-    [Fact]
     /// <summary>Confirms that partial classes are merged into a single generated documentation file.</summary>
+    [Fact]
     public async Task DocumentationGeneratorShouldMergePartialClasses()
     {
         // Arrange
@@ -74,8 +74,8 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         Directory.Delete(outputPath, recursive: true);
     }
 
-    [Fact]
     /// <summary>Confirms that generated files include the source file in their front matter.</summary>
+    [Fact]
     public async Task DocumentationGeneratorShouldIncludeSourceFileInFrontMatter()
     {
         // Arrange
@@ -124,8 +124,8 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         Directory.Delete(outputPath, recursive: true);
     }
 
-    [Fact]
     /// <summary>Confirms that the index reports the merged type count.</summary>
+    [Fact]
     public async Task DocumentationGeneratorShouldGenerateCorrectCounts()
     {
         // Arrange
@@ -161,8 +161,8 @@ public class DocumentationGeneratorIntegrationTests : CodeAnalysisTestBase
         Directory.Delete(outputPath, recursive: true);
     }
 
-    [Fact]
     /// <summary>Confirms that classes from multiple projects are combined and linked in the output.</summary>
+    [Fact]
     public async Task DocumentationGeneratorShouldHandleMultipleProjects()
     {
         // Arrange

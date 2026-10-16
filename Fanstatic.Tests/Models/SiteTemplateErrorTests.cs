@@ -28,8 +28,8 @@ public class SiteTemplateErrorTests : TestSetup
         return SiteHelper.Init("fanstatic.yaml", options, _parser, LoggerMock, _stopwatch, _fs);
     }
 
-    [Fact]
     /// <summary>Confirms that theme syntax errors are reported with position and source excerpt.</summary>
+    [Fact]
     public void PreCompileThemeShouldReportSyntaxErrorsWithPositionAndExcerpt()
     {
         // Act
@@ -47,8 +47,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Null(indexError.PageSourceRelativePath);
     }
 
-    [Fact]
     /// <summary>Confirms that a valid theme pre-compiles without template errors.</summary>
+    [Fact]
     public void PreCompileThemeShouldReportNoErrorsForValidTheme()
     {
         // Act
@@ -58,8 +58,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Empty(site.TemplateErrors);
     }
 
-    [Fact]
     /// <summary>Confirms that page content is empty when its template has a syntax error.</summary>
+    [Fact]
     public void PageContentShouldBeEmptyWhenTemplateHasSyntaxError()
     {
         // Arrange
@@ -73,8 +73,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Equal(string.Empty, content);
     }
 
-    [Fact]
     /// <summary>Confirms that a template error overlay is rendered when serving.</summary>
+    [Fact]
     public void PageContentShouldReturnOverlayWhenServingAndTemplateHasSyntaxError()
     {
         // Arrange
@@ -89,8 +89,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Contains("_default/index.html:1:14", content, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that a missing partial error names the template and page.</summary>
+    [Fact]
     public void PageContentShouldNameTemplateAndPageWhenPartialIsMissing()
     {
         // Arrange
@@ -111,8 +111,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Equal("blog/post-1.md", error.PageSourceRelativePath);
     }
 
-    [Fact]
     /// <summary>Confirms that template errors are deduplicated per template.</summary>
+    [Fact]
     public void TemplateErrorsShouldDeduplicateByTemplate()
     {
         // Arrange
@@ -132,8 +132,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Equal("First", error.Message);
     }
 
-    [Fact]
     /// <summary>Confirms that adding errors reports how many distinct templates were added.</summary>
+    [Fact]
     public void TemplateErrorsShouldReportHowManyTemplatesWereAdded()
     {
         // Arrange
@@ -152,8 +152,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Equal(2, site.TemplateErrors.Count);
     }
 
-    [Fact]
     /// <summary>Confirms that relative and full template paths resolve to the same template.</summary>
+    [Fact]
     public void TemplateErrorsShouldTreatRelativeAndFullPathAsTheSameTemplate()
     {
         // Arrange
@@ -173,8 +173,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Equal("First", Assert.Single(site.TemplateErrors).Message);
     }
 
-    [Fact]
     /// <summary>Confirms that adding a null error collection throws.</summary>
+    [Fact]
     public void AddTemplateErrorsShouldThrowWhenErrorsAreNull()
     {
         // Arrange
@@ -184,8 +184,8 @@ public class SiteTemplateErrorTests : TestSetup
         Assert.Throws<ArgumentNullException>(() => site.AddTemplateErrors(null!));
     }
 
-    [Fact]
     /// <summary>Confirms that resetting the cache clears collected template errors.</summary>
+    [Fact]
     public void ResetCacheShouldClearTemplateErrors()
     {
         // Arrange

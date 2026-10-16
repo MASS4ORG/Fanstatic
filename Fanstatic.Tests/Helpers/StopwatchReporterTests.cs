@@ -8,17 +8,20 @@ using Xunit;
 
 namespace Fanstatic.Test.Helpers;
 
+/// <summary>Unit tests for the StopwatchReporter class.</summary>
 public class StopwatchReporterTests
 {
     readonly ILogger _logger;
     readonly InMemorySink _inMemorySink;
 
+    /// <summary>Creates an in-memory logger so report output can be inspected.</summary>
     public StopwatchReporterTests()
     {
         _inMemorySink = new InMemorySink();
         _logger = new LoggerConfiguration().WriteTo.Sink(_inMemorySink).CreateLogger();
     }
 
+    /// <summary>Confirms that Start creates a running stopwatch entry for the named step.</summary>
     [Fact]
     public void StartInitializesAndStartsStopwatchForStep()
     {
@@ -42,6 +45,7 @@ public class StopwatchReporterTests
         Assert.True(stopwatchDictionary[stepName].IsRunning);
     }
 
+    /// <summary>Confirms that LogReport writes the site title together with the recorded step to the log.</summary>
     [Fact]
     public void LogReportCorrectlyLogsElapsedTime()
     {
@@ -66,6 +70,7 @@ public class StopwatchReporterTests
         // Assert.Contains($"{duration} ms", logMessage, StringComparison.InvariantCulture); // Ensure that our processing time was logged.
     }
 
+    /// <summary>Confirms that stopping a step that was never started throws an ArgumentException naming that step.</summary>
     [Fact]
     public void StopThrowsExceptionWhenStopCalledWithoutStart()
     {

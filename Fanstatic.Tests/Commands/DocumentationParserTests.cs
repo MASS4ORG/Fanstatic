@@ -10,8 +10,8 @@ public class DocumentationParserTests
     static Microsoft.CodeAnalysis.CSharp.Syntax.CompilationUnitSyntax GetRoot(string sourceCode) =>
         CSharpSyntaxTree.ParseText(sourceCode).GetCompilationUnitRoot();
 
-    [Fact]
     /// <summary>Confirms that parsing a node without comments yields empty documentation.</summary>
+    [Fact]
     public void ParseDocumentationShouldReturnEmptyDocumentationForNodeWithoutComments()
     {
         // Arrange
@@ -33,8 +33,8 @@ public class DocumentationParserTests
         Assert.Empty(result.Remarks);
     }
 
-    [Fact]
     /// <summary>Confirms that a summary XML comment is parsed into the summary and raw content.</summary>
+    [Fact]
     public void ParseDocumentationShouldParseBasicXmlDocumentation()
     {
         // Arrange
@@ -57,8 +57,8 @@ public class DocumentationParserTests
         Assert.Contains("<summary>", result.RawContent, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that method parameter and return documentation is parsed.</summary>
+    [Fact]
     public void ParseDocumentationShouldParseMethodWithParameters()
     {
         // Arrange
@@ -95,8 +95,8 @@ public class DocumentationParserTests
         Assert.Equal("Configuration options for processing.", optionsParam.Description);
     }
 
-    [Fact]
     /// <summary>Confirms that remarks and example documentation sections are parsed.</summary>
+    [Fact]
     public void ParseDocumentationShouldParseExampleAndRemarks()
     {
         // Arrange
@@ -132,8 +132,8 @@ public class DocumentationParserTests
         Assert.Contains("Console.WriteLine(result);", result.Example, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that see cref tags are rendered inside summaries, parameters, and returns.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleSeeCrefTags()
     {
         // Arrange
@@ -161,8 +161,8 @@ public class DocumentationParserTests
         Assert.Contains("`List{T}`", result.Returns, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that c and code tags are rendered as inline code.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleCodeTags()
     {
         // Arrange
@@ -188,8 +188,8 @@ public class DocumentationParserTests
         Assert.Contains("`var x = 10; Console.WriteLine(x);`", result.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that paramref tags are rendered inside summaries.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleParamrefTags()
     {
         // Arrange
@@ -214,8 +214,8 @@ public class DocumentationParserTests
         Assert.Contains("`input`", result.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that see tags with inner text are rendered.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleSeeTagsWithText()
     {
         // Arrange
@@ -239,8 +239,8 @@ public class DocumentationParserTests
         Assert.Contains("string documentation", result.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that whitespace in documentation is normalized.</summary>
+    [Fact]
     public void ParseDocumentationShouldNormalizeWhitespace()
     {
         // Arrange
@@ -269,8 +269,8 @@ public class DocumentationParserTests
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that invalid XML documentation falls back to raw content.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleInvalidXml()
     {
         // Arrange
@@ -294,8 +294,8 @@ public class DocumentationParserTests
         Assert.NotEmpty(result.Summary); // Should fall back to raw content as summary
     }
 
-    [Fact]
     /// <summary>Confirms that regular single-line comments are parsed as documentation.</summary>
+    [Fact]
     public void ParseDocumentationShouldParseRegularComments()
     {
         // Arrange
@@ -320,8 +320,8 @@ public class DocumentationParserTests
         Assert.Contains("with multiple lines", result.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that multi-line block comments are parsed as documentation.</summary>
+    [Fact]
     public void ParseDocumentationShouldParseMultiLineComments()
     {
         // Arrange
@@ -348,8 +348,8 @@ public class DocumentationParserTests
         Assert.Contains("spanning several lines", result.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that empty XML tags produce empty documentation values.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleEmptyXmlTags()
     {
         // Arrange
@@ -377,8 +377,8 @@ public class DocumentationParserTests
         Assert.Empty(result.Parameters[0].Description);
     }
 
-    [Fact]
     /// <summary>Confirms that the raw XML content is preserved during parsing.</summary>
+    [Fact]
     public void ParseDocumentationShouldPreserveRawContent()
     {
         // Arrange
@@ -405,8 +405,8 @@ public class DocumentationParserTests
         Assert.Contains("<param name=\"input\">", result.RawContent, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that nested XML tags are parsed into all documentation sections.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleComplexXmlStructure()
     {
         // Arrange
@@ -464,8 +464,8 @@ public class DocumentationParserTests
         Assert.Contains("var result = await ProcessAsync", result.Example, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that property documentation is parsed.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandlePropertyDocumentation()
     {
         // Arrange
@@ -491,8 +491,8 @@ public class DocumentationParserTests
         Assert.NotEmpty(result.RawContent);
     }
 
-    [Fact]
     /// <summary>Confirms that field documentation is parsed.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleFieldDocumentation()
     {
         // Arrange
@@ -516,8 +516,8 @@ public class DocumentationParserTests
         Assert.Equal("A constant representing the default timeout value.", result.Summary);
     }
 
-    [Fact]
     /// <summary>Confirms that enum value documentation is parsed.</summary>
+    [Fact]
     public void ParseDocumentationShouldHandleEnumValueDocumentation()
     {
         // Arrange

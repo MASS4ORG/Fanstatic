@@ -1,0 +1,8 @@
+---
+Positional: [title]
+Params:
+  title: { Type: string, Required: true }
+  width: { Type: int, Default: 300 }
+  kind: { Type: string, Allowed: [note, warn], Default: note }
+---
+<div class="card {{ kind }}" style="width: {{ width | plus: 0 }}px">{{ title }}</div>

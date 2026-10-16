@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Fanstatic.Test.TemplateEngine;
 
+/// <summary>Unit tests for the FluidTemplateEngine class.</summary>
 public class FluidTemplateEngineTests : TestSetup
 {
     readonly IFileSystem _fs = new FileSystem();
@@ -17,6 +18,7 @@ public class FluidTemplateEngineTests : TestSetup
     readonly StopwatchReporter _stopwatch =
         new(new LoggerConfiguration().CreateLogger());
 
+    /// <summary>Confirms that rendering caches compiled templates by path and reuses them across repeated calls.</summary>
     [Fact]
     public void RenderShouldCacheCompiledTemplatesByPath()
     {
@@ -45,6 +47,7 @@ public class FluidTemplateEngineTests : TestSetup
         }
     }
 
+    /// <summary>Confirms that template paths differing only by case compile and render separately.</summary>
     [Fact]
     public void RenderShouldKeepCaseDistinctTemplatePathsDistinct()
     {
@@ -70,6 +73,7 @@ public class FluidTemplateEngineTests : TestSetup
         }
     }
 
+    /// <summary>Confirms that inline templates are cached by body content, separate from the file-path cache.</summary>
     [Fact]
     public void RenderInlineShouldCacheCompiledTemplatesByBody()
     {
@@ -85,6 +89,7 @@ public class FluidTemplateEngineTests : TestSetup
         Assert.Equal(0, GetCacheCount(engine, "_compiledTemplateByPath"));
     }
 
+    /// <summary>Confirms that enabling template metrics records call counts, cache hits, and timings for file and inline templates.</summary>
     [Fact]
     public void RenderShouldCollectTemplateMetricsWhenEnabled()
     {
@@ -123,6 +128,7 @@ public class FluidTemplateEngineTests : TestSetup
         }
     }
 
+    /// <summary>Confirms that no template metrics are recorded when the option is disabled.</summary>
     [Fact]
     public void RenderShouldNotCollectTemplateMetricsWhenDisabled()
     {
@@ -135,6 +141,7 @@ public class FluidTemplateEngineTests : TestSetup
         Assert.Empty(engine.GetTemplateMetrics());
     }
 
+    /// <summary>Confirms that re-initializing after a file change clears the stale cache entry.</summary>
     [Fact]
     public void InitializeShouldRecompileChangedFileTemplate()
     {

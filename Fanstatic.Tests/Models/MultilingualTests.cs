@@ -36,8 +36,8 @@ public class MultilingualTests : TestSetup
                            && page.OutputFormat == outputFormat
                            && page.PageIndex == 1);
 
-    [Fact]
     /// <summary>Confirms that configured languages are resolved with their codes, names and default flags.</summary>
+    [Fact]
     public void LanguagesShouldBeResolvedFromConfig()
     {
         Assert.Equal(2, _site.LanguageList.Count);
@@ -52,8 +52,8 @@ public class MultilingualTests : TestSetup
         Assert.False(ptBr.IsDefault);
     }
 
-    [Fact]
     /// <summary>Confirms that pages in the default language are generated without a language prefix.</summary>
+    [Fact]
     public void DefaultLanguagePageShouldHaveNoLanguagePrefix()
     {
         var about = Page("about.md");
@@ -63,8 +63,8 @@ public class MultilingualTests : TestSetup
         Assert.Equal("/about/index.html", about.RelPermalink.ToString());
     }
 
-    [Fact]
     /// <summary>Confirms that pages in a non-default language are generated under a language prefix.</summary>
+    [Fact]
     public void NonDefaultLanguagePageShouldBePrefixed()
     {
         var about = Page("about.pt-br.md");
@@ -74,8 +74,8 @@ public class MultilingualTests : TestSetup
         Assert.StartsWith("/pt-br/", about.RelPermalink.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that the language suffix is stripped from the generated URL and logical file name.</summary>
+    [Fact]
     public void LanguageSuffixShouldNotLeakIntoUrl()
     {
         var about = Page("about.pt-br.md");
@@ -83,8 +83,8 @@ public class MultilingualTests : TestSetup
         Assert.Equal("about", about.ContentSource.LogicalFileNameWithoutExtension);
     }
 
-    [Fact]
     /// <summary>Confirms that translations of the same logical page reference each other.</summary>
+    [Fact]
     public void TranslationsShouldLinkTheSameLogicalPage()
     {
         var helloEn = Page("posts/hello.md");
@@ -96,8 +96,8 @@ public class MultilingualTests : TestSetup
         Assert.Contains(helloEn.Translations, page => page.Language.Code == "pt-br");
     }
 
-    [Fact]
     /// <summary>Confirms that a page without translations has only itself in its translation set.</summary>
+    [Fact]
     public void UntranslatedPageShouldHaveOnlyItself()
     {
         var onlyEn = Page("posts/only-en.md");
@@ -106,8 +106,8 @@ public class MultilingualTests : TestSetup
         Assert.Empty(onlyEn.Translations);
     }
 
-    [Fact]
     /// <summary>Confirms that alternative output formats share the page's language.</summary>
+    [Fact]
     public void AlternativeOutputFormatsShouldExposeSameLanguageVariants()
     {
         var helloEn = Page("posts/hello.md");
@@ -118,8 +118,8 @@ public class MultilingualTests : TestSetup
         Assert.All(formats, page => Assert.Equal("en", page.Language.Code));
     }
 
-    [Fact]
     /// <summary>Confirms that variants combine every language and output format of a page.</summary>
+    [Fact]
     public void VariantsShouldSpanLanguagesAndFormats()
     {
         var helloEn = Page("posts/hello.md");
@@ -130,8 +130,8 @@ public class MultilingualTests : TestSetup
         Assert.Contains(variants, page => page is { OutputFormat: "rss" } && page.Language.Code == "pt-br");
     }
 
-    [Fact]
     /// <summary>Confirms that a section lists only pages of its own language.</summary>
+    [Fact]
     public void PagesShouldOnlyIncludeSameLanguage()
     {
         var postsEn = Page("posts/_index.md");
@@ -142,8 +142,8 @@ public class MultilingualTests : TestSetup
             page => page.RelPermalink.ToString().StartsWith("/pt-br/", StringComparison.Ordinal));
     }
 
-    [Fact]
     /// <summary>Confirms that translations are indexed by language code.</summary>
+    [Fact]
     public void TranslationsByLanguageShouldMapEveryTranslation()
     {
         var helloEn = Page("posts/hello.md");
@@ -153,8 +153,8 @@ public class MultilingualTests : TestSetup
         Assert.Equal("pt-br", helloEn.TranslationsByLanguage["pt-br"].Language.Code);
     }
 
-    [Fact]
     /// <summary>Confirms that languages without a translation are omitted and fall back to the language home.</summary>
+    [Fact]
     public void TranslationsByLanguageShouldOmitMissingTranslations()
     {
         var onlyEn = Page("posts/only-en.md");
@@ -167,8 +167,8 @@ public class MultilingualTests : TestSetup
         Assert.Equal("/", _site.DefaultLanguageObj.RelPermalink.ToString());
     }
 
-    [Fact]
     /// <summary>Confirms that translated home pages are generated under their language prefix.</summary>
+    [Fact]
     public void TranslatedHomeShouldBePrefixed()
     {
         Assert.True(
@@ -179,8 +179,8 @@ public class MultilingualTests : TestSetup
             "The English home page should be generated at /index.html");
     }
 
-    [Fact]
     /// <summary>Confirms that auto-generated sections exist for every configured language.</summary>
+    [Fact]
     public void AutoGeneratedSectionShouldExistForAllLanguages()
     {
         Assert.True(
@@ -191,24 +191,24 @@ public class MultilingualTests : TestSetup
             "The Portuguese projects section should be generated at /pt-br/projects/index.html");
     }
 
-    [Fact]
     /// <summary>Confirms that a page in an auto-generated section gets the expected URL.</summary>
+    [Fact]
     public void PageInAutoGeneratedSectionShouldHaveCorrectUrl()
     {
         var work = Page("projects/work.md");
         Assert.Equal("/projects/work/index.html", work.RelPermalink.ToString());
     }
 
-    [Fact]
     /// <summary>Confirms that translated pages in an auto-generated section are language-prefixed.</summary>
+    [Fact]
     public void TranslatedPageInAutoGeneratedSectionShouldBePrefixed()
     {
         var workPt = Page("projects/work.pt-br.md");
         Assert.StartsWith("/pt-br/projects/", workPt.RelPermalink.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that an auto-generated section exposes its translations.</summary>
+    [Fact]
     public void AutoGeneratedSectionShouldHaveTranslations()
     {
         var sectionEn = Page("projects/_index.md");
@@ -216,8 +216,8 @@ public class MultilingualTests : TestSetup
         Assert.Contains(sectionEn.AllTranslations, page => page.Language.Code == "pt-br");
     }
 
-    [Fact]
     /// <summary>Confirms that i18n translation files are loaded per language.</summary>
+    [Fact]
     public void I18nTranslationsShouldBeLoaded()
     {
         Assert.Contains("en", _site.I18N.Keys);
@@ -227,8 +227,8 @@ public class MultilingualTests : TestSetup
         Assert.Equal("Leia mais", _site.I18N["pt-br"]["read_more"].Other);
     }
 
-    [Fact]
     /// <summary>Confirms that loaded i18n entries expose singular and plural forms.</summary>
+    [Fact]
     public void I18nTranslationsShouldSupportPluralization()
     {
         Assert.True(_site.I18N["en"].ContainsKey("posts"));
@@ -236,8 +236,8 @@ public class MultilingualTests : TestSetup
         Assert.NotNull(_site.I18N["en"]["posts"].Other);
     }
 
-    [Fact]
     /// <summary>Confirms that auto-generated section pages carry the correct language.</summary>
+    [Fact]
     public void AutoGeneratedSectionPagesShouldBeInCorrectLanguage()
     {
         var sectionEn = Page("projects/_index.md");
@@ -249,8 +249,8 @@ public class MultilingualTests : TestSetup
         Assert.False(sectionPt.IsDefaultLanguage);
     }
 
-    [Fact]
     /// <summary>Confirms that pages in an auto-generated section are linked to that section.</summary>
+    [Fact]
     public void PagesInAutoGeneratedSectionShouldBeLinkedToSection()
     {
         var sectionEn = Page("projects/_index.md");
@@ -258,8 +258,8 @@ public class MultilingualTests : TestSetup
         Assert.All(sectionEn.Pages, page => Assert.Equal("en", page.Language.Code));
     }
 
-    [Fact]
     /// <summary>Confirms that taxonomy terms are generated and linked per language.</summary>
+    [Fact]
     public void TaxonomyTermsShouldBeGeneratedAndLinkedPerLanguage()
     {
         var helloEn = Page("posts/hello.md");

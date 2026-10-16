@@ -7,13 +7,22 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the ValidateLinksCommand behavior.</summary>
 public class ValidateLinksCommandTests : TestSetup
 {
+    /// <summary>File system mock serving a default fanstatic.yaml configuration.</summary>
     readonly IFileSystem _fileSystemMock;
+
+    /// <summary>HTTP client mock simulating external link responses.</summary>
     readonly IHttpClientWrapper _httpClientMock;
+
+    /// <summary>Options with external checking enabled and one ignored link.</summary>
     readonly ValidateLinksOptions _validateLinksOptionsMock;
+
+    /// <summary>OK response whose body contains a known external fragment anchor.</summary>
     readonly HttpResponseMessage _okResponse;
 
+    /// <summary>Initializes the shared mocks, options, and base site used by the tests.</summary>
     public ValidateLinksCommandTests()
     {
         _httpClientMock = Substitute.For<IHttpClientWrapper>();
@@ -60,6 +69,7 @@ public class ValidateLinksCommandTests : TestSetup
         Site.PostProcessPage(testPage);
     }
 
+    /// <summary>Confirms the command constructs successfully with any CheckExternal flag and with or without a site.</summary>
     [Theory]
     [InlineData(true, true)]
     [InlineData(false, true)]
@@ -78,6 +88,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.NotNull(validator);
     }
 
+    /// <summary>Confirms that passing null options to the constructor throws ArgumentNullException.</summary>
     [Fact]
     public void ConstructorShouldThrowArgumentNullExceptionWhenOptionsIsNull()
     {
@@ -86,6 +97,7 @@ public class ValidateLinksCommandTests : TestSetup
             new ValidateLinksCommand(null!, LoggerMock, _fileSystemMock, _httpClientMock));
     }
 
+    /// <summary>Confirms that valid internal links pass while invalid internal links are reported as failures.</summary>
     [Theory]
     [InlineData("/test-title", 0)]
     [InlineData("/test-title/index.html", 0)]
@@ -110,6 +122,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(fails, validator.PagesWithFailedLinks.Count);
     }
 
+    /// <summary>Confirms that internal links with an existing fragment pass and a missing fragment is reported as a failure.</summary>
     [Theory]
     [InlineData("/test-title#fragment-link", 0)]
     [InlineData("/test-title/index.html#fragment-link", 0)]
@@ -132,6 +145,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(fails, validator.PagesWithFailedLinks.Count);
     }
 
+    /// <summary>Confirms that mailto, tel, and javascript links are skipped without producing failures.</summary>
     [Theory]
     [InlineData("mailto:test@example.com")]
     [InlineData("tel:+1234567890")]
@@ -155,6 +169,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Empty(validator.PagesWithFailedLinks);
     }
 
+    /// <summary>Confirms that Parse records pages containing invalid links and registers their permalinks in the site output references.</summary>
     [Fact]
     public async Task ParseShouldPopulatePagesWithFailedLinks()
     {
@@ -176,6 +191,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Contains(validator.PagesWithFailedLinks, output => output.Key is Page page && page.RelPermalink == uri);
     }
 
+    /// <summary>Confirms that GenerateReport returns exit code 0 when no links failed.</summary>
     [Fact]
     public async Task GenerateReportShouldReturnCorrectExitCode()
     {
@@ -188,6 +204,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(0, result);
     }
 
+    /// <summary>Confirms that links listed in the Ignore option are skipped without producing failures.</summary>
     [Theory]
     [InlineData("/ignored-link")]
     [InlineData("/another-ignored")]
@@ -215,6 +232,7 @@ public class ValidateLinksCommandTests : TestSetup
     }
 
 
+    /// <summary>Confirms that HTTP 200 maps to Ok, 404 to NotFound, and 500 to HttpError.</summary>
     [Theory]
     [InlineData("https://external.com", HttpStatusCode.OK, ValidateLinksCommand.LinkStatus.Ok)]
     [InlineData("https://external.com", HttpStatusCode.NotFound, ValidateLinksCommand.LinkStatus.NotFound)]
@@ -237,6 +255,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(expectedStatus, result);
     }
 
+    /// <summary>Confirms that a fragment present in the response body yields Ok and an absent one yields FragmentNotFound.</summary>
     [Theory]
     [InlineData("https://external.com#external-fragment", ValidateLinksCommand.LinkStatus.Ok)]
     [InlineData("https://external.com#non-existent", ValidateLinksCommand.LinkStatus.FragmentNotFound)]
@@ -256,6 +275,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(expectedStatus, result);
     }
 
+    /// <summary>Confirms that fragments resolve against the target page's headings and are matched case-sensitively.</summary>
     [Theory]
     [InlineData("#fragment-link", 1)]
     [InlineData("#non-existent", 1)]
@@ -281,6 +301,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(fails, validator.PagesWithFailedLinks.Count);
     }
 
+    /// <summary>Confirms that SPA-style hash fragments such as #/# and #/test are accepted as Ok.</summary>
     [Theory]
     [InlineData("https://external.com/#/#", ValidateLinksCommand.LinkStatus.Ok)]
     [InlineData("https://external.com/#/test", ValidateLinksCommand.LinkStatus.Ok)]
@@ -300,6 +321,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(expectedStatus, result);
     }
 
+    /// <summary>Confirms that GenerateReport returns 1 when pages have failed links and 0 when none do.</summary>
     [Theory]
     [InlineData(true, 1)] // Has failed links
     [InlineData(false, 0)] // No failed links
@@ -321,6 +343,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(expectedExitCode, result);
     }
 
+    /// <summary>Confirms that a canceled HTTP request is reported as Timeout.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -342,6 +365,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(ValidateLinksCommand.LinkStatus.Timeout, result);
     }
 
+    /// <summary>Confirms that an unexpected HTTP exception is reported as HttpError.</summary>
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -365,6 +389,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(ValidateLinksCommand.LinkStatus.HttpError, result);
     }
 
+    /// <summary>Confirms that external links are validated only when CheckExternal is enabled.</summary>
     [Theory]
     [InlineData(true, 1)] // CheckExternal=true, should validate and fail
     [InlineData(false, 0)] // CheckExternal=false, should skip validation
@@ -388,6 +413,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(expectedFailures, validator.PagesWithFailedLinks.Count);
     }
 
+    /// <summary>Confirms that every invalid link on a page is accumulated under that page's failure entry.</summary>
     [Fact]
     public async Task ValidatePageLinksShouldAccumulateFailedLinks()
     {
@@ -412,6 +438,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(2, failedLinks.Count);
     }
 
+    /// <summary>Confirms that ignored links produce no failures while non-ignored links returning 404 are reported.</summary>
     [Theory]
     [InlineData("/ignored-link", true)]
     [InlineData("/not-ignored", false)]
@@ -442,6 +469,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Equal(!shouldBeIgnored, validator.PagesWithFailedLinks.Any());
     }
 
+    /// <summary>Confirms that multiple ignored links on a single page produce no failures.</summary>
     [Fact]
     public async Task ValidatePageLinksShouldIgnoreMultipleLinks()
     {
@@ -467,6 +495,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Empty(validator.PagesWithFailedLinks);
     }
 
+    /// <summary>Confirms that wildcard ignore patterns suppress failures for matching link paths.</summary>
     [Fact]
     public async Task ValidatePageLinksShouldIgnoreWildcardPatterns()
     {
@@ -495,6 +524,7 @@ public class ValidateLinksCommandTests : TestSetup
         Assert.Empty(validator.PagesWithFailedLinks);
     }
 
+    /// <summary>Confirms a root-path external link is fetched from its own host even when the site has a homepage at /index.html.</summary>
     [Fact]
     public async Task ValidateExternalLinkShouldNotBeMisclassifiedAsInternalWhenSiteHasHomepage()
     {
@@ -527,6 +557,7 @@ public class ValidateLinksCommandTests : TestSetup
         await _httpClientMock.Received().GetAsync(Arg.Is<Uri>(u => u.Host == "matrix.to"));
     }
 
+    /// <summary>Confirms that a link whose domain differs from BaseUrl resolves against local pages without an HTTP request.</summary>
     [Fact]
     public async Task ValidateInternalLinkShouldResolveLocallyWhenDomainDoesNotMatchBaseUrl()
     {
@@ -548,6 +579,7 @@ public class ValidateLinksCommandTests : TestSetup
         await _httpClientMock.DidNotReceive().GetAsync(Arg.Any<Uri>());
     }
 
+    /// <summary>Confirms that StrictBaseUrl makes a mismatched-domain link be validated as a real external request.</summary>
     [Fact]
     public async Task ValidateInternalLinkShouldValidateAsExternalWhenStrictBaseUrlIsSet()
     {
@@ -574,6 +606,7 @@ public class ValidateLinksCommandTests : TestSetup
         await _httpClientMock.Received().GetAsync(Arg.Is<Uri>(u => u.Host == "production.example"));
     }
 
+    /// <summary>Confirms that a StrictBaseUrl link is skipped entirely when CheckExternal is disabled.</summary>
     [Fact]
     public async Task ValidateInternalLinkStrictBaseUrlSkipsMismatchedLinkWhenExternalCheckDisabled()
     {
@@ -595,6 +628,7 @@ public class ValidateLinksCommandTests : TestSetup
         await _httpClientMock.DidNotReceive().GetAsync(Arg.Any<Uri>());
     }
 
+    /// <summary>Confirms that exact ignore entries suppress failures for multiple internal and external links.</summary>
     [Fact]
     public async Task ValidatePageLinksShouldIgnoreMultipleExactLinks()
     {

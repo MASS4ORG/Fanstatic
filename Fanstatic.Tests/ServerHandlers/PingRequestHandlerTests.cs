@@ -4,8 +4,10 @@ using Xunit;
 
 namespace Fanstatic.Test.ServerHandlers;
 
+/// <summary>Unit tests for the PingRequests class.</summary>
 public class PingRequestHandlerTests : TestSetup
 {
+    /// <summary>Confirms that Handle writes the supplied timestamp in round-trip format and returns the ping code.</summary>
     [Fact]
     public async Task HandleReturnsServerStartupTimestamp()
     {
@@ -31,6 +33,7 @@ public class PingRequestHandlerTests : TestSetup
         Assert.Equal("ping", code);
     }
 
+    /// <summary>Confirms that Check matches the ping path only when it starts with a slash.</summary>
     [Theory]
     [InlineData("/ping", true)]
     [InlineData("ping", false)]

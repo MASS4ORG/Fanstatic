@@ -12,8 +12,8 @@ public class YamlParserTests : TestSetup
 {
     readonly YamlParser _parser = new();
 
-    [Fact]
     /// <summary>Confirms that a scalar where a list is expected throws a concise format exception.</summary>
+    [Fact]
     public void ParseWithScalarWhereListExpectedShouldThrowConciseFormatException()
     {
         var exception = Assert.Throws<FormatException>(() => _parser.Parse<FrontMatter>("aliases: single"));
@@ -24,8 +24,8 @@ public class YamlParserTests : TestSetup
         Assert.NotNull(exception.InnerException);
     }
 
-    [Fact]
     /// <summary>Confirms that a shared parser handles concurrent parse calls.</summary>
+    [Fact]
     public void ParseShouldSupportConcurrentCallsOnSharedParser()
     {
         var parsedTitles = new ConcurrentBag<string>();
@@ -110,8 +110,8 @@ public class YamlParserTests : TestSetup
 
     static readonly string[] Expected = ["Test", "Real Data"];
 
-    [Fact]
     /// <summary>Confirms that the section is the first folder in the path.</summary>
+    [Fact]
     public void GetSectionShouldReturnFirstFolderName()
     {
         // Arrange
@@ -124,6 +124,7 @@ public class YamlParserTests : TestSetup
         Assert.Equal("folder1", section);
     }
 
+    /// <summary>Confirms that the front matter title is parsed and defaults to empty when the key is absent.</summary>
     [Theory]
     [InlineData("""
                 ---
@@ -131,13 +132,13 @@ public class YamlParserTests : TestSetup
                 ---
 
                 """, "Test Title")]
+    /// <summary>Confirms that the front matter title is parsed.</summary>
     [InlineData("""
                 ---
                 Date: 2023-04-01
                 ---
 
                 """, "")]
-    /// <summary>Confirms that the front matter title is parsed.</summary>
     public void ParseFrontMatterShouldParseTitleCorrectly(string fileContent,
         string expectedTitle)
     {
@@ -148,6 +149,7 @@ public class YamlParserTests : TestSetup
         Assert.Equal(expectedTitle, frontMatter.Title);
     }
 
+    /// <summary>Confirms that front matter dates parse the same whether written with dashes or slashes.</summary>
     [Theory]
     [InlineData("""
                 ---
@@ -155,13 +157,13 @@ public class YamlParserTests : TestSetup
                 ---
 
                 """, "2023-01-01")]
+    /// <summary>Confirms that the front matter date is parsed.</summary>
     [InlineData("""
                 ---
                 Date: 2023/01/01
                 ---
 
                 """, "2023-01-01")]
-    /// <summary>Confirms that the front matter date is parsed.</summary>
     public void ParseFrontMatterShouldParseDateCorrectly(string fileContent,
         string expectedDateString)
     {
@@ -177,8 +179,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(expectedDate, frontMatter.Date);
     }
 
-    [Fact]
     /// <summary>Confirms that the remaining front matter date fields are parsed.</summary>
+    [Fact]
     public void ParseFrontMatterShouldParseOtherFieldsCorrectly()
     {
         // Arrange
@@ -199,8 +201,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(expectedExpiryDate, frontMatter.ExpiryDate);
     }
 
-    [Fact]
     /// <summary>Confirms that invalid YAML front matter throws a format exception.</summary>
+    [Fact]
     public void
         ParseFrontMatterShouldThrowFormatExceptionWhenInvalidYAMLSyntax()
     {
@@ -217,8 +219,8 @@ public class YamlParserTests : TestSetup
             FrontMatter.Parse(FileRelativePathConst, FileFullPathConst, _parser, fileContent));
     }
 
-    [Fact]
     /// <summary>Confirms that site settings are parsed into a site configuration.</summary>
+    [Fact]
     public void ParseSiteSettingsShouldReturnSiteWithCorrectSettings()
     {
         // Act
@@ -231,8 +233,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal("Copyright message", siteSettings.Copyright);
     }
 
-    [Fact]
     /// <summary>Confirms that non-matching front matter fields populate params.</summary>
+    [Fact]
     public void ParseParamsShouldFillParamsWithNonMatchingFields()
     {
         // Arrange
@@ -246,8 +248,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal("Custom Value", page.Params["ParamsCustomParam"]);
     }
 
-    [Fact]
     /// <summary>Confirms that a page in the site folder is post-processed with its date.</summary>
+    [Fact]
     public void ParseFrontMatterShouldParseContentInSiteFolder()
     {
         // Arrange
@@ -263,8 +265,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(date, frontMatter.Date);
     }
 
-    [Fact]
     /// <summary>Confirms that front matter tags are created as taxonomy references.</summary>
+    [Fact]
     public void ParseFrontMatterShouldCreateTags()
     {
         // Arrange
@@ -286,8 +288,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(2, page?.TagsReference.Count);
     }
 
-    [Fact]
     /// <summary>Confirms that front matter parsing throws when raw content is missing.</summary>
+    [Fact]
     public void FrontMatterParseRawContentNull()
     {
         Assert.Throws<FormatException>(() =>
@@ -299,15 +301,15 @@ public class YamlParserTests : TestSetup
                 FrontMatterParser));
     }
 
-    [Fact]
     /// <summary>Confirms that parsing invalid front matter throws a format exception.</summary>
+    [Fact]
     public void ParseYAMLShouldThrowExceptionWhenFrontMatterIsInvalid()
     {
         Assert.Throws<FormatException>(() => _parser.Parse<FrontMatter>("invalidFrontMatter"));
     }
 
-    [Fact]
     /// <summary>Confirms that front matter and content are split apart correctly.</summary>
+    [Fact]
     public void ParseYAMLShouldSplitTheFrontMatter()
     {
         // Act
@@ -320,8 +322,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(PageMarkdownConst, rawContent);
     }
 
-    [Fact]
     /// <summary>Confirms that site settings are parsed from content.</summary>
+    [Fact]
     public void ParseSiteSettingsShouldReturnSiteSettings()
     {
         // Arrange
@@ -333,8 +335,8 @@ public class YamlParserTests : TestSetup
         Assert.Equal(new("https://www.example.com/"), siteSettings.BaseUrl);
     }
 
-    [Fact]
     /// <summary>Confirms that taxonomies default and can be disabled.</summary>
+    [Fact]
     public void ParseSiteSettingsShouldDefaultAndAllowDisablingTaxonomies()
     {
         var defaults = _parser.Parse<SiteSettings>("Title: Test");
@@ -346,15 +348,15 @@ public class YamlParserTests : TestSetup
     }
 
 
-    [Fact]
     /// <summary>Confirms that a site with empty content has no params.</summary>
+    [Fact]
     public void SiteParamsShouldHandleEmptyContent()
     {
         Assert.Empty(Site.Params);
     }
 
-    [Fact]
     /// <summary>Confirms that extra site fields populate params.</summary>
+    [Fact]
     public void SiteParamsShouldPopulateParamsWithExtraFields()
     {
         // Arrange
@@ -372,6 +374,7 @@ public class YamlParserTests : TestSetup
             ((siteSettings.Params["ParamsNestedData"] as Dictionary<string, object>)?["Level2"] as List<object>)?[0]);
     }
 
+    /// <summary>Confirms that front matter keys are matched case-insensitively, with the last duplicate winning.</summary>
     [Theory]
     [InlineData("""
                 ---
@@ -391,6 +394,7 @@ public class YamlParserTests : TestSetup
                 URL: my-page
                 ---
                 """)]
+    /// <summary>Confirms that front matter keys are matched case-insensitively.</summary>
     [InlineData("""
                 ---
                 tiTle: title-test-old
@@ -399,7 +403,6 @@ public class YamlParserTests : TestSetup
                 url: my-page
                 ---
                 """)]
-    /// <summary>Confirms that front matter keys are matched case-insensitively.</summary>
     public void FrontMatterShouldIgnoreCase(string fileContent)
     {
         // Arrange
@@ -410,6 +413,7 @@ public class YamlParserTests : TestSetup
         Assert.Equal("my-page", frontMatter.Url);
     }
 
+    /// <summary>Confirms that site setting keys are matched case-insensitively, with the last duplicate winning.</summary>
     [Theory]
     [InlineData("""
                 Title: title-test
@@ -423,13 +427,13 @@ public class YamlParserTests : TestSetup
                 tiTle: title-test
                 baseUrl: https://www.example.com/
                 """)]
+    /// <summary>Confirms that site setting keys are matched case-insensitively.</summary>
     [InlineData("""
                 tiTle: title-test-old
                 Title: title-test                   # the last on is used
                 baseurl: https://www.example2.com/
                 BaseURL: https://www.example.com/   # the last on is used
                 """)]
-    /// <summary>Confirms that site setting keys are matched case-insensitively.</summary>
     public void SiteSettingsShouldIgnoreCase(string fileContent)
     {
         // Arrange

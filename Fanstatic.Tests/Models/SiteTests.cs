@@ -14,10 +14,10 @@ public class SiteTests : TestSetup
 {
     readonly IFileSystem _fs = new FileSystem();
 
+    /// <summary>Confirms that scanning all markdown files registers pages whose file names match the source files.</summary>
     [Theory]
     [InlineData("test01.md")]
     [InlineData("date-ok.md")]
-    /// <summary>Confirms that scanning all markdown files registers pages whose file names match the source files.</summary>
     public void ScanAllMarkdownFilesShouldContainFilenames(string fileName)
     {
         var fileNameWithoutExtension =
@@ -42,10 +42,10 @@ public class SiteTests : TestSetup
                     fileNameWithoutExtension);
     }
 
+    /// <summary>Confirms that each test site exposes a single home page marked as home.</summary>
     [Theory]
     [InlineData(TestSitePathConst01)]
     [InlineData(TestSitePathConst02)]
-    /// <summary>Confirms that each test site exposes a single home page marked as home.</summary>
     public void HomeShouldReturnAHomePage(string sitePath)
     {
         GenerateOptions options = new()
@@ -68,8 +68,8 @@ public class SiteTests : TestSetup
         });
     }
 
-    [Fact]
     /// <summary>Confirms that invalid front matter is reported as a parsing error while valid pages continue to be processed.</summary>
+    [Fact]
     public void ScanAndParseSourceFilesShouldReportInvalidFrontMatterWithoutStackTraceAndKeepGoing()
     {
         var source = Path.Combine(Path.GetTempPath(), $"fanstatic-invalid-{Guid.NewGuid():N}");
@@ -100,8 +100,8 @@ public class SiteTests : TestSetup
         }
     }
 
-    [Fact]
     /// <summary>Confirms that duplicate permalinks are reported with the absolute paths of both source files.</summary>
+    [Fact]
     public void ProcessPagesShouldReportDuplicatePermalinksWithAbsoluteSourcePaths()
     {
         var source = Path.Combine(Path.GetTempPath(), $"fanstatic-duplicate-{Guid.NewGuid():N}");
@@ -133,8 +133,8 @@ public class SiteTests : TestSetup
         }
     }
 
-    [Fact]
     /// <summary>Confirms that pages are linked in path order and inherit cascaded weight and params through section and term pages.</summary>
+    [Fact]
     public void ScanAndParseSourceFilesShouldLinkPagesInPathOrderAndPreserveCascade()
     {
         var source = Path.Combine(Path.GetTempPath(), $"fanstatic-ordered-{Guid.NewGuid():N}");
@@ -190,11 +190,46 @@ public class SiteTests : TestSetup
         }
     }
 
+    /// <summary>Confirms that branch bundles render as list pages while leaf bundles stay single pages.</summary>
+    [Fact]
+    public void ScanAndParseSourceFilesShouldTreatBranchIndexesAsListPages()
+    {
+        var source = Path.Combine(Path.GetTempPath(), $"fanstatic-branch-{Guid.NewGuid():N}");
+        var content = Path.Combine(source, "content");
+        Directory.CreateDirectory(Path.Combine(content, "blog", "sub"));
+        Directory.CreateDirectory(Path.Combine(content, "blog", "leaf"));
+        File.WriteAllText(Path.Combine(source, "fanstatic.yaml"), "BaseUrl: https://example.test/\n");
+        File.WriteAllText(Path.Combine(content, "blog", "_index.md"), "---\ntitle: Blog\n---\n");
+        File.WriteAllText(Path.Combine(content, "blog", "sub", "_index.md"), "---\ntitle: Sub\n---\n");
+        File.WriteAllText(Path.Combine(content, "blog", "leaf", "index.md"), "---\ntitle: Leaf\n---\n");
+
+        try
+        {
+            GenerateOptions options = new() { SourceArgument = source };
+            var parser = new YamlParser();
+            var settings = SiteHelper.ParseSettings("fanstatic.yaml", options, parser, _fs);
+            var site = new Site(options, settings, parser, LoggerMock, SystemClockMock);
+
+            site.ScanAndParseSourceFiles(_fs, site.SourceContentPath);
+            site.ProcessPages();
+
+            var blog = site.Pages.First(page => page.SourceRelativePath == "blog/_index.md");
+            Assert.Equal(Kind.section, blog.Kind);
+            Assert.False(blog.IsPage);
+            Assert.Equal(Kind.list, site.Pages.First(page => page.SourceRelativePath == "blog/sub/_index.md").Kind);
+            Assert.Equal(Kind.single, site.Pages.First(page => page.SourceRelativePath == "blog/leaf/index.md").Kind);
+        }
+        finally
+        {
+            Directory.Delete(source, recursive: true);
+        }
+    }
+
+    /// <summary>Confirms that the number of section pages matches the expected count for each test site.</summary>
     [Theory]
     [InlineData(TestSitePathConst01, 0)]
     [InlineData(TestSitePathConst02, 0)]
     [InlineData(TestSitePathConst03, 1)]
-    /// <summary>Confirms that the number of section pages matches the expected count for each test site.</summary>
     public void PageIsSectionShouldReturnExpectedQuantityOfPages(
         string sitePath, int expectedQuantity)
     {
@@ -217,12 +252,12 @@ public class SiteTests : TestSetup
         }));
     }
 
+    /// <summary>Confirms that the number of referenced HTML pages matches the expected count for each test site.</summary>
     [Theory]
     [InlineData(TestSitePathConst01, 8)]
     [InlineData(TestSitePathConst02, 11)]
     [InlineData(TestSitePathConst03, 16)]
     [InlineData(TestSitePathConst04, 29)]
-    /// <summary>Confirms that the number of referenced HTML pages matches the expected count for each test site.</summary>
     public void PagesReferenceShouldReturnExpectedQuantityOfPages(
         string sitePath, int expectedQuantity)
     {
@@ -245,12 +280,12 @@ public class SiteTests : TestSetup
             }));
     }
 
+    /// <summary>Confirms that the number of regular HTML pages matches the expected count for each test site.</summary>
     [Theory]
     [InlineData(TestSitePathConst01, 4)]
     [InlineData(TestSitePathConst02, 7)]
     [InlineData(TestSitePathConst03, 11)]
     [InlineData(TestSitePathConst04, 21)]
-    /// <summary>Confirms that the number of regular HTML pages matches the expected count for each test site.</summary>
     public void PageIsPageShouldReturnExpectedQuantityOfPages(string sitePath,
         int expectedQuantity)
     {
@@ -273,8 +308,8 @@ public class SiteTests : TestSetup
         }));
     }
 
-    [Fact]
     /// <summary>Confirms that pages are ordered by weight from the highest to the lowest value.</summary>
+    [Fact]
     public void PageWeightShouldReturnTheRightOrder()
     {
         GenerateOptions options = new()
@@ -294,8 +329,8 @@ public class SiteTests : TestSetup
         Assert.Equal(-100, Site.RegularPages.Last().Weight);
     }
 
-    [Fact]
     /// <summary>Confirms that pages without a weight default to a zero weight.</summary>
+    [Fact]
     public void PageWeightShouldReturnZeroWeight()
     {
         GenerateOptions options = new()
@@ -315,8 +350,8 @@ public class SiteTests : TestSetup
         Assert.Equal(0, Site.RegularPages.Last().Weight);
     }
 
-    [Fact]
     /// <summary>Confirms that page collection properties return cached materialized lists across repeated access.</summary>
+    [Fact]
     public void PageCollectionsShouldCacheMaterializedLists()
     {
         GenerateOptions options = new()
@@ -336,8 +371,8 @@ public class SiteTests : TestSetup
         Assert.Same(page.RegularPages, page.RegularPages);
     }
 
-    [Fact]
     /// <summary>Confirms that site and section page views are ordered by date and weight and cached across accesses.</summary>
+    [Fact]
     public void SortedPageViewsShouldBeOrderedAndCached()
     {
         GenerateOptions options = new()
@@ -377,8 +412,8 @@ public class SiteTests : TestSetup
         Assert.Same(section.RegularPagesByTitle, section.RegularPagesByTitle);
     }
 
-    [Fact]
     /// <summary>Confirms that regular pages sorted by title match the Liquid sort order for mixed-case titles.</summary>
+    [Fact]
     public void RegularPagesByTitleShouldMatchLiquidSortForMixedCaseTitles()
     {
         if (OperatingSystem.IsWindows())
@@ -419,8 +454,8 @@ public class SiteTests : TestSetup
         Assert.Contains("bravo", liquidSortedTitles);
     }
 
-    [Fact]
     /// <summary>Confirms that page collections are not cached while resources are being rendered.</summary>
+    [Fact]
     public void ProcessPagesShouldNotCacheCollectionsDuringResourceRendering()
     {
         var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst11));
@@ -458,8 +493,8 @@ public class SiteTests : TestSetup
             resource.RelPermalink.ToString().EndsWith("0-0-rendered.webp", StringComparison.Ordinal));
     }
 
-    [Fact]
     /// <summary>Confirms that pager-generated virtual pages are excluded from page and regular page collections.</summary>
+    [Fact]
     public void PageCollectionsShouldExcludeVirtualPages()
     {
         var siteFullPath = Path.GetFullPath(Path.Combine(TestSitesPath, ".TestSites/12-taxonomies"));
@@ -504,8 +539,8 @@ public class SiteTests : TestSetup
         Assert.Same(virtualContent, virtualPage.Content);
     }
 
-    [Fact]
     /// <summary>Confirms that resetting the cache clears the page and regular page collection caches.</summary>
+    [Fact]
     public void ResetCacheShouldClearPageCollectionCaches()
     {
         GenerateOptions options = new()
@@ -533,8 +568,8 @@ public class SiteTests : TestSetup
         Assert.Contains(regularPage, site.RegularPages);
     }
 
-    [Fact]
     /// <summary>Confirms that the tags section page exposes the expected number of pages and regular pages.</summary>
+    [Fact]
     public void TagSectionPagePagesShouldReturnNumberTagPages()
     {
         GenerateOptions options = new()
@@ -562,8 +597,8 @@ public class SiteTests : TestSetup
         Assert.Equal("tags", tagSectionPage.SourcePathLastDirectory);
     }
 
-    [Fact]
     /// <summary>Confirms that a term page exposes the expected number of pages and regular pages.</summary>
+    [Fact]
     public void TagPagePagesShouldReturnNumberReferences()
     {
         GenerateOptions options = new()
@@ -587,8 +622,8 @@ public class SiteTests : TestSetup
         Assert.Equal(10, page.RegularPages.Count());
     }
 
-    [Fact]
     /// <summary>Confirms that configured taxonomies build term pages and expose taxonomy and term data to templates.</summary>
+    [Fact]
     public void ConfiguredTaxonomiesShouldBuildTermsAndExposeTemplateData()
     {
         var source = Path.GetFullPath(Path.Combine(TestSitesPath, ".TestSites/12-taxonomies"));
@@ -644,8 +679,8 @@ public class SiteTests : TestSetup
         Assert.Equal("anotherduologytrilogy", renderedTermsByName);
     }
 
-    [Fact]
     /// <summary>Confirms that an empty taxonomy configuration disables generated taxonomy and term pages.</summary>
+    [Fact]
     public void EmptyTaxonomyConfigurationShouldDisableGeneratedTaxonomyPages()
     {
         var options = new GenerateOptions
@@ -661,13 +696,13 @@ public class SiteTests : TestSetup
         Assert.DoesNotContain(site.Pages, page => page.Kind is Kind.taxonomy or Kind.term);
     }
 
+    /// <summary>Confirms that page content matches the expected output when no theme is configured.</summary>
     [Theory]
     [InlineData("/index.html", "<p>Index Content</p>\n")]
     [InlineData("/blog/index.html", "")]
     [InlineData("/tags/index.html", "")]
     [InlineData("/tags/tag1/index.html", "")]
     [InlineData("/blog/test-content-1/index.html", "<p>Test Content 1</p>\n")]
-    /// <summary>Confirms that page content matches the expected output when no theme is configured.</summary>
     public void PageContentShouldReturnNullThemeContent(string url,
         string expectedContent)
     {
@@ -692,6 +727,7 @@ public class SiteTests : TestSetup
         Assert.Equal(page.ContentPreRendered, page.Content);
     }
 
+    /// <summary>Confirms that content and complete content are produced from a baseof layout when no theme is configured.</summary>
     [Theory]
     [InlineData("/index.html",
         "<p>Index Content</p>\n",
@@ -708,7 +744,6 @@ public class SiteTests : TestSetup
     [InlineData("/blog/test-content-1/index.html",
         "<p>Test Content 1</p>\n",
         "SINGLE-<p>Test Content 1</p>\n")]
-    /// <summary>Confirms that content and complete content are produced from a baseof layout when no theme is configured.</summary>
     public void PageContentShouldReturnNullThemeBaseofContent(string url,
         string expectedContentPreRendered, string expectedContent)
     {
@@ -737,13 +772,13 @@ public class SiteTests : TestSetup
         Assert.Equal(expectedContent, page.CompleteContent);
     }
 
+    /// <summary>Confirms that missing content yields empty content and complete content when no theme is configured.</summary>
     [Theory]
     [InlineData("/index.html")]
     [InlineData("/blog/index.html")]
     [InlineData("/tags/index.html")]
     [InlineData("/tags/tag1/index.html")]
     [InlineData("/blog/test-content-1/index.html")]
-    /// <summary>Confirms that missing content yields empty content and complete content when no theme is configured.</summary>
     public void PageContentShouldReturnThrowNullThemeBaseofContent(string url)
     {
         GenerateOptions options = new()
@@ -770,6 +805,7 @@ public class SiteTests : TestSetup
         Assert.Equal(string.Empty, page.CompleteContent);
     }
 
+    /// <summary>Confirms that pre-rendered, rendered, and complete content include the theme and baseof output.</summary>
     [Theory]
     [InlineData("/index.html",
         "<p>Index Content</p>\n",
@@ -791,7 +827,6 @@ public class SiteTests : TestSetup
         "<p>Test Content 1</p>\n",
         "SINGLE-<p>Test Content 1</p>\n",
         "BASEOF-SINGLE-<p>Test Content 1</p>\n")]
-    /// <summary>Confirms that pre-rendered, rendered, and complete content include the theme and baseof output.</summary>
     public void PageContentShouldReturnThemeContent(string url,
         string expectedContentPreRendered, string expectedContent,
         string expectedOutputFile)
@@ -821,8 +856,8 @@ public class SiteTests : TestSetup
         Assert.Equal(expectedOutputFile, page.CompleteContent);
     }
 
-    [Fact]
     /// <summary>Confirms that section pages and their nested pages are registered at the expected permalinks.</summary>
+    [Fact]
     public void SiteShouldConsiderSectionPages()
     {
         GenerateOptions options = new()
@@ -861,8 +896,8 @@ public class SiteTests : TestSetup
                 UriKind.RelativeOrAbsolute)));
     }
 
-    [Fact]
     /// <summary>Confirms that page resources are published inside the page's own directory.</summary>
+    [Fact]
     public void PageResourcesShouldBePublishedNextToTheirPage()
     {
         GenerateOptions options = new()
@@ -888,8 +923,8 @@ public class SiteTests : TestSetup
             Site.OutputReferences[resourcePermalink]);
     }
 
-    [Fact]
     /// <summary>Confirms that resource definitions apply custom name, title, and params to published resources.</summary>
+    [Fact]
     public void PageResourcesShouldApplyResourceDefinitionCustomization()
     {
         GenerateOptions options = new()
@@ -917,13 +952,13 @@ public class SiteTests : TestSetup
         Assert.Equal("Alt text", resource.Params["alt"]);
     }
 
+    /// <summary>Confirms that the reported parsed file count equals the number of markdown source files.</summary>
     [Theory]
     [InlineData(TestSitePathConst01)]
     [InlineData(TestSitePathConst02)]
     [InlineData(TestSitePathConst03)]
     [InlineData(TestSitePathConst04)]
     [InlineData(TestSitePathConst09)]
-    /// <summary>Confirms that the reported parsed file count equals the number of markdown source files.</summary>
     public void FilesParsedToReportShouldEqualMarkdownFileCount(string sitePath)
     {
         GenerateOptions options = new()
@@ -943,8 +978,8 @@ public class SiteTests : TestSetup
         Assert.Equal(markdownFiles.Length, site.FilesParsedToReport);
     }
 
-    [Fact]
     /// <summary>Confirms that the reported created page count equals the total number of pages.</summary>
+    [Fact]
     public void PagesCreatedToReportShouldCountEveryCreatedPage()
     {
         GenerateOptions options = new()
@@ -962,8 +997,8 @@ public class SiteTests : TestSetup
         Assert.Equal(site.Pages.Count(), site.PagesCreatedToReport);
     }
 
-    [Fact]
     /// <summary>Confirms that creating a child page also creates and links the pages of its parent content source.</summary>
+    [Fact]
     public void PageCreateShouldAlsoCreateThePagesOfTheParent()
     {
         GenerateOptions options = new()

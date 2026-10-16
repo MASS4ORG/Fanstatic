@@ -5,8 +5,8 @@ namespace Fanstatic.Test.Commands;
 /// <summary>Covers end-to-end documentation parsing of the sample test project.</summary>
 public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
 {
-    [Fact]
     /// <summary>Confirms that SampleClass documentation includes its summary, remarks, and example.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleClassShouldParseCompleteXmlDocumentation()
     {
         // Arrange
@@ -35,8 +35,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that SampleClass method documentation includes parameters and examples.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleClassMethodsShouldParseMethodDocumentation()
     {
         // Arrange
@@ -60,8 +60,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that Calculate documentation includes its parameters, returns, and remarks.</summary>
+    [Fact]
     public async Task ParseDocumentationCalculateMethodShouldParseParametersAndRemarks()
     {
         // Arrange
@@ -90,8 +90,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that SampleClass constructor documentation is parsed when present.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleClassConstructorShouldParseConstructorDocumentation()
     {
         // Arrange
@@ -124,8 +124,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that SampleClass property documentation is parsed when present.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleClassPropertiesShouldParsePropertyDocumentation()
     {
         // Arrange
@@ -156,8 +156,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that SampleClass field documentation is parsed when present.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleClassFieldsShouldParseFieldDocumentation()
     {
         // Arrange
@@ -180,8 +180,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that SampleStatus documentation includes its summary, remarks, and enum values.</summary>
+    [Fact]
     public async Task ParseDocumentationSampleStatusEnumShouldParseEnumDocumentation()
     {
         // Arrange
@@ -219,8 +219,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         Assert.Contains("successfully", completedValue.Documentation.Summary, StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that UserRecord documentation includes its summary, remarks, and example.</summary>
+    [Fact]
     public async Task ParseDocumentationUserRecordShouldParseRecordDocumentation()
     {
         // Arrange
@@ -248,8 +248,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that UserRecord method documentation includes summaries, returns, and parameters.</summary>
+    [Fact]
     public async Task ParseDocumentationUserRecordMethodsShouldParseMethodDocumentation()
     {
         // Arrange
@@ -286,8 +286,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that Dimensions documentation includes its summary, remarks, and example.</summary>
+    [Fact]
     public async Task ParseDocumentationDimensionsStructShouldParseStructDocumentation()
     {
         // Arrange
@@ -315,8 +315,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that IDataService documentation includes its summary and remarks.</summary>
+    [Fact]
     public async Task ParseDocumentationIDataServiceShouldParseInterfaceDocumentation()
     {
         // Arrange
@@ -339,8 +339,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
             StringComparison.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that IDataService method documentation includes summaries, returns, and parameters.</summary>
+    [Fact]
     public async Task ParseDocumentationIDataServiceMethodsShouldParseInterfaceMethodDocumentation()
     {
         // Arrange
@@ -400,8 +400,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that SimpleClass with regular comments is analyzed without errors.</summary>
+    [Fact]
     public async Task ParseDocumentationSimpleClassShouldParseRegularComments()
     {
         // Arrange
@@ -423,8 +423,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         // but the methods should still be found
     }
 
-    [Fact]
     /// <summary>Confirms that ValidationResult documentation is parsed for a record with parameters.</summary>
+    [Fact]
     public async Task ParseDocumentationValidationResultShouldParseRecordParameterDocumentation()
     {
         // Arrange
@@ -440,8 +440,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         // The exact parsing depends on how the CodeAnalyzer handles record parameter documentation
     }
 
-    [Fact]
     /// <summary>Confirms that complex XML documentation tags on UpdateAsync are processed correctly.</summary>
+    [Fact]
     public async Task ParseDocumentationComplexXmlTagsShouldBeProcessedCorrectly()
     {
         // This test ensures that the DocumentationParser correctly handles
@@ -471,8 +471,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that documentation is present for every supported type kind.</summary>
+    [Fact]
     public async Task ParseDocumentationShouldHandleAllTypeKindsCorrectly()
     {
         // Arrange
@@ -498,8 +498,8 @@ public class DocumentationParserIntegrationTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that raw documentation content is preserved for classes and methods.</summary>
+    [Fact]
     public async Task ParseDocumentationShouldPreserveRawContent()
     {
         // Arrange

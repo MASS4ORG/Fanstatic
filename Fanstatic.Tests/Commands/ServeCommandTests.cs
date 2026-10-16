@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the ServeCommand class.</summary>
 public class ServeCommandTests : TestSetup
 {
     readonly IFileSystem
@@ -27,6 +28,7 @@ public class ServeCommandTests : TestSetup
             Path.GetFullPath(Path.Combine(TestSitesPath, TestSitePathConst01))
     };
 
+    /// <summary>Creates the command with a mocked site and substitute file system, watcher, and port selector.</summary>
     public ServeCommandTests()
     {
         // Create a mock Site with minimal setup
@@ -55,6 +57,7 @@ public class ServeCommandTests : TestSetup
             .Returns(2441);
     }
 
+    /// <summary>Confirms that constructing the command starts the file watcher on the resolved source path.</summary>
     [Fact]
     public void ConstructorShouldInitializeCorrectly()
     {
@@ -75,6 +78,7 @@ public class ServeCommandTests : TestSetup
         );
     }
 
+    /// <summary>Confirms that starting the server queries the port selector with the default settings and exposes the returned port.</summary>
     [Fact]
     public void StartServerShouldUseSelectedPort()
     {
@@ -99,6 +103,7 @@ public class ServeCommandTests : TestSetup
         Assert.Equal(expectedPort, serveCommand.PortUsed);
     }
 
+    /// <summary>Confirms that disposing the command stops the file watcher.</summary>
     [Fact]
     public void DisposeShouldCleanupResources()
     {
@@ -113,6 +118,7 @@ public class ServeCommandTests : TestSetup
         _mockFileWatcher.Received(1).Stop();
     }
 
+    /// <summary>Confirms that platform-specific client disconnect error codes are recognized while unrelated codes are not.</summary>
     [Fact]
     public void IsClientDisconnectedRecognizesPlatformClientDisconnectErrors()
     {
@@ -138,10 +144,12 @@ public class ServeCommandTests : TestSetup
     }
 }
 
+/// <summary>Unit tests for the DefaultPortSelector class.</summary>
 public class DefaultPortSelectorTests
 {
     readonly ILogger _mockLogger = Substitute.For<ILogger>();
 
+    /// <summary>Confirms that an available initial port is returned unchanged.</summary>
     [Fact]
     public void SelectAvailablePortWhenInitialPortAvailableReturnsSamePort()
     {
@@ -156,6 +164,7 @@ public class DefaultPortSelectorTests
         Assert.Equal(initialPort, selectedPort);
     }
 
+    /// <summary>Confirms that a port whose connections are in TIME_WAIT is still considered available.</summary>
     [Fact]
     public async Task SelectAvailablePortWhenPortHasTimeWaitConnectionsReturnsSamePort()
     {
@@ -189,6 +198,7 @@ public class DefaultPortSelectorTests
         Assert.Equal(port, portSelector.SelectAvailablePort("http://localhost", port, 10));
     }
 
+    /// <summary>Confirms that an occupied initial port causes the selector to return a higher free port.</summary>
     [Fact]
     public void
         SelectAvailablePortWhenInitialPortInUseReturnsNextAvailablePort()
@@ -218,6 +228,7 @@ public class DefaultPortSelectorTests
         }
     }
 
+    /// <summary>Confirms that exhausting the probed port range throws an InvalidOperationException.</summary>
     [Fact]
     public void SelectAvailablePortWhenNoPortAvailableThrowsException()
     {

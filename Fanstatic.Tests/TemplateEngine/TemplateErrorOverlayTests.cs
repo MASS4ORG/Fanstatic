@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Fanstatic.Test.TemplateEngine;
 
+/// <summary>Unit tests for the TemplateErrorOverlay class.</summary>
 public class TemplateErrorOverlayTests
 {
+    /// <summary>Confirms that the overlay includes the error heading, the template path with line and column, and the source page.</summary>
     [Fact]
     public void RenderShouldIncludeErrorDetails()
     {
@@ -21,6 +23,7 @@ public class TemplateErrorOverlayTests
         Assert.Contains("(rendering &#39;index.md&#39;)", html, StringComparison.Ordinal);
     }
 
+    /// <summary>Confirms that error text is HTML-escaped so raw markup never reaches the output.</summary>
     [Fact]
     public void RenderShouldEscapeHtml()
     {
@@ -35,6 +38,7 @@ public class TemplateErrorOverlayTests
         Assert.Contains("&lt;script&gt;", html, StringComparison.Ordinal);
     }
 
+    /// <summary>Confirms that rendering a null error throws an ArgumentNullException.</summary>
     [Fact]
     public void RenderShouldThrowWhenErrorIsNull()
     {

@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Fanstatic.Test.Helpers;
 
+/// <summary>Unit tests for the UrlExtension class.</summary>
 public class UrlExtensionTests
 {
+    /// <summary>Confirms that null or empty text produces an empty string.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -14,6 +16,7 @@ public class UrlExtensionTests
         Assert.Equal(string.Empty, result);
     }
 
+    /// <summary>Confirms that a null or empty path sanitizes to an empty string.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -24,6 +27,7 @@ public class UrlExtensionTests
         Assert.Equal(string.Empty, result);
     }
 
+    /// <summary>Confirms that text conversion honors the replacement char, casing, and dot-replacement options.</summary>
     [Theory]
     [InlineData("Hello, World!", '-', true, false, "hello-world")]
     [InlineData("Hello, World!", '_', true, false, "hello_world")]
@@ -48,6 +52,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedResult, result);
     }
 
+    /// <summary>Confirms that path sanitization honors the replacement char, casing, and dot-replacement options while preserving slashes.</summary>
     [Theory]
     [InlineData("Documents/My Report.docx", '-', true, false, "documents/my-report.docx")]
     [InlineData("Documents/My Report.docx", '_', true, false, "documents/my_report.docx")]
@@ -65,6 +70,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedResult, result);
     }
 
+    /// <summary>Confirms that text converted with default options yields a lowercased hyphen-separated slug.</summary>
     [Fact]
     public void UrlizeWithoutOptionsReturnsExpectedResult()
     {
@@ -74,6 +80,7 @@ public class UrlExtensionTests
         Assert.Equal("hello-world", result);
     }
 
+    /// <summary>Confirms that a path sanitized with default options yields a lowercased hyphen-separated path.</summary>
     [Fact]
     public void UrlizePathWithoutOptionsReturnsExpectedResult()
     {
@@ -83,6 +90,7 @@ public class UrlExtensionTests
         Assert.Equal("documents/my-report.docx", result);
     }
 
+    /// <summary>Confirms that text containing only special characters converts to an empty string.</summary>
     [Fact]
     public void UrlizeSpecialCharsInTextReturnsOnlyHyphens()
     {
@@ -92,6 +100,7 @@ public class UrlExtensionTests
         Assert.Equal(string.Empty, result);
     }
 
+    /// <summary>Confirms that a path of only special characters reduces to its root slash.</summary>
     [Fact]
     public void UrlizePathSpecialCharsInPathReturnsOnlyHyphens()
     {
@@ -101,6 +110,7 @@ public class UrlExtensionTests
         Assert.Equal("/", result);
     }
 
+    /// <summary>Confirms that directory-like paths gain an index.html suffix and file-like paths are kept as-is in both stripped and full forms.</summary>
     [Theory]
     [InlineData("/", "/index.html", "/index.html")]
     [InlineData("/page", "/page/index.html", "/page/index.html")]
@@ -120,6 +130,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedFull, full.ToString());
     }
 
+    /// <summary>Confirms that a query string is appended to the full URL while the stripped path still gains the index.html suffix.</summary>
     [Theory]
     [InlineData("/page?key=value", "/page/index.html", "/page/index.html?key=value")]
     [InlineData("/page/?key=value", "/page/index.html", "/page/index.html?key=value")]
@@ -135,6 +146,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedFull, full.ToString());
     }
 
+    /// <summary>Confirms that an anchor fragment is preserved after the index.html suffix in the full URL.</summary>
     [Theory]
     [InlineData("/page#section", "/page/index.html", "/page/index.html#section")]
     [InlineData("/page/#section", "/page/index.html", "/page/index.html#section")]
@@ -151,6 +163,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedFull, full.ToString());
     }
 
+    /// <summary>Confirms that a query string and anchor are both preserved when an index.html suffix is added.</summary>
     [Theory]
     [InlineData("/page-slash?key=value#section", "/page-slash/index.html", "/page-slash/index.html?key=value#section")]
     [InlineData("/page-slash.html?key=value#section", "/page-slash.html", "/page-slash.html?key=value#section")]
@@ -168,6 +181,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedFull, full.ToString());
     }
 
+    /// <summary>Confirms that an absolute URI is reduced to its relative path, query, and anchor components.</summary>
     [Theory]
     [InlineData("https://example.com/page", "/page/index.html", "/page/index.html")]
     [InlineData("https://example.com/page?key=value", "/page/index.html", "/page/index.html?key=value")]
@@ -183,6 +197,7 @@ public class UrlExtensionTests
         Assert.Equal(expectedFull, full.ToString());
     }
 
+    /// <summary>Confirms that a null URI argument throws an ArgumentNullException.</summary>
     [Fact]
     public void CorrectRequestPathNullThrowsArgumentNullException()
     {
@@ -192,6 +207,7 @@ public class UrlExtensionTests
             UrlExtension.CorrectRequestPath(inputUri!));
     }
 
+    /// <summary>Confirms that an empty relative URI resolves to the root index.html in both stripped and full forms.</summary>
     [Fact]
     public void CorrectRequestPathEmptyStringReturnsRootIndex()
     {
@@ -202,6 +218,7 @@ public class UrlExtensionTests
         Assert.Equal("/index.html", full.ToString());
     }
 
+    /// <summary>Confirms that combining a base and relative path drops any index.html segment and joins the segments without a doubled slash.</summary>
     [Theory]
     [InlineData("/blog", "post1", "/blog/post1")]
     [InlineData("/blog/", "post1", "/blog/post1")]
@@ -218,6 +235,7 @@ public class UrlExtensionTests
         Assert.Equal(expected, result.ToString());
     }
 
+    /// <summary>Confirms that leading slashes make the relative path absolute while dot segments resolve against the base path.</summary>
     [Theory]
     [InlineData("/blog", "/post1", "/post1")]
     [InlineData("/blog/", "/post1/", "/post1/")]

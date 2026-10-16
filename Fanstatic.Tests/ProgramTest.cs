@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Fanstatic.Test;
 
+/// <summary>Unit tests for the Program class.</summary>
 public class ProgramTests : TestSetup
 {
+    /// <summary>Confirms that verbose mode enables debug logging while information logging stays on either way.</summary>
     [Theory]
     [InlineData(false, LogEventLevel.Information)]
     [InlineData(true, LogEventLevel.Debug)]

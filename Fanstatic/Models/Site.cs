@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
+using Fanstatic.Shortcodes;
 using Fanstatic.TemplateEngine;
 using Serilog;
 using YamlDotNet.Serialization;
@@ -355,6 +356,9 @@ public class Site : ISite
     public ITemplateEngine TemplateEngine { get; }
 
     /// <inheritdoc/>
+    public ShortcodeRegistry ShortcodeRegistry { get; }
+
+    /// <inheritdoc/>
     public ILogger Logger { get; }
 
     /// <summary>
@@ -485,6 +489,7 @@ public class Site : ISite
         Logger = logger;
         Parser = parser;
         TemplateEngine = new FluidTemplateEngine();
+        ShortcodeRegistry = new(this, ShortcodeBuiltins.Create());
         _defaultHtmlSiteOutputCached = new(() => new SiteOutput(this, ("html", DefaultLanguage)));
 
         _clock = clock ?? new SystemClock();
@@ -1171,11 +1176,18 @@ public class Site : ISite
                 contentSource.FrontMatter.Url = "/";
                 break;
             case 1:
-                contentSource.Kind = hasIndex ? contentSource.Kind : Kind.section;
+                contentSource.Kind = hasIndex && contentSource.BundleType != BundleType.Branch
+                    ? contentSource.Kind
+                    : Kind.section;
                 contentSource.Type ??= "section";
                 parent = contentSource;
                 break;
             default:
+                if (contentSource.BundleType == BundleType.Branch)
+                {
+                    contentSource.Kind = Kind.list;
+                }
+
                 parent = contentSource;
                 break;
         }

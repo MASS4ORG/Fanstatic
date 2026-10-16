@@ -6,9 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added: shortcodes from `shortcodes/` in the site and theme #36
+- Added: shortcode parameter schemas, list and map arguments, `:::` directives, and the `{% shortcode %}` template tag #36
+- Added: built-in `details`, `figure`, `highlight`, `instagram`, `param`, `qr`, `vimeo`, `x` and `youtube` shortcodes
 - Added: the `test` build target also emits a TRX report.
-- Changed: the `Test` build target takes the merged cobertura report from `dotnet test` instead of merging with ReportGenerator.
-- Changed: the `test` build target runs every test project in the solution and merges their coverage; `Compile` no longer restores implicitly (`PackNuGet` still does); the NUKE build pins the patched `System.Security.Cryptography.Xml` 10.0.13.
+- Fixed: render `_index.md` branch bundles as list pages
+- Changed: `ref` and `relref` are now built-in regular shortcodes #36
 
 ## [7.2.0] - 2026-10-06
 

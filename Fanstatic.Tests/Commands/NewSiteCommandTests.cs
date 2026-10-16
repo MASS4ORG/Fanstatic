@@ -7,12 +7,17 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the NewSiteCommand class.</summary>
 public class NewSiteCommandTests
 {
+    /// <summary>The logger instance used for testing.</summary>
     readonly ILogger _logger = Substitute.For<ILogger>();
+    /// <summary>The file system instance used for testing.</summary>
     readonly IFileSystem _fileSystem = Substitute.For<IFileSystem>();
+    /// <summary>The site instance used for testing.</summary>
     readonly ISite _site = Substitute.For<ISite>();
 
+    /// <summary>Confirms that NewSiteCommand.Run creates and returns a NewSiteCommand when parameters are valid.</summary>
     [Fact]
     public void CreateShouldReturnNewSiteCommandWhenParametersAreValid()
     {
@@ -27,6 +32,7 @@ public class NewSiteCommandTests
         Assert.IsType<NewSiteCommand>(result);
     }
 
+    /// <summary>Confirms that NewSiteCommand.Run throws an ArgumentNullException when options is null.</summary>
     [Fact]
     public void CreateShouldThrowArgumentNullExceptionWhenOptionsIsNull()
     {
@@ -34,6 +40,7 @@ public class NewSiteCommandTests
         Assert.Throws<ArgumentNullException>(testCode: () => NewSiteCommand.Run(null!, _logger, _fileSystem));
     }
 
+    /// <summary>Confirms that NewSiteCommand.Run does not return null when parameters are valid.</summary>
     [Fact]
     public void CreateShouldNotReturnNullWhenParametersAreValid()
     {
@@ -48,6 +55,7 @@ public class NewSiteCommandTests
         Assert.NotNull(result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand logs information when creating a new site.</summary>
     [Fact]
     public void RunShouldLogInformationWhenCreatingNewSite()
     {
@@ -66,6 +74,7 @@ public class NewSiteCommandTests
             .Information("Creating a new site: {Title} at {OutputPath}", options.Title, Arg.Any<string>());
     }
 
+    /// <summary>Confirms that running NewSiteCommand creates each source folder directory.</summary>
     [Fact]
     public void RunShouldCallCreateDirectoryWithCorrectPathsForEachFolder()
     {
@@ -85,6 +94,7 @@ public class NewSiteCommandTests
         _fileSystem.Received(1).DirectoryCreateDirectory("folder2");
     }
 
+    /// <summary>Confirms that running NewSiteCommand returns 1 when creating a directory throws an exception.</summary>
     [Fact]
     public void RunShouldReturn1WhenCreateDirectoryThrowsException()
     {
@@ -105,6 +115,7 @@ public class NewSiteCommandTests
         Assert.Equal(1, result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand returns 0 when the output directory does not exist.</summary>
     [Fact]
     public void RunShouldReturn0WhenDirectoryDoesNotExist()
     {
@@ -121,6 +132,7 @@ public class NewSiteCommandTests
         Assert.Equal(0, result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand returns 1 when force is false and the output directory exists.</summary>
     [Fact]
     public void RunShouldReturn1WhenForceIsFalseAndDirectoryExists()
     {
@@ -137,6 +149,7 @@ public class NewSiteCommandTests
         Assert.Equal(1, result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand returns 0 when force is true and the output directory exists.</summary>
     [Fact]
     public void RunShouldReturn0WhenForceIsTrueAndDirectoryExists()
     {
@@ -153,6 +166,7 @@ public class NewSiteCommandTests
         Assert.Equal(0, result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand returns 1 when exporting the site throws an exception.</summary>
     [Fact]
     public void RunShouldReturn1WhenExportThrowsException()
     {
@@ -172,6 +186,7 @@ public class NewSiteCommandTests
         Assert.Equal(1, result);
     }
 
+    /// <summary>Confirms that running NewSiteCommand creates a directory for each source folder.</summary>
     [Fact]
     public void RunShouldCallCreateDirectoryForEachFolder()
     {

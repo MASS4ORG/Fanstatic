@@ -6,8 +6,10 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for API generation across multiple source projects.</summary>
 public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
 {
+    /// <summary>Confirms that options with one source project expose exactly that path.</summary>
     [Fact]
     public void GetProjectPathsShouldReturnSinglePath()
     {
@@ -25,6 +27,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
         Assert.Equal("./single-project", paths[0]);
     }
 
+    /// <summary>Confirms that options preserve all configured source project paths in order.</summary>
     [Fact]
     public void GetProjectPathsShouldReturnMultiplePaths()
     {
@@ -44,6 +47,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
         Assert.Equal("./project3", paths[2]);
     }
 
+    /// <summary>Confirms that analyzing two projects yields classes from both.</summary>
     [Fact]
     public async Task AnalyzeMultipleProjectsShouldMergeResults()
     {
@@ -70,6 +74,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
         Assert.Contains(structure2.AllClasses, c => c.Name == "PartialTestClass");
     }
 
+    /// <summary>Confirms that source file links honor the external link prefix, or fall back to the bare path when it is missing.</summary>
     [Theory]
     [InlineData("github.com/user/repo", "TestFile.cs",
         "[TestFile.cs](https://github.com/user/repo/blob/main/TestFile.cs)")]
@@ -112,6 +117,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
         }
     }
 
+    /// <summary>Confirms that every file in a comma-separated source list becomes its own external link.</summary>
     [Fact]
     public void ExternalLinkShouldHandleMultipleFiles()
     {
@@ -142,6 +148,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
             StringComparison.Ordinal);
     }
 
+    /// <summary>Confirms that the configured external link appears in the generated front matter.</summary>
     [Fact]
     public void ExternalLinkShouldIncludeInFrontMatter()
     {
@@ -167,6 +174,7 @@ public class ApiGeneratorMultiProjectTests : CodeAnalysisTestBase
         Assert.Contains("external_link: \"github.com/user/repo\"", content, StringComparison.Ordinal);
     }
 
+    /// <summary>Confirms that a missing external link renders as an empty front matter value.</summary>
     [Fact]
     public void ExternalLinkShouldHandleEmptyInFrontMatter()
     {

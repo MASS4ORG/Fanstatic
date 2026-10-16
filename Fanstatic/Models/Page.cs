@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using Fanstatic.Helpers;
-using Fanstatic.Parsers;
+using Fanstatic.Shortcodes;
 using Markdig;
 using Microsoft.Extensions.FileSystemGlobbing;
 
@@ -117,6 +117,9 @@ public class Page : IPage
 
     /// <inheritdoc/>
     public string ContentPreRendered => _contentPreRenderedCached.Value;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<string> Shortcodes => _shortcodesCached.Value;
 
     /// <inheritdoc/>
     public string Content
@@ -473,6 +476,8 @@ public class Page : IPage
 
     readonly Lazy<string> _contentCached;
 
+    readonly Lazy<IReadOnlyList<string>> _shortcodesCached;
+
     readonly Lazy<string> _plainCached;
 
     readonly Lazy<int> _wordCountCached;
@@ -556,11 +561,8 @@ endif
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
         _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
-        _contentPreRenderedCached = new(() =>
-        {
-            var content = RefShortcodeParser.Process(RawContent, SiteInternal, this);
-            return Markdown.ToHtml(content, SiteHelper.MarkdownPipeline);
-        });
+        _contentPreRenderedCached = new(() => ShortcodeRenderer.ToHtml(RawContent, SiteInternal, this));
+        _shortcodesCached = new(() => ShortcodeRenderer.CollectNames(RawContent, SiteInternal, this));
         _contentCached = new(() => SiteInternal.ParseAndRenderTemplate(this, false),
             LazyThreadSafetyMode.PublicationOnly);
     }

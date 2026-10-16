@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Fanstatic.Models;
+using Fanstatic.Shortcodes;
 using Fluid;
 using Fluid.Values;
 
@@ -12,12 +13,9 @@ namespace Fanstatic.TemplateEngine;
 public class FluidTemplateEngine : ITemplateEngine
 {
     /// <summary>
-    /// The Fluid parser instance.
+    /// The Fluid parser instance, with the <c>shortcode</c> tag.
     /// </summary>
-    FluidParser FluidParser { get; } = new(new()
-    {
-        AllowLiquidTag = true,
-    });
+    FluidParser FluidParser { get; }
 
     /// <summary>
     /// The Fluid/Liquid template options.
@@ -64,6 +62,9 @@ public class FluidTemplateEngine : ITemplateEngine
     /// </summary>
     public FluidTemplateEngine()
     {
+        FluidParser = new ShortcodeFluidParser(new() { AllowLiquidTag = true }, ShortcodeUsesInner);
+
+        TemplateOptions.MemberAccessStrategy.Register<ShortcodeContext>();
         TemplateOptions.MemberAccessStrategy.Register<FanstaticInfo>();
         TemplateOptions.MemberAccessStrategy.Register<SiteOutput>();
         TemplateOptions.MemberAccessStrategy.Register<LanguageSettings>();
@@ -77,7 +78,16 @@ public class FluidTemplateEngine : ITemplateEngine
         TemplateOptions.Filters.AddFilter("whereParams", WhereParamsFilter);
         TemplateOptions.Filters.AddFilter("paginate", PaginateFilter);
         TemplateOptions.Filters.AddFilter("i18n", I18NFilter);
+        TemplateOptions.Filters.AddFilter("markdownify", LiquidHelpers.Markdownify);
+        TemplateOptions.Filters.AddFilter("errorf", LiquidHelpers.Errorf);
+        TemplateOptions.Filters.AddFilter("warnf", LiquidHelpers.Warnf);
     }
+
+    /// <summary>
+    /// Tells the <c>shortcode</c> tag whether a shortcode takes inner content, using the default language's HTML variant.
+    /// </summary>
+    bool ShortcodeUsesInner(string name) =>
+        _site?.ShortcodeRegistry.Resolve(name, _site.DefaultLanguage, "html")?.UsesInner ?? false;
 
     /// <inheritdoc/>
     public void Initialize(Site site)
@@ -93,6 +103,7 @@ public class FluidTemplateEngine : ITemplateEngine
         _templateBodyByKey.Clear();
         _resolvedTemplatePathByKey.Clear();
         _templateMetrics.Clear();
+        site.ShortcodeRegistry.Clear();
 
         TemplateOptions.FileProvider = new LiquidPhysicalFileProvider(_themePath);
     }
@@ -123,7 +134,7 @@ public class FluidTemplateEngine : ITemplateEngine
                 continue;
             }
 
-            var body = File.ReadAllText(file);
+            var body = ReadTemplateBody(file);
 
             var relativePath = UrlifyPath(Path.GetRelativePath(fullThemePath, file));
             var fullPath = NormalizeTemplatePath(file);
@@ -146,7 +157,8 @@ public class FluidTemplateEngine : ITemplateEngine
     }
 
     /// <inheritdoc/>
-    public string Render(string templatePathOrInlineKey, ISite site, IPage page, int? counter = null)
+    public string Render(string templatePathOrInlineKey, ISite site, IPage page, int? counter = null,
+        IReadOnlyDictionary<string, object>? variables = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(templatePathOrInlineKey);
         ArgumentNullException.ThrowIfNull(site);
@@ -170,7 +182,7 @@ public class FluidTemplateEngine : ITemplateEngine
                 ? GetCompiledInlineTemplate(templateBody, metricsEnabled, out cacheHit)
                 : GetCompiledTemplate(templatePath, templateBody, out cacheHit);
 
-            var context = SeedContext(site, page, counter);
+            var context = SeedContext(site, page, counter, variables);
             return RenderTemplate(template, templateBody, context);
         }
         finally
@@ -224,12 +236,20 @@ public class FluidTemplateEngine : ITemplateEngine
     public IReadOnlyList<TemplateMetric> GetTemplateMetrics() =>
         _templateMetrics.Select(pair => pair.Value.Snapshot(pair.Key)).ToArray();
 
-    TemplateContext SeedContext(ISite site, IPage page, int? counter = null)
+    TemplateContext SeedContext(ISite site, IPage page, int? counter = null,
+        IReadOnlyDictionary<string, object>? variables = null)
     {
-        var context = new TemplateContext(TemplateOptions)
+        var context = new TemplateContext(TemplateOptions);
+        foreach (var (name, value) in variables ?? EmptyVariables)
+        {
+            _ = context.SetValue(name, value);
+        }
+
+        _ = context
             .SetValue("fanstatic", site.Fanstatic)
             .SetValue("site", page.Site)
             .SetValue("page", page);
+        context.AmbientValues[LiquidHelpers.SiteAmbientKey] = site;
 
         if (counter.HasValue)
         {
@@ -238,6 +258,8 @@ public class FluidTemplateEngine : ITemplateEngine
 
         return context;
     }
+
+    static readonly Dictionary<string, object> EmptyVariables = [];
 
     IFluidTemplate GetCompiledTemplate(string templatePath, string templateBody, out bool cacheHit)
     {
@@ -319,7 +341,7 @@ public class FluidTemplateEngine : ITemplateEngine
 
         if (resolvedTemplatePath is not null)
         {
-            var body = File.ReadAllText(resolvedTemplatePath);
+            var body = ReadTemplateBody(resolvedTemplatePath);
             _templateBodyByKey[templatePathOrInlineKey] = body;
             _templateBodyByKey[normalizedKey] = body;
             var fullKey = UrlifyPath(resolvedTemplatePath);
@@ -340,6 +362,17 @@ public class FluidTemplateEngine : ITemplateEngine
         var extension = Path.GetExtension(path);
         return extension.Equals(".liquid", StringComparison.OrdinalIgnoreCase)
                || extension.Equals(".html", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Reads a template file, dropping the schema front matter of shortcode templates.
+    /// </summary>
+    static string ReadTemplateBody(string path)
+    {
+        var body = File.ReadAllText(path);
+        return UrlifyPath(path).Contains($"/{ShortcodeRegistry.FolderName}/", StringComparison.Ordinal)
+            ? ShortcodeSchema.StripFrontMatter(body)
+            : body;
     }
 
     static string UrlifyPath(string path) => path.Replace('\\', '/');

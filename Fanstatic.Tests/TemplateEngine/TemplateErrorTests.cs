@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Fanstatic.Test.TemplateEngine;
 
+/// <summary>Unit tests for the TemplateError class.</summary>
 public class TemplateErrorTests
 {
+    /// <summary>Confirms that a Fluid parse error message is split into its message text, line, column, and source excerpt.</summary>
     [Fact]
     public void FromFluidParseErrorShouldSplitPositionAndExcerpt()
     {
@@ -20,6 +22,7 @@ public class TemplateErrorTests
         Assert.Null(error.PageSourceRelativePath);
     }
 
+    /// <summary>Confirms that when the engine omits the excerpt, it is derived from the template body at the reported position.</summary>
     [Fact]
     public void FromFluidParseErrorShouldDeriveExcerptFromBodyWhenEngineOmitsIt()
     {
@@ -34,6 +37,7 @@ public class TemplateErrorTests
         Assert.Equal("INDEX-{% page.ContentPreRendered %}", error.SourceExcerpt);
     }
 
+    /// <summary>Confirms that a null, empty, or whitespace parse error falls back to a default message with no position or excerpt.</summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -50,6 +54,7 @@ public class TemplateErrorTests
         Assert.Null(error.SourceExcerpt);
     }
 
+    /// <summary>Confirms that a non-numeric position in the parse error leaves line and column at zero while the message is kept.</summary>
     [Fact]
     public void FromFluidParseErrorShouldIgnorePositionWhenFormatIsUnexpected()
     {
@@ -62,6 +67,7 @@ public class TemplateErrorTests
         Assert.Equal(0, error.Column);
     }
 
+    /// <summary>Confirms that a reported line beyond the template body yields a null source excerpt.</summary>
     [Fact]
     public void FromFluidParseErrorShouldReturnNullExcerptWhenLineIsOutOfRange()
     {
@@ -72,6 +78,7 @@ public class TemplateErrorTests
         Assert.Null(error.SourceExcerpt);
     }
 
+    /// <summary>Confirms that a runtime render failure records the template path, exception message, and page source with no line position.</summary>
     [Fact]
     public void FromRenderExceptionShouldNameTemplateAndPageForRuntimeError()
     {
@@ -86,6 +93,7 @@ public class TemplateErrorTests
         Assert.Equal(0, error.Line);
     }
 
+    /// <summary>Confirms that a FormatException with a position reports its line, column, and stripped message.</summary>
     [Fact]
     public void FromRenderExceptionShouldKeepPositionForFormatException()
     {
@@ -100,6 +108,7 @@ public class TemplateErrorTests
         Assert.Equal("index.md", error.PageSourceRelativePath);
     }
 
+    /// <summary>Confirms that a null exception argument throws an ArgumentNullException.</summary>
     [Fact]
     public void FromRenderExceptionShouldThrowWhenExceptionIsNull()
     {
@@ -108,6 +117,7 @@ public class TemplateErrorTests
             TemplateError.FromRenderException("/t.html", "index.md", null!));
     }
 
+    /// <summary>Confirms that Location includes the line and column when both are known.</summary>
     [Fact]
     public void LocationShouldIncludePositionWhenKnown()
     {
@@ -118,6 +128,7 @@ public class TemplateErrorTests
         Assert.Equal("'/t.html:4:2'", error.Location);
     }
 
+    /// <summary>Confirms that Location omits the position suffix when line and column are unknown.</summary>
     [Fact]
     public void LocationShouldOmitPositionWhenUnknown()
     {
@@ -128,6 +139,7 @@ public class TemplateErrorTests
         Assert.Equal("'/t.html'", error.Location);
     }
 
+    /// <summary>Confirms that ToString includes the position, message, rendering page, and source excerpt.</summary>
     [Fact]
     public void ToStringShouldIncludePageAndExcerpt()
     {
@@ -138,6 +150,7 @@ public class TemplateErrorTests
         Assert.Equal("'/t.html:4:2': Boom (rendering 'blog/post-1.md')\n  {% bad %}", error.ToString());
     }
 
+    /// <summary>Confirms that ToString omits the page and excerpt when validation failed with no position.</summary>
     [Fact]
     public void ToStringShouldOmitPageWhenValidationFailed()
     {
@@ -148,6 +161,7 @@ public class TemplateErrorTests
         Assert.Equal("'/t.html': Boom", error.ToString());
     }
 
+    /// <summary>Confirms that a missing-template render exception reports the include tag's line, column, and excerpt.</summary>
     [Fact]
     public void FromRenderExceptionShouldKeepPositionWhenRenderFailureIsLocated()
     {
@@ -167,6 +181,7 @@ public class TemplateErrorTests
         Assert.Equal("homepage/2-simplicity.md", error.PageSourceRelativePath);
     }
 
+    /// <summary>Confirms that a missing template not referenced in the body reports no position and no excerpt.</summary>
     [Fact]
     public void FromRenderExceptionShouldOmitPositionWhenMissingTemplateIsNotReferenced()
     {
@@ -183,6 +198,7 @@ public class TemplateErrorTests
         Assert.Null(error.SourceExcerpt);
     }
 
+    /// <summary>Confirms that MissingTemplate throws an ArgumentNullException for a null path, body, or inner exception.</summary>
     [Fact]
     public void MissingTemplateShouldThrowWhenArgumentIsNull()
     {

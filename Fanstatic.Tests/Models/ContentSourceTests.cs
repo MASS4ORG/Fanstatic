@@ -7,11 +7,11 @@ namespace Fanstatic.Test.Models;
 /// <summary>Tests for content source file and path resolution.</summary>
 public class ContentSourceTests : TestSetup
 {
+    /// <summary>Confirms that the source file name without extension is derived from the path.</summary>
     [Theory]
     [InlineData("C:/Test/Document.txt", "Document")]
     [InlineData("C:/Test/SubFolder/Document.txt", "Document")]
     [InlineData("Document.txt", "Document")]
-    /// <summary>Confirms that the source file name without extension is derived from the path.</summary>
     public void SourceFileNameWithoutExtensionReturnsCorrectFileName(string sourcePath, string expectedFileName)
     {
         // Arrange
@@ -25,13 +25,13 @@ public class ContentSourceTests : TestSetup
         Assert.Equal(expectedFileName, actualFileName);
     }
 
+    /// <summary>Confirms that the source directory is derived from the path.</summary>
     [Theory]
     [InlineData("C:/Test/Document.txt", "C:/Test")]
     [InlineData("C:/Test/SubFolder/Document.txt", "C:/Test/SubFolder")]
     [InlineData("/home/Test/Document.txt", "/home/Test")]
     [InlineData("/Test/SubFolder/Document.txt", "/Test/SubFolder")]
     [InlineData("Document.txt", "")]
-    /// <summary>Confirms that the source directory is derived from the path.</summary>
     public void SourcePathDirectoryReturnsCorrectDirectory(string sourcePath,
         string expectedDirectory)
     {
@@ -50,13 +50,13 @@ public class ContentSourceTests : TestSetup
         Assert.Equal(expectedDirectory, actualDirectory);
     }
 
+    /// <summary>Confirms that the publish date falls back to the date when absent.</summary>
     [Theory]
     [InlineData("2023-07-11T00:00:00", "2023-07-12T00:00:00", "2023-07-12T00:00:00")]
     [InlineData("2023-07-11T00:00:00", null, "2023-07-11T00:00:00")]
     [InlineData("2023-07-11", "2023-07-12", "2023-07-12")]
     [InlineData("2023-07-11", null, "2023-07-11")]
     [InlineData(null, null, null)]
-    /// <summary>Confirms that the publish date falls back to the date when absent.</summary>
     public void GetPublishDateReturnsPublishDateIfNotNullOtherwiseDate(
         string? dateString, string? publishDateString,
         string? expectedDateString)

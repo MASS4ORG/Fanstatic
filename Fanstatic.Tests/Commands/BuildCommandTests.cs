@@ -7,12 +7,14 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the BuildCommand class.</summary>
 public class BuildCommandTests : TestSetup
 {
     readonly ILogger _logger;
     readonly IFileSystem _fileSystem;
     readonly BuildOptions _options;
 
+    /// <inheritdoc/>
     public BuildCommandTests()
     {
         _logger = Substitute.For<ILogger>();
@@ -25,6 +27,7 @@ public class BuildCommandTests : TestSetup
         _options = new BuildOptions { Output = "test" };
     }
 
+    /// <summary>Confirms that BuildCommand can be constructed when parameters are valid.</summary>
     [Fact]
     public void ConstructorShouldNotThrowExceptionWhenParametersAreValid()
     {
@@ -35,6 +38,7 @@ public class BuildCommandTests : TestSetup
         Assert.IsType<BuildCommand>(result);
     }
 
+    /// <summary>Confirms that BuildCommand constructor throws ArgumentNullException when options is null.</summary>
     [Fact]
     public void ConstructorShouldThrowArgumentNullExceptionWhenOptionsIsNull()
     {
@@ -43,6 +47,7 @@ public class BuildCommandTests : TestSetup
             new BuildCommand(null!, _logger, _fileSystem));
     }
 
+    /// <summary>Confirms that BuildCommand.Run returns 0 when execution succeeds.</summary>
     [Fact]
     public void Run()
     {
@@ -54,6 +59,8 @@ public class BuildCommandTests : TestSetup
         Assert.Equal(0, result);
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that CopyFolder creates the output directory when the source folder exists.</summary>
     [Fact]
     public void CopyFolderShouldCallCreateDirectoryWhenSourceFolderExists()
     {
@@ -68,6 +75,8 @@ public class BuildCommandTests : TestSetup
         _fileSystem.Received(1).DirectoryCreateDirectory("outputFolder");
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that CopyFolder does not create an output directory when the source folder does not exist.</summary>
     [Fact]
     public void
         CopyFolderShouldNotCallCreateDirectoryWhenSourceFolderDoesNotExist()
@@ -83,6 +92,8 @@ public class BuildCommandTests : TestSetup
         _fileSystem.DidNotReceive().DirectoryCreateDirectory(Arg.Any<string>());
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that CopyFolder preserves subfolder structure when copying nested files.</summary>
     [Fact]
     public void CopyFolderShouldKeepSubfoldersWhenSourceFolderHasNestedFiles()
     {
@@ -106,6 +117,8 @@ public class BuildCommandTests : TestSetup
             Path.Combine("outputFolder", "css", "site.css"), true);
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that CopyFolder copies nothing when the source folder has no files.</summary>
     [Fact]
     public void CopyFolderShouldNotCopyAnythingWhenSourceFolderHasNoFiles()
     {
@@ -120,6 +133,8 @@ public class BuildCommandTests : TestSetup
         _fileSystem.DidNotReceive().FileCopy(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>());
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that BuildSite returns failure exit codes when template errors are found.</summary>
     [Theory]
     [InlineData(TestSitePathConst07, 1, 0)]
     [InlineData(TestSitePathConst06, 0, 0)]
@@ -136,6 +151,8 @@ public class BuildCommandTests : TestSetup
         Assert.Equal(expectedContinueOnErrorExitCode, continueOnErrorExitCode);
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that BuildCommand copies nested static folders to the output directory.</summary>
     [Fact]
     public async Task RunShouldCopyNestedStaticFolders()
     {
@@ -164,6 +181,8 @@ public class BuildCommandTests : TestSetup
         }
     }
 
+    /// <inheritdoc/>
+    /// <summary>Confirms that one error log is emitted for each template with a syntax error.</summary>
     [Fact]
     public async Task RunShouldLogOneMessagePerTemplateWhenSyntaxErrorIsFound()
     {
@@ -183,6 +202,7 @@ public class BuildCommandTests : TestSetup
         Assert.Single(indexErrorLines);
     }
 
+    /// <summary>Builds the specified test site and returns the exit code.</summary>
     async Task<int> BuildSite(string testSitePath, bool continueOnError, ILogger? logger = null)
     {
         var outputPath = NewOutputPath();
@@ -203,9 +223,11 @@ public class BuildCommandTests : TestSetup
         }
     }
 
+    /// <summary>Creates a new temporary output path for test artifacts.</summary>
     static string NewOutputPath() =>
         Path.Combine(Path.GetTempPath(), "fanstatic-test-" + Guid.NewGuid().ToString("N")[..8]);
 
+    /// <summary>Deletes the specified output directory if it exists.</summary>
     static void DeleteOutput(string outputPath)
     {
         if (Directory.Exists(outputPath))

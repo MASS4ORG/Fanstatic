@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Fanstatic.Test.TemplateEngine;
 
+/// <summary>Unit tests for the TemplateMetricsReport class.</summary>
 public class TemplateMetricsReportTests
 {
+    /// <summary>Confirms that the report sorts by total time and includes the metric columns with formatted values.</summary>
     [Fact]
     public void FormatSortsByTotalTimeAndIncludesMetricColumns()
     {
@@ -30,6 +32,7 @@ public class TemplateMetricsReportTests
         Assert.Contains("       6", report, StringComparison.Ordinal);
     }
 
+    /// <summary>Confirms that formatting a null metric list throws an ArgumentNullException.</summary>
     [Fact]
     public void FormatThrowsForNullMetrics()
     {

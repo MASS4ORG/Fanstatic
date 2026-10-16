@@ -47,9 +47,9 @@ public class PageTests : TestSetup
 
         """;
 
+    /// <summary>Confirms that a page exposes the title, source path, site, and file name values from its content source.</summary>
     [Theory]
     [InlineData(TitleConst, SourcePathConst, "file", "/path/to")]
-    /// <summary>Confirms that a page exposes the title, source path, site, and file name values from its content source.</summary>
     public void FrontMatterShouldCreateWithCorrectProperties(string title,
         string sourcePath, string sourceFileNameWithoutExtension,
         string sourcePathDirectory)
@@ -66,8 +66,8 @@ public class PageTests : TestSetup
         Assert.Equal(expectedDirectory, page.SourceRelativePathDirectory);
     }
 
-    [Fact]
     /// <summary>Confirms that a page without optional front matter values exposes the expected defaults.</summary>
+    [Fact]
     public void FrontMatterShouldHaveDefaultValuesForOptionalProperties()
     {
         // Arrange
@@ -96,10 +96,10 @@ public class PageTests : TestSetup
         Assert.True(Site.IsDatePublishable(page));
     }
 
+    /// <summary>Confirms that front matter aliases are parsed into URLs registered in the output references.</summary>
     [Theory]
     [InlineData("/v123/index.html")]
     [InlineData("/test-title-2/index.html")]
-    /// <summary>Confirms that front matter aliases are parsed into URLs registered in the output references.</summary>
     public void AliasesShouldParseAsUrls(string url)
     {
         var page = new Page(new(SourcePathConst, new FrontMatter
@@ -119,10 +119,10 @@ public class PageTests : TestSetup
         Assert.Same(page, pageOther);
     }
 
+    /// <summary>Confirms that a page is expired only when its expiry date has passed.</summary>
     [Theory]
     [InlineData(-1, true)]
     [InlineData(1, false)]
-    /// <summary>Confirms that a page is expired only when its expiry date has passed.</summary>
     public void IsDateExpiredShouldReturnExpectedResult(int days,
         bool expected)
     {
@@ -136,13 +136,13 @@ public class PageTests : TestSetup
         Assert.Equal(expected, Site.IsDateExpired(page));
     }
 
+    /// <summary>Confirms that publishability follows the publish date and date relative to the clock.</summary>
     [Theory]
     [InlineData(null, null, true)]
     [InlineData(null, "2024-01-01", false)]
     [InlineData("2022-01-01", null, true)]
     [InlineData("2024-01-01", "2022-01-01", false)]
     [InlineData("2022-01-01", "2024-01-01", true)]
-    /// <summary>Confirms that publishability follows the publish date and date relative to the clock.</summary>
     public void IsDatePublishableShouldReturnCorrectValues(string? publishDate,
         string? date, bool expectedValue)
     {
@@ -158,6 +158,7 @@ public class PageTests : TestSetup
         Assert.Equal(expectedValue, Site.IsDatePublishable(page));
     }
 
+    /// <summary>Confirms that IsPageValid combines publish date, date, and draft state with the draft option.</summary>
     [Theory]
     // Draft as null
     [InlineData(null, null, null, false, true)]
@@ -190,12 +191,12 @@ public class PageTests : TestSetup
     [InlineData("2024-01-01", "2022-01-01", false, true, false)]
     [InlineData("2022-01-01", "2024-01-01", false, true, true)]
     // Draft as true, option -d
+    /// <summary>Confirms that page validity follows publish date, date, draft flag, and the draft option.</summary>
     [InlineData(null, null, true, true, true)]
     [InlineData(null, "2024-01-01", true, true, false)]
     [InlineData("2022-01-01", null, true, true, true)]
     [InlineData("2024-01-01", "2022-01-01", true, true, false)]
     [InlineData("2022-01-01", "2024-01-01", true, true, true)]
-    /// <summary>Confirms that page validity follows publish date, date, draft flag, and the draft option.</summary>
     public void IsValidPageShouldReturnCorrectValues(string? publishDate,
         string? date, bool? draft, bool draftOption, bool expectedValue)
     {
@@ -215,10 +216,10 @@ public class PageTests : TestSetup
         Assert.Equal(expectedValue, Site.IsPageValid(page, options));
     }
 
+    /// <summary>Confirms that a page with a future date is valid only when the future option is enabled.</summary>
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, true)]
-    /// <summary>Confirms that a page with a future date is valid only when the future option is enabled.</summary>
     public void IsValidDateShouldReturnExpectedResult(bool futureOption,
         bool expected)
     {
@@ -236,10 +237,10 @@ public class PageTests : TestSetup
         Assert.Equal(expected, Site.IsDateValid(page, options));
     }
 
+    /// <summary>Confirms that a page permalink is derived from its title when no URL is specified.</summary>
     [Theory]
     [InlineData("/test/path/index.md", "/test-title/index.html")]
     [InlineData("/another/path/index.md", "/test-title/index.html")]
-    /// <summary>Confirms that a page permalink is derived from its title when no URL is specified.</summary>
     public void CreatePermalinkShouldReturnCorrectUrlWhenUrlIsNull(
         string sourcePath, string expectedUrl)
     {
@@ -252,11 +253,12 @@ public class PageTests : TestSetup
         Assert.Equal(new(expectedUrl, UriKind.RelativeOrAbsolute), Site.CreatePermalink(page));
     }
 
+    /// <summary>Confirms that a null URL template falls back to the default permalink and a custom template is applied otherwise.</summary>
     [Theory]
     [InlineData(null, "/test-title/index.html")]
+    /// <summary>Confirms that a page permalink uses the default template or a custom URL template.</summary>
     [InlineData("{{ page.Title }}/{{ page.SourceFileNameWithoutExtension }}",
         "/test-title/file/index.html")]
-    /// <summary>Confirms that a page permalink uses the default template or a custom URL template.</summary>
     public void PermalinkCreateWithDefaultOrCustomURLTemplate(
         string? urlTemplate, string expectedPermalink)
     {
@@ -271,10 +273,10 @@ public class PageTests : TestSetup
         Assert.Equal(new(expectedPermalink, UriKind.RelativeOrAbsolute), actualPermalink);
     }
 
+    /// <summary>Confirms that only pages of kind single are included in regular pages.</summary>
     [Theory]
     [InlineData(Kind.single, true)]
     [InlineData(Kind.list, false)]
-    /// <summary>Confirms that only pages of kind single are included in regular pages.</summary>
     public void RegularPagesShouldReturnCorrectPagesWhenKindIsSingle(
         Kind kind, bool isExpectedPage)
     {
@@ -294,10 +296,10 @@ public class PageTests : TestSetup
         Assert.Equal(isExpectedPage, Site.RegularPages.Contains(page));
     }
 
+    /// <summary>Confirms that the word count reflects the markdown content and that the plain text is cached.</summary>
     [Theory]
     [InlineData(Markdown1Const, 13)]
     [InlineData(Markdown2Const, 8)]
-    /// <summary>Confirms that the word count reflects the markdown content and that the plain text is cached.</summary>
     public void WordCountShouldReturnCorrectCounts(string rawContent,
         int wordCountExpected)
     {
@@ -307,10 +309,10 @@ public class PageTests : TestSetup
         Assert.Same(page.Plain, page.Plain);
     }
 
+    /// <summary>Confirms that the plain text rendering of markdown content matches the expected string and is cached.</summary>
     [Theory]
     [InlineData(Markdown1Const, MarkdownPlain1Const)]
     [InlineData(Markdown2Const, MarkdownPlain2Const)]
-    /// <summary>Confirms that the plain text rendering of markdown content matches the expected string and is cached.</summary>
     public void PlainShouldReturnCorrectPlainString(string rawContent,
         string plain)
     {
@@ -324,8 +326,8 @@ public class PageTests : TestSetup
         Assert.Same(page.Plain, page.Plain);
     }
 
-    [Fact]
     /// <summary>Confirms that a page template is rendered only once even across repeated content access.</summary>
+    [Fact]
     public void ContentShouldRenderTemplateOncePerPage()
     {
         var templateEngine = Substitute.For<ITemplateEngine>();
@@ -374,8 +376,8 @@ public class PageTests : TestSetup
         }
     }
 
-    [Fact]
     /// <summary>Confirms that concurrent circular content rendering fails with a recursive rendering error instead of deadlocking.</summary>
+    [Fact]
     public void ContentShouldAvoidDeadlockForConcurrentPageCycles()
     {
         var site = Substitute.For<ISite>();
@@ -425,15 +427,16 @@ public class PageTests : TestSetup
         }
     }
 
+    /// <summary>Confirms that nested pages inherit the weight cascaded from their ancestor sections.</summary>
     [Theory]
     // [InlineData("/pages/page-01", 3)]
     // [InlineData("/pages/page-01/page-01", 3)]
     // [InlineData("/blog/blog-01", 1)]
     // [InlineData("/blog/blog-01/blog-01", 1)]
     // [InlineData("/index/post-01", 1)]
+    /// <summary>Confirms that nested pages inherit the cascaded weight from their ancestor sections.</summary>
     [InlineData("/index/post-01/post-01/index.html", 2)]
     // [InlineData("/articles/article-01", 0)]
-    /// <summary>Confirms that nested pages inherit the cascaded weight from their ancestor sections.</summary>
     public void CascadeShouldCascadeValues(string url, int weight)
     {
         GenerateOptions options = new()
@@ -452,10 +455,10 @@ public class PageTests : TestSetup
         Assert.Equal(weight, page!.Weight);
     }
 
+    /// <summary>Confirms that nested pages inherit or override cascaded params from their ancestor sections.</summary>
     [Theory]
     [InlineData("/index/post-01/index.html", "cascade")]
     [InlineData("/index/post-01/post-01/index.html", "own")]
-    /// <summary>Confirms that nested pages inherit or override cascaded params from their ancestor sections.</summary>
     public void CascadeShouldCascadeParams(string url, string? valueString)
     {
         GenerateOptions options = new()
@@ -476,8 +479,8 @@ public class PageTests : TestSetup
         Assert.Equal(valueString, page!.Params["valueString"]);
     }
 
-    [Fact]
     /// <summary>Confirms that the default template lookup order contains all expected combinations.</summary>
+    [Fact]
     public void TemplateLookupShouldDefaultGenerateAllCombinations()
     {
         var page = new Page(new(string.Empty, new(), string.Empty), Site, Site,
@@ -490,10 +493,10 @@ public class PageTests : TestSetup
         Assert.Equal(6, paths.Count());
     }
 
+    /// <summary>Confirms that taxonomy and term pages prefer kind-specific templates over defaults.</summary>
     [Theory]
     [InlineData(Kind.taxonomy, "taxonomy")]
     [InlineData(Kind.term, "term")]
-    /// <summary>Confirms that taxonomy and term pages prefer kind-specific templates over defaults.</summary>
     public void TemplateLookupShouldPreferTaxonomySpecificTemplates(Kind kind, string template)
     {
         var content = new ContentSource("categories/_index.md",
@@ -509,6 +512,7 @@ public class PageTests : TestSetup
         Assert.Equal(Path.Combine("_default", $"{template}.html"), paths[1]);
     }
 
+    /// <summary>Confirms that the template lookup order includes every combination of type, section, and kind.</summary>
     [Theory]
     [InlineData("", "", Kind.single, 4)]
     [InlineData("page", "", Kind.single, 6)]
@@ -516,7 +520,6 @@ public class PageTests : TestSetup
     [InlineData("page", "blog", Kind.single, 12)]
     [InlineData("post", "", Kind.home, 30)]
     [InlineData("post", "blog", Kind.section, 36)]
-    /// <summary>Confirms that the template lookup order includes every combination of type, section, and kind.</summary>
     public void TemplateLookupShouldGenerateAllCombinations(string type,
         string section, Kind kind, int expectedCount)
     {
@@ -546,8 +549,8 @@ public class PageTests : TestSetup
         }
     }
 
-    [Fact]
     /// <summary>Confirms that the permalink combines the base URL with the relative permalink.</summary>
+    [Fact]
     public void PermalinkShouldReturnFullUrlWithBaseUrl()
     {
         // Arrange
@@ -567,11 +570,11 @@ public class PageTests : TestSetup
         Assert.Equal(new("https://example.com/test-title/index.html"), permalink);
     }
 
+    /// <summary>Confirms that the permalink directory is derived from the base URL and relative permalink.</summary>
     [Theory]
     [InlineData("https://example.com/", "/test-title/index.html", "https://example.com/test-title/")]
     [InlineData("https://example.com:8908/", "/blog/post/index.html", "https://example.com:8908/blog/post/")]
     [InlineData("http://example.com/", "/index.html", "http://example.com/")]
-    /// <summary>Confirms that the permalink directory is derived from the base URL and relative permalink.</summary>
     public void PermalinkDirShouldReturnCorrectDirectory(string baseUrl, string relPermalink, string expectedDir)
     {
         // Arrange
@@ -594,10 +597,10 @@ public class PageTests : TestSetup
         Assert.Equal(new(expectedDir, UriKind.RelativeOrAbsolute), permalinkDir);
     }
 
+    /// <summary>Confirms that the permalink filename is the last segment of the relative permalink.</summary>
     [Theory]
     [InlineData("/test-title/index.html", "index.html")]
     [InlineData("/blog/post/article.html", "article.html")]
-    /// <summary>Confirms that the permalink filename is the last segment of the relative permalink.</summary>
     public void PermalinkFilenameShouldReturnCorrectFilename(
         string relPermalink, string expectedFilename)
     {
@@ -621,11 +624,11 @@ public class PageTests : TestSetup
         Assert.Equal(expectedFilename, permalinkFilename);
     }
 
+    /// <summary>Confirms that the relative permalink directory is derived from the relative permalink.</summary>
     [Theory]
     [InlineData("/test-title/index.html", "/test-title")]
     [InlineData("/blog/post/index.html", "/blog/post")]
     [InlineData("/index.html", "/")]
-    /// <summary>Confirms that the relative permalink directory is derived from the relative permalink.</summary>
     public void RelPermalinkDirShouldReturnCorrectDirectory(
         string relPermalink, string expectedDir)
     {
@@ -645,10 +648,10 @@ public class PageTests : TestSetup
         Assert.Equal(new(expectedDir, UriKind.RelativeOrAbsolute), relPermalinkDir);
     }
 
+    /// <summary>Confirms that the relative permalink filename is the last segment of the relative permalink.</summary>
     [Theory]
     [InlineData("/test-title/index.html", "index.html")]
     [InlineData("/blog/post/article.html", "article.html")]
-    /// <summary>Confirms that the relative permalink filename is the last segment of the relative permalink.</summary>
     public void RelPermalinkFilenameShouldReturnCorrectFilename(
         string relPermalink, string expectedFilename)
     {

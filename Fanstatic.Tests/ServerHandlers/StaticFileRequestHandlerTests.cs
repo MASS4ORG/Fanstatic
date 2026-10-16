@@ -4,10 +4,12 @@ using Xunit;
 
 namespace Fanstatic.Test.ServerHandlers;
 
+/// <summary>Unit tests for the StaticFileRequest class.</summary>
 public class StaticFileRequestHandlerTests : TestSetup, IDisposable
 {
     readonly string _tempFilePath;
 
+    /// <summary>Creates a temporary file that the tests read and clean up.</summary>
     public StaticFileRequestHandlerTests()
     {
         // Creating a temporary file for testing purposes
@@ -15,6 +17,7 @@ public class StaticFileRequestHandlerTests : TestSetup, IDisposable
         File.WriteAllText(_tempFilePath, "test");
     }
 
+    /// <summary>Confirms that Check returns true when the requested file exists under the base path.</summary>
     [Fact]
     public void CheckReturnsTrueForExistingFile()
     {
@@ -34,6 +37,7 @@ public class StaticFileRequestHandlerTests : TestSetup, IDisposable
         Assert.True(result);
     }
 
+    /// <summary>Confirms that Handle writes the file content to the response stream and returns the expected content code.</summary>
     [Fact]
     public async Task HandleReturnsExpectedContent()
     {
@@ -67,6 +71,7 @@ public class StaticFileRequestHandlerTests : TestSetup, IDisposable
         Assert.Equal("themeSt", code);
     }
 
+    /// <summary>Deletes the temporary file created for the tests.</summary>
     public void Dispose()
     {
         // Cleaning up the temporary file after tests run

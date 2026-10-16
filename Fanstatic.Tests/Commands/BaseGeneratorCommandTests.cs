@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the BaseGeneratorCommand class.</summary>
 public class BaseGeneratorCommandTests
 {
     static readonly IGenerateOptions TestOptions = new GenerateOptions
@@ -22,18 +23,21 @@ public class BaseGeneratorCommandTests
 
     readonly IFileSystem _fs = Substitute.For<IFileSystem>();
 
+    /// <summary>Confirms that the constructor rejects a null options argument.</summary>
     [Fact]
     public void ConstructorShouldThrowArgumentNullExceptionWhenOptionsIsNull()
     {
         _ = Assert.Throws<ArgumentNullException>(() => new BaseGeneratorCommandStub(null!, TestLogger, _fs));
     }
 
+    /// <summary>Confirms that the constructor rejects a null logger argument.</summary>
     [Fact]
     public void ConstructorShouldThrowArgumentNullExceptionWhenLoggerIsNull()
     {
         _ = Assert.Throws<ArgumentNullException>(() => new BaseGeneratorCommandStub(TestOptions, null!, _fs));
     }
 
+    /// <summary>Confirms that CheckValueInDictionary returns true when the dictionary holds the expected value for the key.</summary>
     [Fact]
     public void CheckValueInDictionaryShouldWorkCorrectly()
     {

@@ -37,8 +37,8 @@ public class RefShortcodeParserTests : TestSetup
                            && page.OutputFormat == outputFormat
                            && page.PageIndex == 1);
 
-    [Fact]
     /// <summary>Confirms that ref resolves to the target page's absolute permalink.</summary>
+    [Fact]
     public void RefShouldResolveToAbsolutePermalink()
     {
         var about = Page("about.md");
@@ -47,8 +47,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains($"href=\"{hello.Permalink}\"", about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that relref resolves to the target page's relative permalink.</summary>
+    [Fact]
     public void RelrefShouldResolveToRelativePermalink()
     {
         var about = Page("about.md");
@@ -57,8 +57,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains($"href=\"{hello.RelPermalink}\"", about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that a ref with an anchor appends the fragment to the resolved link.</summary>
+    [Fact]
     public void RefWithAnchorShouldAppendFragment()
     {
         var about = Page("about.md");
@@ -67,8 +67,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains($"{hello.Permalink}#section", about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that a ref with a lang argument resolves to that translation.</summary>
+    [Fact]
     public void RefWithLangArgumentShouldResolveToTranslation()
     {
         var about = Page("about.md");
@@ -77,8 +77,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains(helloPt.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that a ref with an output format argument resolves to that format.</summary>
+    [Fact]
     public void RefWithOutputFormatArgumentShouldResolveToThatFormat()
     {
         var about = Page("about.md");
@@ -87,8 +87,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains(helloRss.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that a ref to a missing translation falls back to the default language.</summary>
+    [Fact]
     public void RefWithMissingTranslationShouldFallBackToDefaultLanguage()
     {
         var about = Page("about.md");
@@ -99,8 +99,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains(greeting.Permalink.ToString(), about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that an unresolvable ref falls back to a hash link.</summary>
+    [Fact]
     public void RefWithUnresolvablePathShouldFallBackToHash()
     {
         var about = Page("about.md");
@@ -108,8 +108,8 @@ public class RefShortcodeParserTests : TestSetup
         Assert.Contains("Missing: #", about.ContentPreRendered, StringComparison.Ordinal);
     }
 
-    [Fact]
     /// <summary>Confirms that an unresolvable ref logs the absolute source path.</summary>
+    [Fact]
     public void RefWithUnresolvablePathShouldLogTheAbsoluteSourcePath()
     {
         var about = Page("about.md");
@@ -120,8 +120,8 @@ public class RefShortcodeParserTests : TestSetup
             "posts/does-not-exist.md", Path.Combine(_site.SourceContentPath, "about.md"));
     }
 
-    [Fact]
     /// <summary>Confirms that content without a ref shortcode is left unchanged.</summary>
+    [Fact]
     public void ContentWithoutRefShortcodeShouldBeUnaffected()
     {
         var hello = Page("posts/hello.md");

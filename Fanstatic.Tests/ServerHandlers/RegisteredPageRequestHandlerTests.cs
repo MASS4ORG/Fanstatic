@@ -8,10 +8,12 @@ using Xunit;
 
 namespace Fanstatic.Test.ServerHandlers;
 
+/// <summary>Unit tests for the RegisteredPageRequest class.</summary>
 public class RegisteredPageRequestHandlerTests : TestSetup
 {
     readonly IFileSystem _fs = new FileSystem();
 
+    /// <summary>Confirms that Check is true only for paths that match a registered page output.</summary>
     [Theory]
     [InlineData("/", true)]
     [InlineData("/testPage", false)]
@@ -35,6 +37,7 @@ public class RegisteredPageRequestHandlerTests : TestSetup
         Assert.Equal(exist, registeredPageRequest.Check(new(requestPath, UriKind.RelativeOrAbsolute)));
     }
 
+    /// <summary>Confirms that a compact paginated taxonomy URL resolves while its first-page and invalid aliases do not, and that handling it writes the page output.</summary>
     [Fact]
     public async Task CheckRegistersCompactPaginatedTaxonomyUrl()
     {
@@ -80,6 +83,7 @@ public class RegisteredPageRequestHandlerTests : TestSetup
         Assert.True(stream.Length > 0);
     }
 
+    /// <summary>Confirms that Handle returns the expected code and writes the index content, with an injected script only for the site that requires it.</summary>
     [Theory]
     [InlineData("/", TestSitePathConst06, false)]
     [InlineData("/", TestSitePathConst08, true)]

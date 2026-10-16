@@ -4,8 +4,10 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Unit tests for the PartialClassMerger class.</summary>
 public class PartialClassMergerTests
 {
+    /// <summary>Confirms that a single partial class is returned unchanged with its members intact.</summary>
     [Fact]
     public void GroupPartialClassesShouldMergeSinglePartialClass()
     {
@@ -40,6 +42,7 @@ public class PartialClassMergerTests
         Assert.Single(result[0].Properties);
     }
 
+    /// <summary>Confirms that partials of one class merge into a single entry combining all methods, properties, fields, and source files.</summary>
     [Fact]
     public void GroupPartialClassesShouldMergeMultiplePartialClasses()
     {
@@ -135,6 +138,7 @@ public class PartialClassMergerTests
         Assert.Contains(mergedClass.Fields, f => f.Name == "Field2");
     }
 
+    /// <summary>Confirms that members with duplicate names across partials are collapsed to one entry.</summary>
     [Fact]
     public void GroupPartialClassesShouldHandleDuplicateMembers()
     {
@@ -190,6 +194,7 @@ public class PartialClassMergerTests
         Assert.Equal("DuplicateProperty", mergedClass.Properties[0].Name);
     }
 
+    /// <summary>Confirms that a non-partial class stays separate while partials of another class merge.</summary>
     [Fact]
     public void GroupPartialClassesShouldHandleMixedClassTypes()
     {
@@ -243,6 +248,7 @@ public class PartialClassMergerTests
         Assert.Equal(2, partialClass.PublicMethods.Count);
     }
 
+    /// <summary>Confirms that partials are merged per namespace, leaving classes in other namespaces untouched.</summary>
     [Fact]
     public void GroupNamespaceClassesShouldGroupPartialClassesWithinNamespaces()
     {
@@ -312,6 +318,7 @@ public class PartialClassMergerTests
         Assert.Equal("RegularClass.cs", regularClass.SourceFile);
     }
 
+    /// <summary>Confirms that grouping an empty list yields an empty result.</summary>
     [Fact]
     public void GroupPartialClassesShouldHandleEmptyList()
     {
@@ -325,6 +332,7 @@ public class PartialClassMergerTests
         Assert.Empty(result);
     }
 
+    /// <summary>Confirms that null member collections are merged with non-null ones without error.</summary>
     [Fact]
     public void GroupPartialClassesShouldHandleNullCollections()
     {

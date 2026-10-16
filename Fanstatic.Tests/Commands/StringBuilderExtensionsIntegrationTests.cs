@@ -6,12 +6,14 @@ using Xunit;
 
 namespace Fanstatic.Test.Commands;
 
+/// <summary>Integration tests for the StringBuilder extension methods that generate API documentation.</summary>
 public class StringBuilderExtensionsIntegrationTests
 {
     readonly CodeAnalyzer _analyzer;
     readonly ApiGeneratorOptions _options;
     const string TestProjectPath = "../../../.TestSites/10-cs-project";
 
+    /// <summary>Creates the fixture with a code analyzer that inspects the sample test project.</summary>
     public StringBuilderExtensionsIntegrationTests()
     {
         ILogger logger = new LoggerConfiguration().CreateLogger();
@@ -19,6 +21,7 @@ public class StringBuilderExtensionsIntegrationTests
         _options = new ApiGeneratorOptions { Output = "api" };
     }
 
+    /// <summary>Confirms that class documentation contains front matter, header metadata, and sections for fields, properties, and methods.</summary>
     [Fact]
     public async Task GenerateCompleteClassDocumentationShouldProduceValidMarkdown()
     {
@@ -57,6 +60,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("### Calculate", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that enum documentation lists every value with its numeric value and description.</summary>
     [Fact]
     public async Task GenerateEnumDocumentationShouldProduceValidMarkdown()
     {
@@ -92,6 +96,7 @@ public class StringBuilderExtensionsIntegrationTests
             StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that record documentation includes remarks, an example, and the record's public methods.</summary>
     [Fact]
     public async Task GenerateRecordDocumentationShouldProduceValidMarkdown()
     {
@@ -127,6 +132,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("### ToDisplayString", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that struct documentation includes sections for its fields, properties, and methods.</summary>
     [Fact]
     public async Task GenerateStructDocumentationShouldProduceValidMarkdown()
     {
@@ -166,6 +172,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("### Scale", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that interface documentation lists each method with its parameters and return type.</summary>
     [Fact]
     public async Task GenerateInterfaceDocumentationShouldProduceValidMarkdown()
     {
@@ -201,6 +208,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("**Returns:**", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that the API overview lists all namespaces and every type with its kind badge and link.</summary>
     [Fact]
     public async Task GenerateNamespaceOverviewShouldProduceValidMarkdown()
     {
@@ -237,6 +245,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("🄸 [IDataService](./idataservice)", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that a namespace page links to each type declared in that namespace.</summary>
     [Fact]
     public async Task GenerateNamespaceDocumentationShouldProduceValidMarkdown()
     {
@@ -266,6 +275,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("🄴 [SampleStatus](./samplestatus)", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that a method with optional parameters is documented with its signature, parameter defaults, and return type.</summary>
     [Fact]
     public async Task GenerateMethodDocumentationWithComplexSignatureShouldProduceValidMarkdown()
     {
@@ -300,6 +310,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("**Returns:** `Task<IEnumerable<UserRecord>>`", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that property documentation includes each property's name, type, and accessor declaration.</summary>
     [Fact]
     public async Task GeneratePropertyDocumentationWithAccessorsShouldProduceValidMarkdown()
     {
@@ -326,6 +337,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("(*DateTime*) { get; set }", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that field documentation includes each field's name, type, and initializer value.</summary>
     [Fact]
     public async Task GenerateFieldDocumentationWithModifiersShouldProduceValidMarkdown()
     {
@@ -349,6 +361,7 @@ public class StringBuilderExtensionsIntegrationTests
         Assert.Contains("(*int*) = `100`", markdown, StringComparison.InvariantCulture);
     }
 
+    /// <summary>Confirms that every type kind produces front matter and a header identifying the expected kind.</summary>
     [Theory]
     [InlineData("SampleClass", "class")]
     [InlineData("UserRecord", "record")]

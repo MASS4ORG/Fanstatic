@@ -1,0 +1,28 @@
+{%- assign video = id | default: params[0] -%}
+{%- if video -%}
+  {%- assign video_title = title | default: "YouTube video" -%}
+  {%- assign video_loading = loading | default: "eager" -%}
+  {%- capture query -%}
+    {%- if autoplay == true or autoplay == "true" -%}&autoplay=1&mute=1{%- elsif mute == true or mute == "true" -%}&mute=1{%- endif -%}
+    {%- if controls == false or controls == "false" -%}&controls=0{%- endif -%}
+    {%- if start -%}&start={{ start }}{%- endif -%}
+    {%- if params.end -%}&end={{ params.end }}{%- endif -%}
+    {%- if loop == true or loop == "true" -%}&loop=1&playlist={{ video }}{%- endif -%}
+  {%- endcapture -%}
+  {%- assign video_src = "https://www.youtube-nocookie.com/embed/" | append: video -%}
+  {%- if query != "" -%}
+    {%- assign video_src = video_src | append: "?" | append: query | remove_first: "&" -%}
+  {%- endif -%}
+  {%- capture fullscreen -%}{%- unless allowFullScreen == false or allowFullScreen == "false" %} allowfullscreen{% endunless -%}{%- endcapture -%}
+  {%- if class -%}
+<div class="{{ class | escape }}">
+  <iframe src="{{ video_src | escape }}"{{ fullscreen }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" loading="{{ video_loading | escape }}" referrerpolicy="strict-origin-when-cross-origin" title="{{ video_title | escape }}"></iframe>
+</div>
+  {%- else -%}
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+  <iframe src="{{ video_src | escape }}"{{ fullscreen }} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" loading="{{ video_loading | escape }}" referrerpolicy="strict-origin-when-cross-origin" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="{{ video_title | escape }}"></iframe>
+</div>
+  {%- endif -%}
+{%- else -%}
+  {{- "The youtube shortcode requires an id" | errorf -}}
+{%- endif -%}

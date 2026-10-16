@@ -5,6 +5,7 @@ namespace Fanstatic.Test.Commands;
 /// <summary>Covers end-to-end analysis of the sample test project across all supported type kinds.</summary>
 public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
 {
+    /// <summary>Confirms that analyzing the test project finds all expected types.</summary>
     [Theory]
     [InlineData("SampleClass")]
     [InlineData("SimpleClass")]
@@ -16,7 +17,6 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
     [InlineData("SimpleStatus")]
     [InlineData("ValidationResult")]
     [InlineData("IDataService")]
-    /// <summary>Confirms that analyzing the test project finds all expected types.</summary>
     public async Task AnalyzeTestProjectShouldParseAllExpectedTypes(string expectedType)
     {
         // Act
@@ -32,10 +32,10 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Contains(expectedType, typeNames, StringComparer.InvariantCulture);
     }
 
+    /// <summary>Confirms that analyzing the test project groups types by namespace with the expected counts.</summary>
     [Theory]
     [InlineData("TestProject.Models", 8)]
     [InlineData("TestProject.Services", 2)]
-    /// <summary>Confirms that analyzing the test project groups types by namespace with the expected counts.</summary>
     public async Task AnalyzeTestProjectShouldCorrectlyParseNamespaces(string namespaceName, int expectedMinCount)
     {
         // Act
@@ -47,8 +47,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal(expectedMinCount, namespaceTypes.Count);
     }
 
-    [Fact]
     /// <summary>Confirms that SampleClass is parsed with its documentation, methods, properties, and fields.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectSampleClassShouldHaveCorrectStructure()
     {
         // Act
@@ -87,8 +87,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Contains(sampleClass.Fields, f => f.Name == "PublicField");
     }
 
-    [Fact]
     /// <summary>Confirms that the ProcessData method is parsed with its signature and parameter documentation.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectProcessDataMethodShouldHaveCorrectSignature()
     {
         // Act
@@ -110,8 +110,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("data", processDataMethod.Documentation.Parameters[0].Name);
     }
 
-    [Fact]
     /// <summary>Confirms that the Calculate method is parsed with its default parameter values.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectCalculateMethodShouldHaveDefaultParameters()
     {
         // Act
@@ -129,8 +129,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("1.0", multiplierParam.DefaultValue);
     }
 
-    [Fact]
     /// <summary>Confirms that the SampleStatus enum is parsed with its explicit values and documentation.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectSampleStatusShouldHaveCorrectEnumValues()
     {
         // Act
@@ -153,8 +153,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("999", failedValue.Value);
     }
 
-    [Fact]
     /// <summary>Confirms that the Priority enum is parsed with null implicit values.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectPriorityShouldHaveImplicitEnumValues()
     {
         // Act
@@ -179,8 +179,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Null(criticalValue.Value);
     }
 
-    [Fact]
     /// <summary>Confirms that UserRecord is parsed with its documentation, remarks, example, and methods.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectUserRecordShouldHaveCorrectStructure()
     {
         // Act
@@ -211,8 +211,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("true", toDisplayStringMethod.Parameters[0].DefaultValue);
     }
 
-    [Fact]
     /// <summary>Confirms that Point is parsed as a record with its distance methods.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectPointShouldBeRecordStruct()
     {
         // Act
@@ -232,8 +232,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("Point", distanceToMethod.Parameters[0].Type);
     }
 
-    [Fact]
     /// <summary>Confirms that Dimensions is parsed as a struct with its constants, properties, and methods.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectDimensionsShouldHaveStructMembers()
     {
         // Act
@@ -274,8 +274,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("double", scaleMethod.Parameters[0].Type);
     }
 
-    [Fact]
     /// <summary>Confirms that IDataService is parsed with its interface method signatures and defaults.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectIDataServiceShouldHaveInterfaceMethods()
     {
         // Act
@@ -304,8 +304,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("50", processEntitiesMethod.Parameters[1].DefaultValue);
     }
 
-    [Fact]
     /// <summary>Confirms that ValidationResult is parsed as a record in the services namespace.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectValidationResultShouldBeRecord()
     {
         // Act
@@ -322,8 +322,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.NotNull(validationResult.ClassDocumentation);
     }
 
-    [Fact]
     /// <summary>Confirms that SimpleClass is parsed with its methods despite regular comments.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectSimpleClassShouldParseRegularComments()
     {
         // Act
@@ -344,8 +344,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Equal("string", getDescriptionMethod.Parameters[0].Type);
     }
 
-    [Fact]
     /// <summary>Confirms that SimpleStatus is parsed as an enum with its values despite regular comments.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectSimpleStatusShouldParseRegularCommentedEnum()
     {
         // Act
@@ -362,8 +362,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Contains(simpleStatus.EnumValues, e => e.Name == "Inactive");
     }
 
-    [Fact]
     /// <summary>Confirms that analyzed types are grouped into the expected namespaces.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectShouldGroupTypesByNamespace()
     {
         // Act
@@ -390,8 +390,8 @@ public class CodeAnalyzerIntegrationTests : CodeAnalysisTestBase
         Assert.Contains("ValidationResult", servicesTypeNames);
     }
 
-    [Fact]
     /// <summary>Confirms that complex method documentation with parameters is parsed.</summary>
+    [Fact]
     public async Task AnalyzeTestProjectShouldHandleComplexDocumentation()
     {
         // Act

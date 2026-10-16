@@ -5,8 +5,8 @@ namespace Fanstatic.Test.Commands;
 /// <summary>Covers the project and source code analysis behavior of CodeAnalyzer.</summary>
 public class CodeAnalyzerTests : CodeAnalysisTestBase
 {
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync returns a populated project structure.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldReturnProjectStructure()
     {
         // Act
@@ -18,8 +18,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.NotEmpty(result.NamespaceClasses);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync reports the correct type kind for each declaration.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldCorrectlyIdentifyTypeKinds()
     {
         // Act
@@ -41,8 +41,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("interface", dataService.TypeKind, StringComparer.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync groups classes under their declared namespaces.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldCorrectlyParseNamespaces()
     {
         // Act
@@ -59,8 +59,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.True(servicesClasses.Count >= 2); // Should have interface and record
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts class methods with return types and parameters.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseClassMethods()
     {
         // Act
@@ -85,8 +85,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("1.0", calculateMethod.Parameters[2].DefaultValue, StringComparer.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts class properties with their accessors.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseClassProperties()
     {
         // Act
@@ -115,8 +115,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.False(displayNameProperty.HasSetter); // expression-bodied property
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts class fields with modifiers and default values.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseClassFields()
     {
         // Act
@@ -139,8 +139,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("100", publicField.DefaultValue);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts enum values with explicit and implicit values.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseEnumValues()
     {
         // Act
@@ -171,8 +171,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Null(lowValue.Value); // No explicit value
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts interface method signatures.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseInterfaceMethods()
     {
         // Act
@@ -199,8 +199,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Empty(getStatsMethod.Parameters);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts computed record properties.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseRecordProperties()
     {
         // Act
@@ -219,8 +219,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("Dictionary<string, object>", metadataProperty.Type);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync extracts struct fields, properties, and methods.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldParseStructMembers()
     {
         // Act
@@ -256,8 +256,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("Dimensions", scaleMethod.ReturnType);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync ignores files in bin, obj, and publish directories.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldSkipBinObjDirectories()
     {
         // Arrange
@@ -302,8 +302,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         }
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync tolerates invalid C# files while analyzing valid ones.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldHandleInvalidCSharpFiles()
     {
         // Arrange
@@ -352,8 +352,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
     //     Assert.Empty(result.AllClasses);
     // }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync assigns full names and namespaces to types.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldCorrectlySetFullNames()
     {
         // Act
@@ -369,8 +369,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("TestProject.Models", userRecord.Namespace);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync records the source file name for each type.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldSetCorrectSourceFileNames()
     {
         // Act
@@ -386,6 +386,7 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal("SampleStruct.cs", dimensions.SourceFile, StringComparer.InvariantCulture);
     }
 
+    /// <summary>Confirms that AnalyzeProjectAsync identifies the type kind of each named test type.</summary>
     [Theory]
     [InlineData("SampleClass", "class")]
     [InlineData("UserRecord", "record")]
@@ -393,7 +394,6 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
     [InlineData("Dimensions", "struct")]
     [InlineData("SampleStatus", "enum")]
     [InlineData("IDataService", "interface")]
-    /// <summary>Confirms that AnalyzeProjectAsync identifies the type kind of each named test type.</summary>
     public async Task AnalyzeProjectAsyncShouldCorrectlyIdentifySpecificTypeKinds(string typeName, string expectedKind)
     {
         // Act
@@ -405,6 +405,7 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Equal(expectedKind, type.TypeKind, StringComparer.InvariantCulture);
     }
 
+    /// <summary>Confirms that AnalyzeProjectAsync discovers each expected type in the test project.</summary>
     [Theory]
     [InlineData("SampleClass")]
     [InlineData("SimpleClass")]
@@ -416,7 +417,6 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
     [InlineData("SimpleStatus")]
     [InlineData("IDataService")]
     [InlineData("ValidationResult")]
-    /// <summary>Confirms that AnalyzeProjectAsync discovers each expected type in the test project.</summary>
     public async Task AnalyzeProjectAsyncShouldFindExpectedType(string expectedTypeName)
     {
         // Act
@@ -427,8 +427,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Contains(expectedTypeName, classNames, StringComparer.InvariantCulture);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeSourceCodeAsync returns an empty result for empty source.</summary>
+    [Fact]
     public async Task AnalyzeSourceCodeAsyncShouldHandleEmptyFile()
     {
         // Arrange
@@ -443,8 +443,8 @@ public class CodeAnalyzerTests : CodeAnalysisTestBase
         Assert.Empty(result.NamespaceClasses);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeSourceCodeAsync extracts classes, properties, and methods from source text.</summary>
+    [Fact]
     public async Task AnalyzeSourceCodeAsyncShouldAnalyzeSingleClass()
     {
         // Arrange
@@ -491,8 +491,8 @@ namespace TestNamespace
         Assert.Empty(getInfoMethod.Parameters);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeSourceCodeAsync parses multiple types from source text.</summary>
+    [Fact]
     public async Task AnalyzeSourceCodeAsyncShouldAnalyzeMultipleTypes()
     {
         // Arrange
@@ -531,13 +531,13 @@ namespace TestNamespace
         Assert.Contains(types, t => t.Name == "ITestInterface" && t.TypeKind == "interface");
     }
 
+    /// <summary>Confirms that AnalyzeSourceCodeAsync reports the correct kind for each type declaration.</summary>
     [Theory]
     [InlineData("class", "public class TestType { }")]
     [InlineData("struct", "public struct TestType { }")]
     [InlineData("enum", "public enum TestType { Value1, Value2 }")]
     [InlineData("record", "public record TestType(string Name);")]
     [InlineData("interface", "public interface TestType { }")]
-    /// <summary>Confirms that AnalyzeSourceCodeAsync reports the correct kind for each type declaration.</summary>
     public async Task AnalyzeSourceCodeAsyncShouldIdentifyTypeKind(string expectedKind, string typeDeclaration)
     {
         // Arrange
@@ -557,8 +557,8 @@ namespace TestNamespace
         Assert.Equal(expectedKind, type.TypeKind);
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync completes for the test project.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldLogCorrectNumberOfFiles()
     {
         // Act
@@ -569,8 +569,8 @@ namespace TestNamespace
         Assert.True(true); // Placeholder assertion
     }
 
-    [Fact]
     /// <summary>Confirms that AnalyzeProjectAsync analyzes the types of the test project.</summary>
+    [Fact]
     public async Task AnalyzeProjectAsyncShouldLogAnalyzedTypes()
     {
         // Act

@@ -1,6 +1,7 @@
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
+using Fanstatic.Shortcodes;
 using Fanstatic.TemplateEngine;
 using Serilog;
 
@@ -63,6 +64,11 @@ public interface ISite : ISiteSettings, ISiteOutput
     /// The template engine.
     /// </summary>
     ITemplateEngine TemplateEngine { get; }
+
+    /// <summary>
+    /// Resolves shortcode templates from the site, the theme and the built-ins.
+    /// </summary>
+    ShortcodeRegistry ShortcodeRegistry { get; }
 
     /// <summary>
     /// The logger instance.
