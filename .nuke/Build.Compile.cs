@@ -10,35 +10,36 @@ sealed partial class Build
         .Executes(() =>
         {
             Solution.AllProjects
-                .Where(project => project.Path != BuildProjectDirectory / "Build.csproj")
-                .SelectMany(project => new[]
+                .Where(static project => project.Path != BuildProjectDirectory / "Build.csproj")
+                .SelectMany(static project => new[]
                 {
                     project.Directory / "bin",
                     project.Directory / "obj",
                     project.Directory / "output",
                 })
                 .Distinct()
-                .Where(path => path.DirectoryExists())
-                .ForEach(path => path.DeleteDirectory());
+                .Where(static path => path.DirectoryExists())
+                .ForEach(static path => path.DeleteDirectory());
             PublishDir.DeleteDirectory();
             CoverageDirectory.DeleteDirectory();
         });
 
     Target Restore => td => td
+        .After(Clean)
         .Executes(() =>
         {
             _ = DotNetRestore(s => WithMsBuildProperties(s.SetProjectFile(Solution)));
         });
 
     Target Compile => td => td
-        .DependsOn(Restore)
+        .After(Restore)
         .Executes(() =>
         {
             Log.Debug("Config {Config}", Config);
 
             // A project opts out with <ExcludeFromBuild>true</ExcludeFromBuild>; then the projects are built one by one.
             var excluded = Solution.AllProjects
-                .Where(project => project.Path.FileExists()
+                .Where(static project => project.Path.FileExists()
                                   && project.Path.ReadAllText().Contains("<ExcludeFromBuild>true", StringComparison.Ordinal))
                 .ToList();
             if (excluded.Count == 0)

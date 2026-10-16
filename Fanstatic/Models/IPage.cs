@@ -80,6 +80,11 @@ public interface IPage : IOutput, IFile, IContentSource
     string ContentPreRendered { get; }
 
     /// <summary>
+    /// The sorted names of the shortcodes the content calls, e.g. to load assets only where a shortcode is used.
+    /// </summary>
+    IReadOnlyList<string> Shortcodes { get; }
+
+    /// <summary>
     /// The processed content.
     /// </summary>
     string Content { get; }

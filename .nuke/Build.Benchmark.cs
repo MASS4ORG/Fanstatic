@@ -86,7 +86,7 @@ sealed partial class Build
 
         var report = new BenchmarkReport(DateTimeOffset.UtcNow, RuntimeIdentifier,
             RuntimeInformation.ProcessArchitecture.ToString(), sdkVersion, Environment.Version.ToString(),
-            BenchmarkProcessorCount, reference?.Version, reportScenarios.All(scenario => scenario.Passed),
+            BenchmarkProcessorCount, reference?.Version, reportScenarios.All(static scenario => scenario.Passed),
             reportScenarios);
 
         _ = BenchmarkReportFile.Parent.CreateDirectory();
@@ -226,9 +226,9 @@ sealed partial class Build
         }
 
         return new BenchmarkMeasurement(scenario.Name, scenario.PostCount, scenario.HasSidebar, runs,
-            Median(runs.Select(run => run.ParseMilliseconds)),
-            Median(runs.Select(run => run.CreateMilliseconds)),
-            Median(runs.Select(run => run.WallMilliseconds)));
+            Median(runs.Select(static run => run.ParseMilliseconds)),
+            Median(runs.Select(static run => run.CreateMilliseconds)),
+            Median(runs.Select(static run => run.WallMilliseconds)));
     }
 
     static BenchmarkRun RunBenchmarkBuild(string executable, string siteDirectory, string outputDirectory)
@@ -353,7 +353,7 @@ sealed partial class Build
             Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" ? CiBenchmarkSource : LocalBenchmarkSource,
             Environment.MachineName, sdkVersion, Environment.Version.ToString(), RuntimeIdentifier,
             RuntimeInformation.ProcessArchitecture.ToString(), BenchmarkProcessorCount, BenchmarkRunsPerScenario,
-            measurements.Select(measurement => new BenchmarkHistoryScenario(measurement.Name,
+            measurements.Select(static measurement => new BenchmarkHistoryScenario(measurement.Name,
                 measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds)).ToArray());
 
     BenchmarkHistory ReadBenchmarkHistory()
@@ -390,7 +390,7 @@ sealed partial class Build
     static BenchmarkHistoryEntry FindBenchmarkReference(BenchmarkHistory history, BenchmarkHistoryEntry current) =>
         history.Entries
             .Where(entry => IsSameBenchmarkSeries(entry, current))
-            .OrderByDescending(entry => entry.RecordedAtUtc)
+            .OrderByDescending(static entry => entry.RecordedAtUtc)
             .FirstOrDefault();
 
     static bool IsSameBenchmarkSeries(BenchmarkHistoryEntry entry, BenchmarkHistoryEntry other) =>

@@ -28,7 +28,9 @@ public class RegisteredPageRequest : IServerHandlers
         (requestPath, var _) = UrlExtension.CorrectRequestPath(requestPath);
 
         if (_site.OutputReferences.TryGetValue(requestPath, out var item) && item is IPage)
+        {
             return true;
+        }
 
         // Cold-start: paginated URL not yet registered because parent page hasn't
         // been rendered yet (the paginate filter registers virtual pages on first render).

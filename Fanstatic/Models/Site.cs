@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Parsers;
+using Fanstatic.Shortcodes;
 using Fanstatic.TemplateEngine;
 using Serilog;
 using YamlDotNet.Serialization;
@@ -13,7 +14,7 @@ namespace Fanstatic.Models;
 /// </summary>
 public class Site : ISite
 {
-    Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
+    readonly Dictionary<SiteOutputVariant, SiteOutput> _siteVariants = [];
 
     readonly Lazy<SiteOutput> _defaultHtmlSiteOutputCached;
 
@@ -355,6 +356,9 @@ public class Site : ISite
     public ITemplateEngine TemplateEngine { get; }
 
     /// <inheritdoc/>
+    public ShortcodeRegistry ShortcodeRegistry { get; }
+
+    /// <inheritdoc/>
     public ILogger Logger { get; }
 
     /// <summary>
@@ -485,6 +489,7 @@ public class Site : ISite
         Logger = logger;
         Parser = parser;
         TemplateEngine = new FluidTemplateEngine();
+        ShortcodeRegistry = new(this, ShortcodeBuiltins.Create());
         _defaultHtmlSiteOutputCached = new(() => new SiteOutput(this, ("html", DefaultLanguage)));
 
         _clock = clock ?? new SystemClock();
@@ -773,14 +778,24 @@ public class Site : ISite
         var pages = OutputReferences.Values.OfType<Page>().ToList();
         foreach (var page in pages)
         {
-            if (page.OutputFormatObj.NoUgly) continue;
+            if (page.OutputFormatObj.NoUgly)
+            {
+                continue;
+            }
+
             var pager = page.Paginator;
-            if (pager is null || pager.Count <= 1) continue;
+            if (pager is null || pager.Count <= 1)
+            {
+                continue;
+            }
 
             var filename = $"{page.OutputFormatObj.BaseName}.{page.OutputFormatObj.Extension}";
             SiteOutputVariant siteVariant = (page.OutputFormat, page.ContentSource.Language);
             _siteVariants.TryGetValue(siteVariant, out var siteOutput);
-            if (siteOutput is null) continue;
+            if (siteOutput is null)
+            {
+                continue;
+            }
 
             for (var i = 2; i <= pager.Count; i++)
             {
@@ -795,14 +810,24 @@ public class Site : ISite
     /// </summary>
     internal void RegisterVirtualPagesFromFilter(Page sourcePage, int count)
     {
-        if (sourcePage.OutputFormatObj.NoUgly) return;
+        if (sourcePage.OutputFormatObj.NoUgly)
+        {
+            return;
+        }
+
         var pager = sourcePage.Paginator;
-        if (pager is null) return;
+        if (pager is null)
+        {
+            return;
+        }
 
         var filename = $"{sourcePage.OutputFormatObj.BaseName}.{sourcePage.OutputFormatObj.Extension}";
         SiteOutputVariant siteVariant = (sourcePage.OutputFormat, sourcePage.ContentSource.Language);
         _siteVariants.TryGetValue(siteVariant, out var siteOutput);
-        if (siteOutput is null) return;
+        if (siteOutput is null)
+        {
+            return;
+        }
 
         for (var i = 2; i <= count; i++)
         {
@@ -1151,11 +1176,18 @@ public class Site : ISite
                 contentSource.FrontMatter.Url = "/";
                 break;
             case 1:
-                contentSource.Kind = hasIndex ? contentSource.Kind : Kind.section;
+                contentSource.Kind = hasIndex && contentSource.BundleType != BundleType.Branch
+                    ? contentSource.Kind
+                    : Kind.section;
                 contentSource.Type ??= "section";
                 parent = contentSource;
                 break;
             default:
+                if (contentSource.BundleType == BundleType.Branch)
+                {
+                    contentSource.Kind = Kind.list;
+                }
+
                 parent = contentSource;
                 break;
         }

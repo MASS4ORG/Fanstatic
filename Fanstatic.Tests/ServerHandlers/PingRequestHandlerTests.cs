@@ -1,0 +1,53 @@
+using Fanstatic.ServerHandlers;
+using NSubstitute;
+using Xunit;
+
+namespace Fanstatic.Test.ServerHandlers;
+
+/// <summary>Unit tests for the PingRequests class.</summary>
+public class PingRequestHandlerTests : TestSetup
+{
+    /// <summary>Confirms that Handle writes the supplied timestamp in round-trip format and returns the ping code.</summary>
+    [Fact]
+    public async Task HandleReturnsServerStartupTimestamp()
+    {
+        // Arrange
+        var response = Substitute.For<IHttpListenerResponse>();
+        var stream = new MemoryStream();
+        _ = response.OutputStream.Returns(stream);
+
+        var pingRequests = new PingRequests();
+
+        // Act
+        var code = await pingRequests.Handle(response,
+                new("ping", UriKind.RelativeOrAbsolute), TodayDate)
+            .ConfigureAwait(true);
+
+        // Assert
+        _ = stream.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(stream);
+        var content = await reader.ReadToEndAsync(CancellationToken.None).ConfigureAwait(true);
+
+        Assert.Equal(TodayDate.ToString("o"), content);
+
+        Assert.Equal("ping", code);
+    }
+
+    /// <summary>Confirms that Check matches the ping path only when it starts with a slash.</summary>
+    [Theory]
+    [InlineData("/ping", true)]
+    [InlineData("ping", false)]
+    public void CheckHandlesVariousRequestPaths(string requestPath,
+        bool expectedResult)
+    {
+        // Arrange
+        var pingRequests = new PingRequests();
+
+        // Act
+        var result =
+            pingRequests.Check(new(requestPath, UriKind.RelativeOrAbsolute));
+
+        // Assert
+        Assert.Equal(expectedResult, result);
+    }
+}

@@ -1,3 +1,5 @@
+using Fanstatic.Shortcodes;
+
 namespace Fanstatic.TemplateEngine;
 
 /// <summary>
@@ -81,6 +83,14 @@ public sealed record TemplateError(
     {
         ArgumentNullException.ThrowIfNull(exception);
 
+        if (FindShortcodeException(exception) is { } shortcode)
+        {
+            return shortcode.SourcePath.Length > 0
+                ? new TemplateError(shortcode.SourcePath, shortcode.Message, shortcode.Line, shortcode.Column,
+                    shortcode.SourceExcerpt, pageSourceRelativePath)
+                : new TemplateError(templatePath, shortcode.Message, 0, 0, null, pageSourceRelativePath);
+        }
+
         return exception switch
         {
             TemplateRenderException render => new TemplateError(templatePath, render.Message, render.Line, render.Column,
@@ -99,6 +109,16 @@ public sealed record TemplateError(
         var excerpt = SourceExcerpt is null ? string.Empty : $"\n  {SourceExcerpt}";
 
         return $"{Location}: {Message}{page}{excerpt}";
+    }
+
+    static ShortcodeException? FindShortcodeException(Exception? exception)
+    {
+        while (exception is not null and not ShortcodeException)
+        {
+            exception = exception.InnerException;
+        }
+
+        return exception as ShortcodeException;
     }
 
     static string? SourceLineAt(string? templateBody, int line)

@@ -158,7 +158,7 @@ sealed partial class Build
         if (RuntimeIdentifier != ContainerDefaultRid)
         {
             return [.. runtimeTags
-                .Where(x => !string.IsNullOrEmpty(x))
+                .Where(static x => !string.IsNullOrEmpty(x))
                 .Distinct()];
         }
 
@@ -171,7 +171,7 @@ sealed partial class Build
         runtimeTags.AddRange(genericTags);
 
         return [.. runtimeTags
-            .Where(x => !string.IsNullOrEmpty(x))
+            .Where(static x => !string.IsNullOrEmpty(x))
             .Distinct()];
     }
 }

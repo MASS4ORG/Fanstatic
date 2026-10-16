@@ -172,8 +172,16 @@ public static class StringBuilderExtensions
                 .AppendLines(classInfo.Properties.Select(prop =>
                 {
                     var accessors = new List<string>();
-                    if (prop.HasGetter) accessors.Add("get");
-                    if (prop.HasSetter) accessors.Add("set");
+                    if (prop.HasGetter)
+                    {
+                        accessors.Add("get");
+                    }
+
+                    if (prop.HasSetter)
+                    {
+                        accessors.Add("set");
+                    }
+
                     var accessorInfo = accessors.Any() ? $" {{ {string.Join("; ", accessors)} }}" : "";
 
                     return $"### **{prop.Name}**\n\n(*{prop.Type}*){accessorInfo}" +

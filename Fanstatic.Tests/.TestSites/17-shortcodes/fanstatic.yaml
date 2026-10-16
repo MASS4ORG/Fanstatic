@@ -1,0 +1,14 @@
+Title: test
+Theme: test
+baseURL: https://example.com/
+defaultLanguage: en
+params:
+  author:
+    name: Site Author
+languages:
+  en:
+    languageName: English
+    weight: 1
+  pt-br:
+    languageName: Português
+    weight: 2

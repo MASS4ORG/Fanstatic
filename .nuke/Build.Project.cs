@@ -22,7 +22,6 @@ sealed partial class Build
     const bool DefaultPublishTrimmed = true;
 
     Project ProductProject => Solution.Fanstatic;
-    Project TestProject => Solution.Fanstatic_Test;
     IEnumerable<Project> ReleaseProjects => [ProductProject];
     IEnumerable<Project> VersionedProjects => [ProductProject];
     string ExecutableName => ProductProject.Name.ToLowerInvariant();

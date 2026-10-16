@@ -17,12 +17,12 @@ sealed partial class Build
 
     /// <summary>Every project declaring a PackageId. The rest of the solution is apps, tests and tooling.</summary>
     IEnumerable<Project> PackableProjects =>
-        Solution.AllProjects.Where(project =>
+        Solution.AllProjects.Where(static project =>
             project.Path.FileExists() && project.Path.ReadAllText().Contains("<PackageId>", StringComparison.Ordinal));
 
     public Target PackNuGet => td =>
         td
-            .DependsOn(Compile)
+            .DependsOn(Restore, Compile) // Compile builds with --no-restore and no longer pulls in Restore itself
             .After(Publish)
             .Executes(() =>
             {
@@ -75,7 +75,7 @@ sealed partial class Build
             .Executes(() =>
             {
                 var packages = PackagesDirectory.GlobFiles("*.nupkg")
-                    .Where(package => !package.Name.Contains("symbols", StringComparison.OrdinalIgnoreCase))
+                    .Where(static package => !package.Name.Contains("symbols", StringComparison.OrdinalIgnoreCase))
                     .ToList();
                 if (packages.Count == 0)
                 {
@@ -104,8 +104,8 @@ sealed partial class Build
     void EnsurePublishable(IEnumerable<AbsolutePath> packages)
     {
         var unprefixed = packages
-            .Select(package => package.Name)
-            .Where(name => !name.StartsWith(NuGetPackagePrefix, StringComparison.Ordinal))
+            .Select(static package => package.Name)
+            .Where(static name => !name.StartsWith(NuGetPackagePrefix, StringComparison.Ordinal))
             .ToList();
         if (unprefixed.Count > 0)
         {

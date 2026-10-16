@@ -1,0 +1,1 @@
+SINGLE-{{ page.ContentPreRendered }}{% if page.Shortcodes contains "audio" %}-AUDIO-ASSETS{% endif %}{% if page.Params.layout_audio %}{% shortcode 'audio', src: page.Params.layout_audio %}{% endif %}{% if page.Params.layout_note %}{% shortcode 'note' %}Layout **note** for {{ page.Title }}{% endshortcode %}{% endif %}

@@ -354,7 +354,7 @@ public sealed class ServeCommand : BaseGeneratorCommand, IDisposable
         return null;
     }
 
-    internal static bool IsClientDisconnected(HttpListenerException exception)
+    public static bool IsClientDisconnected(HttpListenerException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
 

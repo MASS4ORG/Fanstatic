@@ -1,0 +1,35 @@
+{%- assign source = src -%}
+{%- for resource in page.Resources -%}
+  {%- assign file = resource.SourceRelativePath | split: "/" | last -%}
+  {%- if file == src or resource.Title == src -%}
+    {%- assign source = resource.RelPermalink -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+<figure{% if class %} class="{{ class | escape }}"{% endif %}>
+  {%- if link -%}
+    <a href="{{ link | escape }}"{% if target %} target="{{ target | escape }}"{% endif %}{% if rel %} rel="{{ rel | escape }}"{% endif %}>
+  {%- endif -%}
+  <img src="{{ source | escape }}"
+    {%- if alt %} alt="{{ alt | escape }}"{% elsif caption %} alt="{{ caption | markdownify | strip_html | escape }}"{% endif -%}
+    {%- if width %} width="{{ width | escape }}"{% endif -%}
+    {%- if height %} height="{{ height | escape }}"{% endif -%}
+    {%- if loading %} loading="{{ loading | escape }}"{% endif -%}
+  >
+  {%- if link %}</a>{% endif -%}
+  {%- if title or caption or attr -%}
+    <figcaption>
+      {%- if title -%}
+        <h4>{{ title }}</h4>
+      {%- endif -%}
+      {%- if caption or attr -%}<p>
+        {{- caption | markdownify -}}
+        {%- if attrlink %}
+          <a href="{{ attrlink | escape }}">
+        {%- endif -%}
+        {{- attr | markdownify -}}
+        {%- if attrlink %}</a>{% endif %}</p>
+      {%- endif %}
+    </figcaption>
+  {%- endif %}
+</figure>

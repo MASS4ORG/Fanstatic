@@ -1,52 +1,37 @@
-using System.Text.RegularExpressions;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
 
 namespace Fanstatic.Parsers;
 
 /// <summary>
-/// Resolves Hugo-style <c>{{&lt; ref &gt;}}</c> / <c>{{&lt; relref &gt;}}</c> shortcodes found in
-/// raw markdown content into permalinks, before the content is handed to Markdig.
+/// Resolves the targets of the <c>ref</c> and <c>relref</c> built-in shortcodes into permalinks.
 /// <c>ref</c> resolves to the absolute permalink, <c>relref</c> to the relative one. The target
 /// page is looked up using the calling page's output format and language, unless overridden with
 /// the <c>outputFormat</c> and <c>lang</c> named arguments.
 /// </summary>
 /// Usage: <c>{{&lt; ref "posts/my-post.md" &gt;}}</c>,
 /// <c>{{&lt; relref path="/posts/my-post.md" lang="pt-br" outputFormat="rss" &gt;}}</c>.
-public static partial class RefShortcodeParser
+public static class RefShortcodeParser
 {
-    [GeneratedRegex(@"\{\{<\s*(ref|relref)\s+(?<args>[^>]*?)\s*>\}\}", RegexOptions.IgnoreCase)]
-    private static partial Regex ShortcodeRegex();
-
-    [GeneratedRegex("""(?<key>[a-zA-Z]+)\s*=\s*(?:"(?<val>[^"]*)"|'(?<val>[^']*)')""")]
-    private static partial Regex NamedArgRegex();
-
-    [GeneratedRegex("""^\s*(?:"(?<val>[^"]*)"|'(?<val>[^']*)')""")]
-    private static partial Regex LeadingQuotedArgRegex();
-
     /// <summary>
-    /// Replaces every <c>ref</c>/<c>relref</c> shortcode occurrence in <paramref name="content"/>
-    /// with the resolved permalink of the target page.
+    /// Returns the permalink of the page at <paramref name="path"/>, with its anchor, or <c>#</c> when no page matches.
     /// </summary>
-    public static string Process(string content, ISite site, IPage page)
+    /// <param name="site">The site holding the pages.</param>
+    /// <param name="page">The calling page, whose language, output format and directory are the defaults.</param>
+    /// <param name="path">Content path of the target, optionally with a <c>#anchor</c>.</param>
+    /// <param name="lang">Language of the target, null for the calling page's language.</param>
+    /// <param name="outputFormat">Output format of the target, null for the calling page's format.</param>
+    /// <param name="isAbsolute">True for the absolute permalink, false for the relative one.</param>
+    public static string Resolve(ISite site, IPage page, string? path, string? lang, string? outputFormat,
+        bool isAbsolute)
     {
         ArgumentNullException.ThrowIfNull(site);
         ArgumentNullException.ThrowIfNull(page);
 
-        return string.IsNullOrEmpty(content) || !content.Contains("{{<", StringComparison.Ordinal)
-            ? content
-            : ShortcodeRegex().Replace(content, match => ResolveMatch(match, site, page));
-    }
-
-    static string ResolveMatch(Match match, ISite site, IPage page)
-    {
-        var isAbsolute = match.Groups[1].Value.Equals("ref", StringComparison.OrdinalIgnoreCase);
-        var (path, lang, outputFormat) = ParseArgs(match.Groups["args"].Value);
-
         if (string.IsNullOrWhiteSpace(path))
         {
             site.Logger.Error("ref/relref shortcode with no path found in {File}", page.SourceRelativePath);
-            return match.Value;
+            return "#";
         }
 
         var (targetPath, anchor) = SplitAnchor(path);
@@ -62,40 +47,6 @@ public static partial class RefShortcodeParser
 
         var url = (isAbsolute ? target.Permalink : target.RelPermalink).ToString();
         return string.IsNullOrEmpty(anchor) ? url : $"{url}#{anchor}";
-    }
-
-    static (string path, string? lang, string? outputFormat) ParseArgs(string args)
-    {
-        string? path = null;
-        var remainder = args;
-
-        var leading = LeadingQuotedArgRegex().Match(args);
-        if (leading.Success)
-        {
-            path = leading.Groups["val"].Value;
-            remainder = args[leading.Length..];
-        }
-
-        string? lang = null;
-        string? outputFormat = null;
-        foreach (var namedMatch in NamedArgRegex().Matches(remainder).Cast<Match>())
-        {
-            var value = namedMatch.Groups["val"].Value;
-            switch (namedMatch.Groups["key"].Value)
-            {
-                case "path" when path is null:
-                    path = value;
-                    break;
-                case "lang":
-                    lang = value;
-                    break;
-                case "outputFormat" or "outputformat":
-                    outputFormat = value;
-                    break;
-            }
-        }
-
-        return (path ?? string.Empty, lang, outputFormat);
     }
 
     static (string path, string anchor) SplitAnchor(string path)

@@ -25,7 +25,10 @@ sealed partial class Build
             if (string.IsNullOrWhiteSpace(installerUrl))
             {
                 if (!PackagingDryRun)
+                {
                     throw new InvalidOperationException("WingetManifest requires --winget-installer-url outside a dry run.");
+                }
+
                 installerUrl = $"https://example.invalid/Fanstatic-{Version}-win-x64-setup.exe";
             }
 

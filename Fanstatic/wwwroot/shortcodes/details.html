@@ -1,0 +1,4 @@
+<details{% if class %} class="{{ class | escape }}"{% endif %}{% if name %} name="{{ name | escape }}"{% endif %}{% if open == true or open == "true" %} open{% endif %}{% if title %} title="{{ title | escape }}"{% endif %}>
+  <summary>{{ summary | default: "Details" | markdownify }}</summary>
+  {{ inner | markdownify: "block" }}
+</details>

@@ -1,0 +1,18 @@
+{%- assign video = id | default: params[0] -%}
+{%- if video -%}
+  {%- assign video_class = class | default: params[1] -%}
+  {%- assign video_title = title | default: params[2] | default: "Vimeo video" -%}
+  {%- assign video_loading = loading | default: "eager" -%}
+  {%- capture fullscreen -%}{%- unless allowFullScreen == false or allowFullScreen == "false" %} allowfullscreen{% endunless -%}{%- endcapture -%}
+  {%- if video_class -%}
+<div class="{{ video_class | escape }}">
+  <iframe src="https://player.vimeo.com/video/{{ video | escape }}?dnt=1"{{ fullscreen }} loading="{{ video_loading | escape }}" title="{{ video_title | escape }}"></iframe>
+</div>
+  {%- else -%}
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+  <iframe src="https://player.vimeo.com/video/{{ video | escape }}?dnt=1" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;"{{ fullscreen }} loading="{{ video_loading | escape }}" title="{{ video_title | escape }}"></iframe>
+</div>
+  {%- endif -%}
+{%- else -%}
+  {{- "The vimeo shortcode requires an id" | errorf -}}
+{%- endif -%}

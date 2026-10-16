@@ -27,8 +27,11 @@ public interface ITemplateEngine
     /// <param name="site">The site context.</param>
     /// <param name="page">The page context.</param>
     /// <param name="counter">Optional counter for resource naming scenarios.</param>
+    /// <param name="variables">Extra top-level variables, such as shortcode arguments; <c>page</c>, <c>site</c>
+    /// and <c>fanstatic</c> always keep the caller's values.</param>
     /// <returns>The rendered template output.</returns>
-    string Render(string templatePathOrInlineKey, ISite site, IPage page, int? counter = null);
+    string Render(string templatePathOrInlineKey, ISite site, IPage page, int? counter = null,
+        IReadOnlyDictionary<string, object>? variables = null);
 
     /// <summary>
     /// Renders an inline template body.
