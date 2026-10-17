@@ -102,7 +102,7 @@ public class RegisteredPageRequest : IServerHandlers
     static Uri? TryGetCompactPaginatedParentUrl(string path)
     {
         var filenameSeparator = path.LastIndexOf('/');
-        if (filenameSeparator < 0)
+        if (filenameSeparator <= 0)
         {
             return null;
         }

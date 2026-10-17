@@ -19,6 +19,8 @@ public class RegisteredPageRequestHandlerTests : TestSetup
     [InlineData("/testPage", false)]
     [InlineData("/index.html", true)]
     [InlineData("/testPage/index.html", false)]
+    [InlineData("/image-comparer.js", false)]
+    [InlineData("/favicon.ico", false)]
     public void CheckReturnsTrueForRegisteredPage(string requestPath, bool exist)
     {
         // Arrange
