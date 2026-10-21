@@ -27,6 +27,7 @@ sealed partial class Build
     AbsolutePath BenchmarkReportFile => RootDirectory / "artifacts" / "benchmark.json";
     AbsolutePath BenchmarkPublishDirectory => RootDirectory / ".publish" / "benchmark" / RuntimeIdentifier;
 
+    /// <summary>Measures synthetic sites and fails when a phase exceeds the regression limit.</summary>
     [UsedImplicitly]
     public Target Benchmark => td => td
         .DependsOn(Restore)
@@ -46,11 +47,18 @@ sealed partial class Build
     void RunBenchmark(bool record, bool failOnRegression)
     {
         var sdkVersion = ReadDotNetSdkVersion();
+        var history = ReadBenchmarkHistory();
+        var environment = CreateBenchmarkHistoryEntry([], sdkVersion);
+        var reference = FindBenchmarkReference(history, environment);
+        LogBenchmarkReference(reference, environment);
         BenchmarkReportFile.DeleteFile();
         var tempDirectory = Path.Combine(Path.GetTempPath(), $"fanstatic-benchmark-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDirectory);
 
         List<BenchmarkMeasurement> measurements;
+        List<BenchmarkHistoryScenario> referenceMeasurements = [];
+        var sameRunnerReference = reference is not null
+                                  && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
         try
         {
             PublishBenchmarkBinary();
@@ -61,13 +69,22 @@ sealed partial class Build
                 throw new FileNotFoundException("The published benchmark executable was not found.", executable);
             }
 
+            var referenceExecutable = sameRunnerReference
+                ? PublishBenchmarkReference(tempDirectory, reference.Version)
+                : null;
             measurements = [];
             foreach (var postCount in BenchmarkPostCounts)
             {
                 foreach (var hasSidebar in new[] { false, true })
                 {
                     var scenario = new BenchmarkScenario(postCount, hasSidebar);
-                    measurements.Add(RunBenchmarkScenario(executable, tempDirectory, scenario));
+                    var (measurement, referenceMeasurement) =
+                        RunBenchmarkScenario(executable, referenceExecutable, tempDirectory, scenario);
+                    measurements.Add(measurement);
+                    if (referenceMeasurement is not null)
+                    {
+                        referenceMeasurements.Add(referenceMeasurement);
+                    }
                 }
             }
         }
@@ -77,9 +94,10 @@ sealed partial class Build
         }
 
         var current = CreateBenchmarkHistoryEntry(measurements, sdkVersion);
-        var history = ReadBenchmarkHistory();
-        var reference = FindBenchmarkReference(history, current);
-        LogBenchmarkReference(reference, current);
+        if (sameRunnerReference)
+        {
+            reference = reference with { Scenarios = referenceMeasurements };
+        }
 
         var reportScenarios = measurements.Select(measurement => CompareBenchmarkScenario(measurement, reference))
             .ToArray();
@@ -87,7 +105,7 @@ sealed partial class Build
         var report = new BenchmarkReport(DateTimeOffset.UtcNow, RuntimeIdentifier,
             RuntimeInformation.ProcessArchitecture.ToString(), sdkVersion, Environment.Version.ToString(),
             BenchmarkProcessorCount, reference?.Version, reportScenarios.All(static scenario => scenario.Passed),
-            reportScenarios);
+            reportScenarios, sameRunnerReference ? "same-runner" : "history");
 
         _ = BenchmarkReportFile.Parent.CreateDirectory();
         BenchmarkReportFile.WriteAllText(JsonSerializer.Serialize(report, BenchmarkJsonOptions));
@@ -121,7 +139,7 @@ sealed partial class Build
                 measurement.Name, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds);
             return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
                 measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
-                measurement.WallMedianMilliseconds, null, null, null, null, true);
+                measurement.WallMedianMilliseconds, null, null, null, null, true, measurement.ReferenceRuns);
         }
 
         if (referenceScenario.ParseMedianMilliseconds <= 0 || referenceScenario.CreateMedianMilliseconds <= 0)
@@ -150,7 +168,8 @@ sealed partial class Build
         return new BenchmarkScenarioReport(measurement.Name, measurement.PostCount, measurement.HasSidebar,
             measurement.Runs, measurement.ParseMedianMilliseconds, measurement.CreateMedianMilliseconds,
             measurement.WallMedianMilliseconds, referenceScenario.ParseMedianMilliseconds,
-            referenceScenario.CreateMedianMilliseconds, parseRegressionPercent, createRegressionPercent, passed);
+            referenceScenario.CreateMedianMilliseconds, parseRegressionPercent, createRegressionPercent, passed,
+            measurement.ReferenceRuns);
     }
 
     void PublishBenchmarkBinary()
@@ -193,9 +212,6 @@ sealed partial class Build
         return standardOutput.Trim();
     }
 
-    static double Median(IEnumerable<double> samples) =>
-        samples.Order().ElementAt(BenchmarkRunsPerScenario / 2);
-
     static double ReadPhaseDuration(string buildLog, string phase)
     {
         var match = Regex.Match(buildLog,
@@ -209,26 +225,37 @@ sealed partial class Build
         return duration;
     }
 
-    BenchmarkMeasurement RunBenchmarkScenario(string executable, string tempDirectory, BenchmarkScenario scenario)
+    (BenchmarkMeasurement Current, BenchmarkHistoryScenario Reference) RunBenchmarkScenario(
+        string executable, string referenceExecutable, string tempDirectory, BenchmarkScenario scenario)
     {
         var siteDirectory = Path.Combine(tempDirectory, scenario.Name);
         CreateBenchmarkSite(siteDirectory, scenario);
 
-        List<BenchmarkRun> runs = [];
-        for (var run = 1; run <= BenchmarkRunsPerScenario; run++)
+        BenchmarkRun Measure(string binary, string name)
         {
-            var outputDirectory = Path.Combine(tempDirectory, "output", $"{scenario.Name}-{run}");
-            runs.Add(RunBenchmarkBuild(executable, siteDirectory, outputDirectory));
-            if (Directory.Exists(outputDirectory))
+            var outputDirectory = Path.Combine(tempDirectory, "output", $"{scenario.Name}-{name}");
+            try
             {
-                Directory.Delete(outputDirectory, recursive: true);
+                return RunBenchmarkBuild(binary, siteDirectory, outputDirectory);
+            }
+            finally
+            {
+                if (Directory.Exists(outputDirectory))
+                {
+                    Directory.Delete(outputDirectory, recursive: true);
+                }
             }
         }
 
-        return new BenchmarkMeasurement(scenario.Name, scenario.PostCount, scenario.HasSidebar, runs,
-            Median(runs.Select(static run => run.ParseMilliseconds)),
-            Median(runs.Select(static run => run.CreateMilliseconds)),
-            Median(runs.Select(static run => run.WallMilliseconds)));
+        var (current, reference) = BenchmarkSampling.Measure(
+            () => Measure(executable, "current"),
+            referenceExecutable is null ? null : () => Measure(referenceExecutable, "reference"),
+            BenchmarkRunsPerScenario);
+        return (new BenchmarkMeasurement(scenario.Name, scenario.PostCount, scenario.HasSidebar, current.Runs,
+                current.ParseMedianMilliseconds, current.CreateMedianMilliseconds, current.WallMedianMilliseconds,
+                reference?.Runs),
+            reference is null ? null : new BenchmarkHistoryScenario(scenario.Name,
+                reference.ParseMedianMilliseconds, reference.CreateMedianMilliseconds));
     }
 
     static BenchmarkRun RunBenchmarkBuild(string executable, string siteDirectory, string outputDirectory)
@@ -384,8 +411,7 @@ sealed partial class Build
     }
 
     /// <summary>
-    /// The newest history entry measured under the same conditions, so the gate never compares a CI runner with a
-    /// developer machine or different parallelism. A different SDK or runtime does not prevent the comparison.
+    /// Selects the newest entry in the same benchmark series; CI remeasures its release on the current runner.
     /// </summary>
     static BenchmarkHistoryEntry FindBenchmarkReference(BenchmarkHistory history, BenchmarkHistoryEntry current) =>
         history.Entries
@@ -442,9 +468,8 @@ sealed partial class Build
         IReadOnlyList<BenchmarkRun> Runs,
         double ParseMedianMilliseconds,
         double CreateMedianMilliseconds,
-        double WallMedianMilliseconds);
-
-    sealed record BenchmarkRun(double ParseMilliseconds, double CreateMilliseconds, double WallMilliseconds);
+        double WallMedianMilliseconds,
+        IReadOnlyList<BenchmarkRun> ReferenceRuns);
 
     sealed record BenchmarkHistory(IReadOnlyList<BenchmarkHistoryEntry> Entries);
 
@@ -474,7 +499,8 @@ sealed partial class Build
         int ProcessorCount,
         string ReferenceVersion,
         bool Passed,
-        IReadOnlyList<BenchmarkScenarioReport> Scenarios);
+        IReadOnlyList<BenchmarkScenarioReport> Scenarios,
+        string ComparisonMode);
 
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     sealed record BenchmarkScenarioReport(
@@ -489,5 +515,6 @@ sealed partial class Build
         double? ReferenceCreateMedianMilliseconds,
         double? ParseRegressionPercent,
         double? CreateRegressionPercent,
-        bool Passed);
+        bool Passed,
+        IReadOnlyList<BenchmarkRun> ReferenceRuns);
 }

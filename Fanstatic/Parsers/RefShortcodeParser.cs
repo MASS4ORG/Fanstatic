@@ -14,6 +14,29 @@ namespace Fanstatic.Parsers;
 public static class RefShortcodeParser
 {
     /// <summary>
+    /// Looks up the page a content path refers to, using the calling page's directory for relative paths.
+    /// </summary>
+    /// <param name="site">The site holding the pages.</param>
+    /// <param name="page">The calling page, whose language and output format are the defaults.</param>
+    /// <param name="path">Content path of the target, without an anchor.</param>
+    /// <param name="lang">Language of the target; null for the calling page's language.</param>
+    /// <param name="outputFormat">Output format of the target; null for the calling page's format.</param>
+    public static IPage? ResolvePage(ISite site, IPage page, string path, string? lang = null,
+        string? outputFormat = null)
+    {
+        ArgumentNullException.ThrowIfNull(site);
+        ArgumentNullException.ThrowIfNull(page);
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        return FindPage(site, page, path, lang ?? page.ContentSource.Language,
+            outputFormat ?? page.OutputFormat);
+    }
+
+    /// <summary>
     /// Returns the permalink of the page at <paramref name="path"/>, with its anchor, or <c>#</c> when no page matches.
     /// </summary>
     /// <param name="site">The site holding the pages.</param>

@@ -59,6 +59,9 @@ public class Site : ISite
     public string PaginatePath => _settings.PaginatePath;
 
     /// <inheritdoc/>
+    public bool MissingWikiLinkAsError => _settings.MissingWikiLinkAsError;
+
+    /// <inheritdoc/>
     public Dictionary<Kind, List<string>> KindOutputFormats =>
         _settings.KindOutputFormats;
 

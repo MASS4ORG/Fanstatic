@@ -67,4 +67,10 @@ public interface ISiteSettings : IParams
     /// language has no URL prefix.
     /// </summary>
     bool DefaultContentLanguageInSubdir { get; }
+
+    /// <summary>
+    /// When true, an unresolved <c>[[wikilink]]</c> target fails the build. When false (default) it renders
+    /// a link to <c>./</c> and logs an error.
+    /// </summary>
+    bool MissingWikiLinkAsError { get; }
 }

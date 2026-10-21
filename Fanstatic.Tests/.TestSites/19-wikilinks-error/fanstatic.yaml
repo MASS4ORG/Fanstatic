@@ -1,0 +1,4 @@
+title: WikiLink Error Test
+baseURL: https://example.com/
+defaultLanguage: en
+MissingWikiLinkAsError: true
