@@ -8,11 +8,9 @@ archives in `artifacts/`, or `./build.sh --help` to list every target.
 
 ## Performance benchmark
 
-Run `./build.sh Benchmark` on the benchmark runner to build the synthetic 1,000-, 2,000-, and 4,000-post sites
-with and without the recent-posts sidebar. Each scenario is built five times and the Parse and Create medians are
-compared with the newest comparable entry in `.nuke/benchmark-history.json`; the target fails if either phase is
-more than 25% slower. Benchmark builds run with two logical processors for repeatable parallelism across runners.
-The full run data is written to `artifacts/benchmark.json`.
+Run `./build.sh Benchmark` to build the synthetic 1,000-, 2,000-, and 4,000-post sites with and without the recent-posts sidebar. Each scenario is built five times and the Parse and Create medians are compared with the newest comparable release in `.nuke/benchmark-history.json`; the target fails if either phase is more than 25% slower. Benchmark builds run with two logical processors. The full run data and comparison mode are written to `artifacts/benchmark.json`.
+
+On GitHub Actions, the target publishes the reference release from its `vX.Y.Z` tag using the current SDK and remeasures it on the same runner. Each scenario alternates reference/current and current/reference builds to distribute changes in runner load across both versions. The gate uses these fresh reference medians because different hosted VMs can differ by more than the regression limit. Checkout must include release tags and their commits. Missing tags or failed reference builds fail the target. Recorded release timings remain unchanged. Local runs compare against the saved timings for the same developer machine.
 
 The history keeps one entry per release, with the version, date, runner, SDK and runtime. An entry is comparable
 when it came from the same kind of runner (CI, or the same developer machine), runtime identifier, architecture,

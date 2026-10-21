@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Fanstatic\Fanstatic.csproj"/>
+        <Compile Include="../.nuke/BenchmarkSampling.cs" Link="Build/BenchmarkSampling.cs"/>
     </ItemGroup>
 
 </Project>
