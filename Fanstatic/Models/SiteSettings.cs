@@ -59,6 +59,9 @@ public class SiteSettings : ISiteSettings
     /// <inheritdoc/>
     public bool DefaultContentLanguageInSubdir { get; set; }
 
+    /// <inheritdoc/>
+    public bool MissingWikiLinkAsError { get; set; }
+
     /// <summary>
     /// Types of outputs
     /// </summary>

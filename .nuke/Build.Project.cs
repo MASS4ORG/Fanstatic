@@ -1,8 +1,7 @@
 namespace Build;
 
 /// <summary>
-/// The only build file that differs between the MASS4 repositories besides the feature partials: it names this
-/// project and wires its features into the shared build. Names of projects, repositories and products live here.
+/// Defines project-specific settings and feature hooks for the shared MASS4 build.
 /// </summary>
 sealed partial class Build
 {
@@ -21,6 +20,9 @@ sealed partial class Build
     const bool DefaultPublishSingleFile = true;
     const bool DefaultPublishTrimmed = true;
 
+    string DefaultConfiguration => IsLocalBuild ? ConfigurationOptions.Debug : ConfigurationOptions.Release;
+    const string TestReportArgument = "--report-xunit-trx";
+
     Project ProductProject => Solution.Fanstatic;
     IEnumerable<Project> ReleaseProjects => [ProductProject];
     IEnumerable<Project> VersionedProjects => [ProductProject];
@@ -28,6 +30,7 @@ sealed partial class Build
 
     AbsolutePath PublishOutput(Project project) => PublishDir;
     Dictionary<string, object> MsBuildProperties => [];
+    Target[] RestoreDependencies => [];
     Target[] PackDependencies => [Publish, WindowsInstaller];
     Target[] ReleaseCommitDependencies => [RecordReleaseBenchmark];
 

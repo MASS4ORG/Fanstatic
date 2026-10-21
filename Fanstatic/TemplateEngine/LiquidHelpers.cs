@@ -28,7 +28,11 @@ public static class LiquidHelpers
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(context);
 
-        var html = Markdown.ToHtml(input.ToStringValue(), SiteHelper.MarkdownPipeline).Trim();
+        var markdown = input.ToStringValue();
+        var html = (context.AmbientValues.TryGetValue(SiteAmbientKey, out var value) && value is ISite site
+                    && context.GetValue("page").ToObjectValue() is IPage page
+            ? WikiLinkContext.Run(site, page, () => Markdown.ToHtml(markdown, SiteHelper.MarkdownPipeline))
+            : Markdown.ToHtml(markdown, SiteHelper.MarkdownPipeline)).Trim();
         const string open = "<p>";
         const string close = "</p>";
         if (arguments.At(0).ToStringValue() != "block"

@@ -27,7 +27,7 @@ public static class ShortcodeRenderer
 
         if (!MayContainShortcodes(markdown))
         {
-            return Markdown.ToHtml(markdown ?? string.Empty, SiteHelper.MarkdownPipeline);
+            return MarkdownToHtml(markdown ?? string.Empty, site, page);
         }
 
         var state = new RenderState(markdown, site, page);
@@ -47,7 +47,7 @@ public static class ShortcodeRenderer
                 return PlaceholderPrefix + (outputs.Count - 1) + PlaceholderSuffix;
             });
 
-            return ReplacePlaceholders(Markdown.ToHtml(expanded, SiteHelper.MarkdownPipeline), outputs);
+            return ReplacePlaceholders(MarkdownToHtml(expanded, site, page), outputs);
         }
         catch (ShortcodeException ex) when (ex.SourcePath.Length == 0)
         {
@@ -126,6 +126,9 @@ public static class ShortcodeRenderer
                 name => site.ShortcodeRegistry.Resolve(name, page) is not null))
             .OrderBy(token => token.Start)
     ];
+
+    static string MarkdownToHtml(string markdown, ISite site, IPage page) =>
+        WikiLinkContext.Run(site, page, () => Markdown.ToHtml(markdown, SiteHelper.MarkdownPipeline));
 
     static bool MayContainShortcodes(string? markdown) =>
         ShortcodeLexer.MayContainShortcodes(markdown) || markdown?.Contains(":::", StringComparison.Ordinal) == true;

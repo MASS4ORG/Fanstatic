@@ -17,6 +17,7 @@ public static class SiteHelper
     /// https://github.com/xoofx/markdig
     public static readonly MarkdownPipeline MarkdownPipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
+        .Use(new WikiLinkExtension())
         .Build();
 
     /// <summary>
