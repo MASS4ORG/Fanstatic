@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [7.3.3] - 2026-11-03
+
 - Fixed: the Windows installer mishandled a user `PATH` longer than 1024 characters, losing its entries or its own folder; Windows artifacts are now built and installer-tested on Windows CI runners
 
 ## [7.3.2] - 2026-10-21
@@ -47,7 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - First Commit!
 
-[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.2...HEAD
+[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.3...HEAD
+[7.3.3]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.2...v7.3.3
 [7.3.2]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.1...v7.3.2
 [7.3.1]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.0...v7.3.1
 [7.3.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.2.0...v7.3.0
