@@ -4,11 +4,13 @@
 
 Welcome to **Fanstatic**, for Fans of a Fantastic Static Site Generator! [MIT license](docs/LICENSE.md).
 
-Official site: <https://fanstatic.mass4.com>
+[![Discord](https://img.shields.io/discord/1104509879269457982?label=Discord&logo=discord&logoColor=white)](https://discord.gg/uVmtZwkzfs)
+
+Official site: <https://fanstatic.mass4.org>
 
 ## Install
 
-Check the [Releases](https://github.com/MASS4ORG/fanstatic/-/releases) for Linux and Windows options.
+Check the [Releases](https://github.com/MASS4ORG/Fanstatic/releases) for Linux and Windows options.
 
 ## Usage
 

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Fixed: the Windows installer mishandled a user `PATH` longer than 1024 characters, losing its entries or its own folder; Windows artifacts are now built and installer-tested on Windows CI runners
+
 ## [7.3.2] - 2026-10-21
 
 - Added: Obsidian-style wikilinks with safe link labels #51

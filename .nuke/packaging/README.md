@@ -6,8 +6,8 @@ that format; generated packages land in `artifacts/`.
 | Format | Descriptor | Target | Output |
 | --- | --- | --- | --- |
 | Portable archive | – | `Pack` | `artifacts/Fanstatic-<version>-<rid>.zip` |
-| Windows installer | [`windows/`](windows) | `WindowsInstaller` | `artifacts/Fanstatic-<version>-win-x64-setup.exe` |
-| Winget | [`winget/`](winget) | `WingetManifest` | `artifacts/winget/<version>/` |
+| Windows installer | [`windows/`](windows) | `WindowsInstaller` (`WindowsInstallerTest` on Windows) | `artifacts/Fanstatic-<version>-win-x64-setup.exe` |
+| Winget | [`winget/`](winget) | `WingetManifest` (`WingetValidate` on Windows) | `artifacts/winget/<version>/` |
 | Debian | – | `DebianPackage` | `artifacts/fanstatic_<version>_<arch>.deb` |
 | Flatpak | [`flatpak/`](flatpak) | `Flatpak` | `artifacts/Fanstatic-<version>-x86_64.flatpak` |
 | Container | – | `ContainerBuild` / `ContainerPush` | OCI archive, then the registry |

@@ -81,7 +81,7 @@ jobs:
                   path: artifacts/benchmark.json
                   if-no-files-found: error
 
-    # Validate every release format on one runner, without tagging or pushing.
+    # Validate every Linux release format, without tagging or pushing.
     package:
         runs-on: ubuntu-26.04
         permissions:
@@ -99,21 +99,13 @@ jobs:
             - name: Install tools
               run: |
                   sudo apt-get update -yqq
-                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev nsis
+                  sudo apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev
 
             - name: Pack Linux archive and Debian package
               run: |
                   ./build.sh Pack DebianPackage \
                     --configuration "Release" \
                     --runtime-identifier "linux-x64" \
-                    --verbosity minimal
-
-            - name: Build Windows installer and Winget manifests
-              run: |
-                  ./build.sh WingetManifest \
-                    --configuration "Release" \
-                    --runtime-identifier "win-x64" \
-                    --packaging-dry-run \
                     --verbosity minimal
 
             - name: Upload packages
@@ -123,8 +115,8 @@ jobs:
                   path: artifacts/*
                   if-no-files-found: error
 
-    # The installer and the Winget manifests can only be proven on Windows: install silently, build a
-    # site with the installed binary, uninstall silently, then validate the manifests with wingetcreate.
+    # Windows artifacts are built where they can run: pack, install, use and uninstall the installer, then
+    # validate the Winget manifests. Mirrors the GitLab `package-check-windows` job.
     windows:
         runs-on: windows-2025
         permissions:
@@ -132,9 +124,6 @@ jobs:
         env:
             NUKE_TELEMETRY_OPTOUT: "1"
             IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
-        defaults:
-            run:
-                shell: pwsh
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -142,67 +131,11 @@ jobs:
                   fetch-depth: 0
                   fetch-tags: true
 
-            - name: Setup .NET
-              uses: actions/setup-dotnet@v6
-              with:
-                  dotnet-version: "10.0.x"
-
             - name: Install NSIS
-              run: |
-                  if (-not (Get-Command makensis -ErrorAction SilentlyContinue)) {
-                    choco install nsis --no-progress -y
-                  }
-                  # Chocolatey installs under Program Files but does not extend the PATH of the
-                  # running job, so hand the folder to the following steps explicitly.
-                  $nsis = @("${env:ProgramFiles(x86)}\NSIS", "$env:ProgramFiles\NSIS") |
-                    Where-Object { Test-Path (Join-Path $_ "makensis.exe") } |
-                    Select-Object -First 1
-                  if (-not $nsis) { throw "makensis was not found after installing NSIS" }
-                  "$nsis" | Out-File -FilePath $env:GITHUB_PATH -Append
+              run: choco install nsis --no-progress -y
 
-            - name: Build Windows installer and Winget manifests
-              run: |
-                  ./build.cmd WindowsInstaller WingetManifest `
-                    --configuration "Release" `
-                    --runtime-identifier "win-x64" `
-                    --packaging-dry-run `
-                    --verbosity minimal
-
-            - name: Install, use and uninstall
-              run: |
-                  $setup = (Get-ChildItem "artifacts/*-win-x64-setup.exe").FullName
-                  Start-Process -FilePath $setup -ArgumentList "/S" -Wait
-                  $install = "$env:LOCALAPPDATA\Programs\Fanstatic"
-                  if (-not (Test-Path "$install\fanstatic.exe")) { throw "The installer did not create fanstatic.exe" }
-                  if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Fanstatic\Fanstatic.lnk")) {
-                    throw "The installer did not create the Start menu shortcut"
-                  }
-                  if (-not ((Get-ItemProperty HKCU:\Environment).Path.Split(';') -contains $install)) {
-                    throw "The installer did not add the install folder to the user PATH"
-                  }
-                  & "$install\fanstatic.exe" new-site "$env:RUNNER_TEMP\smoke"
-                  & "$install\fanstatic.exe" build "$env:RUNNER_TEMP\smoke"
-                  if (-not (Test-Path "$env:RUNNER_TEMP\smoke\public\index.html")) { throw "The site was not generated" }
-                  Start-Process -FilePath "$install\Uninstall.exe" -ArgumentList "/S" -Wait
-                  if (Test-Path "$install\fanstatic.exe") { throw "The uninstaller did not remove fanstatic.exe" }
-                  if ((Get-ItemProperty HKCU:\Environment).Path.Split(';') -contains $install) {
-                    throw "The uninstaller did not remove the PATH entry"
-                  }
-
-            # wingetcreate has no validate command; `winget validate` is the official validator. The runner
-            # image may not ship winget, so it is bootstrapped through the Microsoft.WinGet.Client module.
-            - name: Validate Winget manifests
-              run: |
-                  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-                    Install-PackageProvider -Name NuGet -Force | Out-Null
-                    Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery | Out-Null
-                    Repair-WinGetPackageManager -AllUsers -Latest -Force
-                    $env:Path = "$env:LOCALAPPDATA\Microsoft\WindowsApps;$env:Path"
-                  }
-                  winget --version
-                  $manifests = (Get-ChildItem "artifacts/winget" -Directory | Select-Object -First 1).FullName
-                  winget validate --manifest $manifests --disable-interactivity
-                  if ($LASTEXITCODE -ne 0) { throw "winget validate failed with exit code $LASTEXITCODE" }
+            - name: Pack, test the installer and validate the Winget manifests
+              run: ./build.ps1 Pack WingetManifest WindowsInstallerTest WingetValidate --configuration Release --runtime-identifier win-x64 --packaging-dry-run --verbosity minimal
 
             - name: Upload packages
               uses: actions/upload-artifact@v7

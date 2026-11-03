@@ -40,10 +40,14 @@ cache:
         - apt-get update -yqq
         - apt-get install -yqq --no-install-recommends curl ca-certificates bash dpkg-dev
 
-# makensis builds the Windows installer on Linux, so the Windows release assets are produced here too.
-.build_nsis: &build_nsis
+# Windows artifacts are built on Windows, where the installer can be installed, used and uninstalled.
+# GitLab.com provides this tag; a self-managed instance needs a Windows runner (PowerShell shell) with the same tag.
+.windows_job_template: &windows_job_template
+    tags: ["saas-windows-medium-amd64"]
     before_script:
-        - apt-get install -yqq nsis
+        - choco install nsis --no-progress -y
+    artifacts:
+        expire_in: 1 week
 
 # build the project on every commit
 test:
@@ -79,19 +83,26 @@ package-check:
         - if: '$CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "web"'
     before_script:
         - !reference [.build_tools, before_script]
-        - !reference [.build_nsis, before_script]
     script:
         - |
             ./build.sh Pack DebianPackage \
               --configuration "Release" \
               --runtime-identifier "linux-x64" \
               --verbosity minimal
-        - |
-            ./build.sh WingetManifest \
-              --configuration "Release" \
-              --runtime-identifier "win-x64" \
-              --packaging-dry-run \
-              --verbosity minimal
+
+# Pack, install, use and uninstall the Windows installer, then validate the Winget manifests.
+package-check-windows:
+    <<: *windows_job_template
+    stage: package-check
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          when: never
+        - if: '$CI_PIPELINE_SOURCE != "schedule" && $CI_PIPELINE_SOURCE != "web"'
+    script:
+        - ./build.ps1 Pack WingetManifest WindowsInstallerTest WingetValidate --configuration Release --runtime-identifier win-x64 --packaging-dry-run --verbosity minimal
+    artifacts:
+        paths:
+            - artifacts/*
 
 # Checks for commits since the last tag; if there are any, updates CHANGELOG.md, tags the release and
 # pushes the commit+tag to this GitLab project. The pushed tag triggers this same pipeline's
@@ -111,13 +122,12 @@ release-check:
               --release-branch "$CI_DEFAULT_BRANCH" \
               --verbosity minimal
 
-# Pack the published binaries, the Windows installer and the Debian packages on every tag.
+# Pack the published binaries and the Debian packages on every tag.
 build:
     <<: *build_job_template
     stage: build
     parallel:
         matrix:
-            - RID: "win-x64"
             - RID: "linux-x64"
             - RID: "linux-musl-x64"
             - RID: "linux-arm64"
@@ -126,7 +136,6 @@ build:
           allow_failure: false
     before_script:
         - !reference [.build_tools, before_script]
-        - !reference [.build_nsis, before_script]
     script:
         - |
             ./build.sh Pack DebianPackage \
@@ -136,6 +145,19 @@ build:
               --publish-single-file "$PUBLISH_SINGLE_FILE" \
               --publish-trimmed "$PUBLISH_TRIMMED" \
               --verbosity minimal
+    artifacts:
+        paths:
+            - artifacts/*
+
+# Pack the Windows archive and installer on every tag, installing, using and uninstalling the installer first.
+build-windows:
+    <<: *windows_job_template
+    stage: build
+    rules:
+        - if: '$CI_COMMIT_TAG'
+          allow_failure: false
+    script:
+        - ./build.ps1 Pack WindowsInstallerTest --configuration Release --runtime-identifier win-x64 --publish-self-contained "$env:PUBLISH_SELF_CONTAINED" --publish-single-file "$env:PUBLISH_SINGLE_FILE" --publish-trimmed "$env:PUBLISH_TRIMMED" --verbosity minimal
     artifacts:
         paths:
             - artifacts/*
@@ -171,6 +193,7 @@ gitlab-release:
           allow_failure: false
     needs:
         - build
+        - build-windows
         - job: build-macos
           optional: true
     before_script:

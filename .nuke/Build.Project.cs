@@ -39,4 +39,17 @@ sealed partial class Build
             .SetProperty("TrimMode", "partial")
             .SetProperty("EnableTrimAnalyzer", PublishTrimmed)
             .SetProperty("EnableCompressionInSingleFile", "true");
+
+    /// <summary>Builds a new site with the installed executable, proving the installed binary runs.</summary>
+    partial void TestInstalledProduct(AbsolutePath installDirectory)
+    {
+        var site = (AbsolutePath)Path.GetTempPath() / "fanstatic-installer-smoke";
+        site.DeleteDirectory();
+        var fanstatic = installDirectory / $"{ExecutableName}.exe";
+        ProcessTasks.StartProcess(fanstatic, $"new-site \"{site}\"").AssertZeroExitCode();
+        ProcessTasks.StartProcess(fanstatic, $"build \"{site}\"").AssertZeroExitCode();
+        var generated = (site / "public" / "index.html").FileExists();
+        site.DeleteDirectory();
+        Check(generated, "The installed fanstatic.exe did not generate the site.");
+    }
 }

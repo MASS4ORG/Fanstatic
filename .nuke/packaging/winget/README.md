@@ -17,16 +17,10 @@ The Winget manifests are generated, never hand-edited. `WingetManifest` hashes t
    Output goes to `artifacts/winget/<version>`: `MASS4ORG.Fanstatic.yaml`, `MASS4ORG.Fanstatic.installer.yaml`
    and `MASS4ORG.Fanstatic.locale.en-US.yaml`, targeting Winget manifest schema `1.10.0`. Keep the schema no newer than the winget client on the CI
    runners (`winget --version`); `winget validate` reports an unknown schema as a warning and exits non-zero.
-3. Validate them:
-
-   ```sh
-   winget validate --manifest artifacts/winget/<version>
-   ```
-
+3. Validate them on Windows by adding `WingetValidate` to the same command, which runs
+   `winget validate --manifest artifacts/winget/<version>`.
 4. Fork `microsoft/winget-pkgs`, copy the three files to `manifests/m/MASS4ORG/Fanstatic/<version>/` inside
    the fork, and open a pull request. Keep the submitted files in
    [`manifests/`](manifests/m/mass4org/Fanstatic) as the record of what shipped.
 
-CI runs the same target with `--packaging-dry-run` on every commit, which generates the manifests and checks
-the installer hash without needing a published URL. The installed binary is self-contained, so the manifest
-declares no dependencies. `winget` cannot run under Wine, so manifests are only validated on the Windows runner.
+The Windows CI jobs run `WingetManifest WingetValidate` with `--packaging-dry-run` on every commit, which generates and validates the manifests and checks the installer hash without needing a published URL. On CI, `WingetValidate` installs winget through the `Microsoft.WinGet.Client` PowerShell module when the image lacks it. The installed binary is self-contained, so the manifest declares no dependencies.

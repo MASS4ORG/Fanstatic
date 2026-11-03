@@ -16,7 +16,7 @@
     <SignAssembly>true</SignAssembly>
     <Authors>Bruno Massa</Authors>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <PackageProjectUrl>https://fanstatic.mass4.com</PackageProjectUrl>
+    <PackageProjectUrl>https://fanstatic.mass4.org</PackageProjectUrl>
     <PackageTags>static site generator;ssg;yaml/blog</PackageTags>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Version>7.2.0</Version>
