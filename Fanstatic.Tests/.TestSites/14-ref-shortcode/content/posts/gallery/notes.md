@@ -1,0 +1,1 @@
+Gallery notes resource.
