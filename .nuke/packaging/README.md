@@ -1,15 +1,15 @@
 # Packaging
 
 Every package format Fanstatic ships is described here. The descriptors that belong to a format live next to
-that format; generated packages land in `artifacts/`.
+that format; generated packages land in `.artifacts/dist/`.
 
 | Format | Descriptor | Target | Output |
 | --- | --- | --- | --- |
-| Portable archive | – | `Pack` | `artifacts/Fanstatic-<version>-<rid>.zip` |
-| Windows installer | [`windows/`](windows) | `WindowsInstaller` (`WindowsInstallerTest` on Windows) | `artifacts/Fanstatic-<version>-win-x64-setup.exe` |
-| Winget | [`winget/`](winget) | `WingetManifest` (`WingetValidate` on Windows) | `artifacts/winget/<version>/` |
-| Debian | – | `DebianPackage` | `artifacts/fanstatic_<version>_<arch>.deb` |
-| Flatpak | [`flatpak/`](flatpak) | `Flatpak` | `artifacts/Fanstatic-<version>-x86_64.flatpak` |
+| Portable archive | – | `Pack` | `.artifacts/dist/Fanstatic-<version>-<rid>.zip` |
+| Windows installer | [`windows/`](windows) | `WindowsInstaller` (`WindowsInstallerTest` on Windows) | `.artifacts/dist/Fanstatic-<version>-win-x64-setup.exe` |
+| Winget | [`winget/`](winget) | `WingetManifest` (`WingetValidate` on Windows) | `.artifacts/dist/winget/<version>/` |
+| Debian | – | `DebianPackage` | `.artifacts/dist/fanstatic_<version>_<arch>.deb` |
+| Flatpak | [`flatpak/`](flatpak) | `Flatpak` | `.artifacts/dist/Fanstatic-<version>-x86_64.flatpak` |
 | Container | – | `ContainerBuild` / `ContainerPush` | OCI archive, then the registry |
 
 ## Runtime identifiers

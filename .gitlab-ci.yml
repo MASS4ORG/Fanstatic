@@ -65,13 +65,13 @@ test:
             ./build.sh Restore Compile TestReport Publish ContainerBuild \
               --configuration "Debug" \
               --verbosity minimal
-        - set +e; bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage/coverage.xml
+        - set +e; bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r .artifacts/tests/coverage.xml
     coverage: '/^  Line coverage: (\d*.\d*)%/'
     artifacts:
         reports:
             coverage_report:
                 coverage_format: cobertura
-                path: coverage/coverage.xml
+                path: .artifacts/tests/coverage.xml
 
 # Validate every release format without tagging or pushing.
 package-check:
@@ -102,7 +102,7 @@ package-check-windows:
         - ./build.ps1 Pack WingetManifest WindowsInstallerTest WingetValidate --configuration Release --runtime-identifier win-x64 --packaging-dry-run --verbosity minimal
     artifacts:
         paths:
-            - artifacts/*
+            - .artifacts/dist/*
 
 # Checks for commits since the last tag; if there are any, updates CHANGELOG.md, tags the release and
 # pushes the commit+tag to this GitLab project. The pushed tag triggers this same pipeline's
@@ -147,7 +147,7 @@ build:
               --verbosity minimal
     artifacts:
         paths:
-            - artifacts/*
+            - .artifacts/dist/*
 
 # Pack the Windows archive and installer on every tag, installing, using and uninstalling the installer first.
 build-windows:
@@ -160,7 +160,7 @@ build-windows:
         - ./build.ps1 Pack WindowsInstallerTest --configuration Release --runtime-identifier win-x64 --publish-self-contained "$env:PUBLISH_SELF_CONTAINED" --publish-single-file "$env:PUBLISH_SINGLE_FILE" --publish-trimmed "$env:PUBLISH_TRIMMED" --verbosity minimal
     artifacts:
         paths:
-            - artifacts/*
+            - .artifacts/dist/*
 
 # GitLab.com doesn't provide a macOS shared runner by default. Wire a "macos" runner tag here once
 # one is provisioned; until then this stays manual so it never blocks the release.
@@ -182,7 +182,7 @@ build-macos:
               --verbosity minimal
     artifacts:
         paths:
-            - artifacts/*.zip
+            - .artifacts/dist/*.zip
 
 # Uploads every archive produced by the build stage and links it from the GitLab release.
 gitlab-release:

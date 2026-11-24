@@ -14,11 +14,11 @@ The Winget manifests are generated, never hand-edited. `WingetManifest` hashes t
      --winget-installer-url https://github.com/MASS4ORG/Fanstatic/releases/download/v<version>/Fanstatic-<version>-win-x64-setup.exe
    ```
 
-   Output goes to `artifacts/winget/<version>`: `MASS4ORG.Fanstatic.yaml`, `MASS4ORG.Fanstatic.installer.yaml`
+   Output goes to `.artifacts/dist/winget/<version>`: `MASS4ORG.Fanstatic.yaml`, `MASS4ORG.Fanstatic.installer.yaml`
    and `MASS4ORG.Fanstatic.locale.en-US.yaml`, targeting Winget manifest schema `1.10.0`. Keep the schema no newer than the winget client on the CI
    runners (`winget --version`); `winget validate` reports an unknown schema as a warning and exits non-zero.
 3. Validate them on Windows by adding `WingetValidate` to the same command, which runs
-   `winget validate --manifest artifacts/winget/<version>`.
+   `winget validate --manifest .artifacts/dist/winget/<version>`.
 4. Fork `microsoft/winget-pkgs`, copy the three files to `manifests/m/MASS4ORG/Fanstatic/<version>/` inside
    the fork, and open a pull request. Keep the submitted files in
    [`manifests/`](manifests/m/mass4org/Fanstatic) as the record of what shipped.
