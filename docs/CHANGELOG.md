@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added: cascading root-relative and page-resource paths in `ref` and `relref`
+- Changed: unify shared NUKE builds.
+- Fixed: Windows installer with `PATH` longer than 1024 characters
+
 ## [7.3.3] - 2026-11-03
 
 - Fixed: the Windows installer mishandled a user `PATH` longer than 1024 characters, losing its entries or its own folder; Windows artifacts are now built and installer-tested on Windows CI runners

@@ -24,8 +24,8 @@ sealed partial class Build
     readonly bool RecordBenchmark;
 
     AbsolutePath BenchmarkHistoryFile => RootDirectory / ".nuke" / "benchmark-history.json";
-    AbsolutePath BenchmarkReportFile => RootDirectory / "artifacts" / "benchmark.json";
-    AbsolutePath BenchmarkPublishDirectory => RootDirectory / ".publish" / "benchmark" / RuntimeIdentifier;
+    AbsolutePath BenchmarkReportFile => ArtifactsDirectory / "benchmark.json";
+    AbsolutePath BenchmarkPublishDirectory => TransientDirectory / "publish" / "benchmark" / RuntimeIdentifier;
 
     /// <summary>Measures synthetic sites and fails when a phase exceeds the regression limit.</summary>
     [UsedImplicitly]

@@ -36,7 +36,7 @@ jobs:
               with:
                   name: benchmark-history
                   path: |
-                      artifacts/benchmark.json
+                      .artifacts/dist/benchmark.json
                       .nuke/benchmark-history.json
                   include-hidden-files: true
                   if-no-files-found: error

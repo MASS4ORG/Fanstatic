@@ -1,6 +1,7 @@
 using Fanstatic.Commands;
 using Fanstatic.Helpers;
 using Fanstatic.Models;
+using Fanstatic.Parsers;
 using NSubstitute;
 using Xunit;
 
@@ -120,6 +121,75 @@ public class RefShortcodeParserTests : TestSetup
             "posts/does-not-exist.md", Path.Combine(_site.SourceContentPath, "about.md"));
     }
 
+    /// <summary>Confirms that a root-relative content path resolves from the content root.</summary>
+    [Fact]
+    public void RefWithRootRelativePathShouldResolveFromContentRoot()
+    {
+        var about = Page("about.md");
+        var hello = Page("posts/hello.md");
+
+        Assert.Contains($"RootPath: {hello.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that a path starting with the content directory resolves from the content root.</summary>
+    [Fact]
+    public void RefWithContentDirectoryPathShouldResolveFromContentRoot()
+    {
+        var about = Page("about.md");
+        var hello = Page("posts/hello.md");
+
+        Assert.Contains($"ContentPath: {hello.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that ref and relref convert a page resource path to its final image URLs.</summary>
+    [Fact]
+    public void RefToPageResourceShouldUseFinalResourceUrls()
+    {
+        var about = Page("about.md");
+        var cover = _site.OutputReferences.Values.OfType<IResource>()
+            .Single(resource => resource.SourceRelativePath == "posts/gallery/cover.jpg");
+
+        Assert.Contains($"ResourcePath: {cover.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+        Assert.Contains($"ResourceRelPath: {cover.RelPermalink}", about.ContentPreRendered, StringComparison.Ordinal);
+        Assert.Contains($"ResourceContentPath: {cover.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that bundle index paths resolve to their collapsed page path.</summary>
+    [Fact]
+    public void RefToBundleIndexShouldResolveToItsPage()
+    {
+        var about = Page("about.md");
+
+        Assert.Contains($"BundleIndex: {Page("posts/gallery/index.md").Permalink}", about.ContentPreRendered,
+            StringComparison.Ordinal);
+        Assert.Contains($"BundleBranch: {Page("posts/_index.md").Permalink}", about.ContentPreRendered,
+            StringComparison.Ordinal);
+        Assert.Contains($"Home: {_site.Home!.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that the caller-relative path wins over a content-root path with the same name.</summary>
+    [Fact]
+    public void RefShouldPreferCallerRelativePathOverContentRootPath()
+    {
+        var greeting = Page("posts/greeting.md");
+        var postsHello = Page("posts/hello.md");
+        var rootHello = Page("hello.md");
+
+        Assert.Contains($"CallerFirst: {postsHello.Permalink}", greeting.ContentPreRendered, StringComparison.Ordinal);
+        Assert.DoesNotContain($"CallerFirst: {rootHello.Permalink}", greeting.ContentPreRendered,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that a leading slash selects the content-root path over the caller-relative one.</summary>
+    [Fact]
+    public void RootRelativeRefShouldSkipCallerRelativePath()
+    {
+        var greeting = Page("posts/greeting.md");
+        var rootHello = Page("hello.md");
+
+        Assert.Contains($"RootFirst: {rootHello.Permalink}", greeting.ContentPreRendered, StringComparison.Ordinal);
+    }
+
     /// <summary>Confirms that content without a ref shortcode is left unchanged.</summary>
     [Fact]
     public void ContentWithoutRefShortcodeShouldBeUnaffected()
@@ -128,4 +198,73 @@ public class RefShortcodeParserTests : TestSetup
 
         Assert.Contains("Hello content.", hello.ContentPreRendered, StringComparison.Ordinal);
     }
+
+    /// <summary>Confirms that an anchor without a path resolves to the calling page.</summary>
+    [Fact]
+    public void AnchorWithoutPathShouldResolveToCallingPage()
+    {
+        var about = Page("about.md");
+
+        Assert.Contains($"{about.Permalink}#section", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that a resource renamed through front matter resolves to its final URL.</summary>
+    [Fact]
+    public void RefToRenamedResourceShouldUseFinalUrl()
+    {
+        var gallery = Page("posts/gallery/index.md");
+        var cover = Cover();
+
+        Assert.Contains($"OwnResource: {cover.Permalink}", gallery.ContentPreRendered, StringComparison.Ordinal);
+        Assert.Contains($"RenamedResource: {cover.Permalink}", gallery.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that anchors append to resource and root-relative relref links.</summary>
+    [Fact]
+    public void AnchorsShouldAppendToResourceAndRootRelativeLinks()
+    {
+        var about = Page("about.md");
+        var cover = Cover();
+        var hello = Page("posts/hello.md");
+
+        Assert.Contains($"ResourceAnchor: {cover.Permalink}#figure", about.ContentPreRendered,
+            StringComparison.Ordinal);
+        Assert.Contains($"RelRootAnchor: {hello.RelPermalink}#root", about.ContentPreRendered,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that a root slash resolves to the home page.</summary>
+    [Fact]
+    public void RootSlashShouldResolveToHome()
+    {
+        var about = Page("about.md");
+
+        Assert.Contains($"HomeRoot: {_site.Home!.Permalink}", about.ContentPreRendered, StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that resource refs fall back from the requested language and output format.</summary>
+    [Fact]
+    public void ResourceRefsShouldFallBackToAvailableVariants()
+    {
+        var about = Page("about.md");
+        var cover = Cover();
+
+        Assert.Contains($"ResourceLangFallback: {cover.Permalink}", about.ContentPreRendered,
+            StringComparison.Ordinal);
+        Assert.Contains($"ResourceFormatFallback: {cover.Permalink}", about.ContentPreRendered,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>Confirms that a nearer resource does not hide a page for wikilinks.</summary>
+    [Fact]
+    public void WikilinkShouldSkipResourceAndResolvePage()
+    {
+        var gallery = Page("posts/gallery/index.md");
+        var notes = Page("notes.md");
+
+        Assert.Equal(notes.RelPermalink.ToString(), WikiLinkResolver.Resolve(_site, gallery, "notes.md"));
+    }
+
+    IResource Cover() => _site.OutputReferences.Values.OfType<IResource>()
+        .Single(resource => resource.SourceRelativePath == "posts/gallery/cover.jpg");
 }

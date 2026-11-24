@@ -5,16 +5,19 @@ namespace Fanstatic.Parsers;
 
 /// <summary>
 /// Resolves the targets of the <c>ref</c> and <c>relref</c> built-in shortcodes into permalinks.
-/// <c>ref</c> resolves to the absolute permalink, <c>relref</c> to the relative one. The target
-/// page is looked up using the calling page's output format and language, unless overridden with
-/// the <c>outputFormat</c> and <c>lang</c> named arguments.
+/// Paths are tried caller-relative, then from the content root, then with the content directory
+/// prefix removed, most specific first. Each path is tried against pages and page resources with
+/// the requested language and output format, followed by progressively looser variants.
+/// <c>ref</c> resolves to the absolute permalink, <c>relref</c> to the relative one. An anchor
+/// without a path resolves to the calling page.
 /// </summary>
 /// Usage: <c>{{&lt; ref "posts/my-post.md" &gt;}}</c>,
-/// <c>{{&lt; relref path="/posts/my-post.md" lang="pt-br" outputFormat="rss" &gt;}}</c>.
+/// <c>{{&lt; relref path="/content/posts/my-post.md" lang="pt-br" outputFormat="rss" &gt;}}</c>.
 public static class RefShortcodeParser
 {
     /// <summary>
     /// Looks up the page a content path refers to, using the calling page's directory for relative paths.
+    /// Resources are ignored so that a nearer resource cannot hide a page at a wider path.
     /// </summary>
     /// <param name="site">The site holding the pages.</param>
     /// <param name="page">The calling page, whose language and output format are the defaults.</param>
@@ -32,12 +35,13 @@ public static class RefShortcodeParser
             return null;
         }
 
-        return FindPage(site, page, path, lang ?? page.ContentSource.Language,
-            outputFormat ?? page.OutputFormat);
+        return Find(site, page, path, lang ?? page.ContentSource.Language,
+            outputFormat ?? page.OutputFormat, false).Output as IPage;
     }
 
     /// <summary>
-    /// Returns the permalink of the page at <paramref name="path"/>, with its anchor, or <c>#</c> when no page matches.
+    /// Returns the permalink of the page or page resource at <paramref name="path"/>, with its anchor,
+    /// or <c>#</c> when nothing matches.
     /// </summary>
     /// <param name="site">The site holding the pages.</param>
     /// <param name="page">The calling page, whose language, output format and directory are the defaults.</param>
@@ -58,8 +62,10 @@ public static class RefShortcodeParser
         }
 
         var (targetPath, anchor) = SplitAnchor(path);
-        var target = FindPage(site, page, targetPath, lang ?? page.ContentSource.Language,
-            outputFormat ?? page.OutputFormat);
+        var target = targetPath.Trim().Length == 0
+            ? page
+            : Find(site, page, targetPath, lang ?? page.ContentSource.Language,
+                outputFormat ?? page.OutputFormat, true).Output;
 
         if (target is null)
         {
@@ -79,55 +85,159 @@ public static class RefShortcodeParser
     }
 
     /// <summary>
-    /// Looks up a page by content path, first among the exact language/outputFormat requested,
-    /// falling back to the default-language variant, then any other matching variant, when a translation is missing.
+    /// Makes one pass over the pages and their resources, keeping the match with the most specific
+    /// path, then language/format variant, with pages ahead of resources at the same level.
     /// </summary>
-    static IPage? FindPage(ISite site, IPage callerPage, string targetPath, string lang,
-        string outputFormat)
+    static Match Find(ISite site, IPage callerPage, string path, string lang, string outputFormat,
+        bool includeResources)
     {
-        var normalizedTarget = Normalize(targetPath);
-        var isRootRelative = targetPath.TrimStart().StartsWith('/');
-        var pageRelativeTarget = isRootRelative
-            ? null
-            : Normalize(Combine(callerPage.SourceRelativePathDirectory, targetPath));
+        var (targetPath, _) = SplitAnchor(path);
+        var candidates = PathCandidates(site, callerPage, targetPath);
+        var pagePaths = candidates.Select(NormalizePagePath).ToArray();
+        var resourcePaths = candidates.Select(NormalizePath).ToArray();
+        var defaultLang = site.DefaultLanguageObj.Code;
+        (string? Lang, string? Format)[] variants =
+        [
+            (lang, outputFormat),
+            (defaultLang, outputFormat),
+            (lang, null),
+            (defaultLang, null),
+            (null, null)
+        ];
 
-        IPage? fallback = null;
-        foreach (var candidate in site.Pages)
+        var best = Match.Empty;
+        foreach (var page in site.Pages.OfType<Page>())
         {
-            if (candidate is Page { PageIndex: > 1 })
+            if (page.PageIndex > 1)
             {
                 continue;
             }
 
-            var logical = LogicalPath(candidate);
-            var isMatch = string.Equals(logical, normalizedTarget, StringComparison.OrdinalIgnoreCase)
-                          || (pageRelativeTarget is not null
-                              && string.Equals(logical, pageRelativeTarget, StringComparison.OrdinalIgnoreCase));
+            var variant = VariantRank(page, variants);
+            var pageMatch = MatchPage(page, pagePaths, variant);
+            if (IsBetter(pageMatch, best))
+            {
+                best = pageMatch;
+            }
 
-            if (!isMatch)
+            if (!includeResources || page.Resources is not { } resources)
             {
                 continue;
             }
 
-            if (string.Equals(candidate.ContentSource.Language, lang, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(candidate.OutputFormat, outputFormat, StringComparison.OrdinalIgnoreCase))
+            var resourceMatch = MatchResources(resources, resourcePaths, variant);
+            if (IsBetter(resourceMatch, best))
             {
-                return candidate;
-            }
-
-            if (fallback is null || (!IsDefaultLanguageVariant(fallback) && IsDefaultLanguageVariant(candidate)))
-            {
-                fallback = candidate;
+                best = resourceMatch;
             }
         }
 
-        return fallback;
-
-        bool IsDefaultLanguageVariant(IPage candidate) =>
-            string.Equals(candidate.ContentSource.Language, site.DefaultLanguageObj.Code,
-                StringComparison.OrdinalIgnoreCase)
-            && string.Equals(candidate.OutputFormat, outputFormat, StringComparison.OrdinalIgnoreCase);
+        return best;
     }
+
+    static Match MatchPage(Page page, string[] paths, int variant)
+    {
+        var logicalPath = LogicalPath(page);
+        var best = Match.Empty;
+        for (var i = 0; i < paths.Length; i++)
+        {
+            if (string.Equals(logicalPath, paths[i], StringComparison.OrdinalIgnoreCase)
+                && IsBetter(new Match(page, i, variant, 0), best))
+            {
+                best = new Match(page, i, variant, 0);
+            }
+        }
+
+        return best;
+    }
+
+    static Match MatchResources(IEnumerable<IResource> resources, string[] paths, int variant)
+    {
+        var best = Match.Empty;
+        foreach (var resource in resources)
+        {
+            var sourcePath = ResourcePath(resource);
+            var permalinkPath = NormalizePath(resource.RelPermalink.ToString());
+            for (var i = 0; i < paths.Length; i++)
+            {
+                var matches = string.Equals(sourcePath, paths[i], StringComparison.OrdinalIgnoreCase)
+                              || string.Equals(permalinkPath, paths[i], StringComparison.OrdinalIgnoreCase);
+                var match = new Match(resource, i, variant, 1);
+                if (matches && IsBetter(match, best))
+                {
+                    best = match;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    static bool IsBetter(Match candidate, Match current) =>
+        candidate.Candidate < current.Candidate
+        || candidate.Candidate == current.Candidate && candidate.Variant < current.Variant
+        || candidate.Candidate == current.Candidate && candidate.Variant == current.Variant
+           && candidate.Kind < current.Kind;
+
+    /// <summary>
+    /// Builds the ordered paths to try for a target: caller-relative first for non-root paths,
+    /// then from the content root, then with the content directory prefix removed.
+    /// </summary>
+    static List<string> PathCandidates(ISite site, IPage callerPage, string path)
+    {
+        var trimmed = path.Trim();
+        if (trimmed.Length == 0)
+        {
+            return [];
+        }
+
+        var isRootRelative = trimmed.StartsWith('/');
+        var normalized = NormalizePath(trimmed);
+        var contentDirectory = new DirectoryInfo(site.SourceContentPath).Name;
+        var withoutContentDirectory = RemoveContentDirectory(normalized, contentDirectory);
+        var candidates = new List<string>();
+
+        if (!isRootRelative)
+        {
+            candidates.Add(Join(callerPage.SourceRelativePathDirectory, normalized));
+        }
+
+        candidates.Add(normalized);
+        if (!string.Equals(withoutContentDirectory, normalized, StringComparison.OrdinalIgnoreCase))
+        {
+            candidates.Add(withoutContentDirectory);
+        }
+
+        return
+        [
+            .. candidates.Where(candidate => isRootRelative || candidate.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+        ];
+    }
+
+    static string RemoveContentDirectory(string path, string contentDirectory)
+    {
+        var prefix = contentDirectory + "/";
+        return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? path[prefix.Length..] : path;
+    }
+
+    static int VariantRank(IPage page, (string? Lang, string? Format)[] variants)
+    {
+        for (var i = 0; i < variants.Length; i++)
+        {
+            if (MatchesVariant(page, variants[i].Lang, variants[i].Format))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    static bool MatchesVariant(IPage page, string? lang, string? outputFormat) =>
+        (lang is null || string.Equals(page.ContentSource.Language, lang, StringComparison.OrdinalIgnoreCase))
+        && (outputFormat is null
+            || string.Equals(page.OutputFormat, outputFormat, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// The content path of a page relative to the content root, without extension or
@@ -141,16 +251,19 @@ public static class RefShortcodeParser
         return name is "index" or "_index" ? dir : string.IsNullOrEmpty(dir) ? name : $"{dir}/{name}";
     }
 
-    static string Combine(string directory, string relativePath)
+    static string ResourcePath(IResource resource) => NormalizePath(resource.SourceRelativePath);
+
+    static string Join(string directory, string relativePath)
     {
-        var dir = UrlExtension.NormalizeToUnix(directory).Trim('/');
-        var rel = relativePath.Trim().TrimStart('/');
-        return string.IsNullOrEmpty(dir) ? rel : $"{dir}/{rel}";
+        var dir = NormalizePath(directory);
+        return string.IsNullOrEmpty(dir) ? relativePath : $"{dir}/{relativePath}";
     }
 
-    static string Normalize(string path)
+    static string NormalizePath(string path) => UrlExtension.NormalizeToUnix(path).Trim().Trim('/');
+
+    static string NormalizePagePath(string path)
     {
-        var normalized = UrlExtension.NormalizeToUnix(path).Trim().Trim('/');
+        var normalized = NormalizePath(path);
 
         if (normalized.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
         {
@@ -172,5 +285,10 @@ public static class RefShortcodeParser
         }
 
         return normalized;
+    }
+
+    readonly record struct Match(IOutput? Output, int Candidate, int Variant, int Kind)
+    {
+        public static Match Empty => new(null, int.MaxValue, int.MaxValue, int.MaxValue);
     }
 }
