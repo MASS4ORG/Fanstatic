@@ -20,6 +20,11 @@ public class ContentSource : IContentSource, IFile
     /// <inheritdoc />
     public string? Description => FrontMatter.Description;
 
+    /// <summary>
+    /// Explicit summary declared in the front matter.
+    /// </summary>
+    public string? Summary => FrontMatter.Summary;
+
     /// <inheritdoc />
     public string? Section => FrontMatter.Section;
 

@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Added: section hierarchy #26
+- Added: section previous/next page navigation #27
+- Added: summaries #28
+- Added: tables of contents #29
+
+## [7.4.0] - 2026-11-24
+
 - Added: cascading root-relative and page-resource paths in `ref` and `relref`
 - Changed: unify shared NUKE builds.
 - Fixed: Windows installer with `PATH` longer than 1024 characters
@@ -53,7 +60,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - First Commit!
 
-[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.3...HEAD
+[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.4.0...HEAD
+[7.4.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.3...v7.4.0
 [7.3.3]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.2...v7.3.3
 [7.3.2]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.1...v7.3.2
 [7.3.1]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.0...v7.3.1
