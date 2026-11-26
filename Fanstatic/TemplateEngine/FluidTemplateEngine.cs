@@ -74,6 +74,8 @@ public class FluidTemplateEngine : ITemplateEngine
         TemplateOptions.MemberAccessStrategy.Register<Theme>();
         TemplateOptions.MemberAccessStrategy.Register<Pager>();
         TemplateOptions.MemberAccessStrategy.Register<TaxonomyTerm>();
+        TemplateOptions.MemberAccessStrategy.Register<PageFragments>();
+        TemplateOptions.MemberAccessStrategy.Register<Heading>();
 
         TemplateOptions.Filters.AddFilter("whereParams", WhereParamsFilter);
         TemplateOptions.Filters.AddFilter("paginate", PaginateFilter);

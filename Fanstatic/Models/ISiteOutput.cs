@@ -58,4 +58,14 @@ public interface ISiteOutput
     /// The page of the home page;
     /// </summary>
     IPage? Home { get; }
+
+    /// <summary>
+    /// Top-level section pages in the current language and output format.
+    /// </summary>
+    IReadOnlyList<IPage> Sections { get; }
+
+    /// <summary>
+    /// Regular pages ordered by date descending, then title ascending.
+    /// </summary>
+    IReadOnlyList<IPage> RegularPagesByDateDescendingTitle { get; }
 }

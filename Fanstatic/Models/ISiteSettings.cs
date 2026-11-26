@@ -73,4 +73,14 @@ public interface ISiteSettings : IParams
     /// a link to <c>./</c> and logs an error.
     /// </summary>
     bool MissingWikiLinkAsError { get; }
+
+    /// <summary>
+    /// Number of words used for an automatically generated summary.
+    /// </summary>
+    int SummaryLength { get; }
+
+    /// <summary>
+    /// Heading levels included in generated tables of contents.
+    /// </summary>
+    TableOfContentsSettings TableOfContents { get; }
 }

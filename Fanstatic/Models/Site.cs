@@ -62,6 +62,12 @@ public class Site : ISite
     public bool MissingWikiLinkAsError => _settings.MissingWikiLinkAsError;
 
     /// <inheritdoc/>
+    public int SummaryLength => _settings.SummaryLength;
+
+    /// <inheritdoc/>
+    public TableOfContentsSettings TableOfContents => _settings.TableOfContents;
+
+    /// <inheritdoc/>
     public Dictionary<Kind, List<string>> KindOutputFormats =>
         _settings.KindOutputFormats;
 
@@ -348,6 +354,13 @@ public class Site : ISite
 
     /// <inheritdoc/>
     public IPage? Home { get; private set; }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> Sections => _defaultHtmlSiteOutputCached.Value.Sections;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IPage> RegularPagesByDateDescendingTitle =>
+        _defaultHtmlSiteOutputCached.Value.RegularPagesByDateDescendingTitle;
 
     /// <inheritdoc/>
     public SiteCacheManager CacheManager { get; } = new();
@@ -1177,6 +1190,7 @@ public class Site : ISite
             case 0:
                 contentSource.Kind = Kind.home;
                 contentSource.FrontMatter.Url = "/";
+                parent = contentSource;
                 break;
             case 1:
                 contentSource.Kind = hasIndex && contentSource.BundleType != BundleType.Branch

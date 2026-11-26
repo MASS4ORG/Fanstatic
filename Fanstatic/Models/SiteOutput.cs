@@ -24,6 +24,10 @@ public class SiteOutput : ISiteOutput
 
     readonly Lazy<IReadOnlyList<IPage>> _regularPagesByTitleCached;
 
+    readonly Lazy<IReadOnlyList<IPage>> _regularPagesByDateDescendingTitleCached;
+
+    readonly Lazy<IReadOnlyList<IPage>> _sectionsCached;
+
     public SiteOutput(ISite siteImplementation, SiteOutputVariant variant)
     {
         _siteImplementation = siteImplementation;
@@ -33,6 +37,12 @@ public class SiteOutput : ISiteOutput
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
         _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
+        _regularPagesByDateDescendingTitleCached = new(() => RegularPagesByDate
+            .GroupBy(static page => page.Date)
+            .OrderByDescending(static group => group.Key)
+            .SelectMany(static group => group.OrderBy(static page => page.Title))
+            .ToList());
+        _sectionsCached = new(() => Pages.Where(static page => page.Kind == Kind.section).ToList());
     }
 
     public LanguageSettings Language => _siteImplementation.GetLanguage(_variant.language);
@@ -42,6 +52,17 @@ public class SiteOutput : ISiteOutput
     /// <inheritdoc/>
     public IReadOnlyDictionary<string, TaxonomyTerms> Taxonomies
         => _taxonomiesCached.Value;
+
+    /// <summary>
+    /// Top-level section pages in this language and output format.
+    /// </summary>
+    public IReadOnlyList<IPage> Sections => _sectionsCached.Value;
+
+    /// <summary>
+    /// Regular pages ordered by date descending, then title ascending, computed once for this output variant.
+    /// </summary>
+    public IReadOnlyList<IPage> RegularPagesByDateDescendingTitle =>
+        _regularPagesByDateDescendingTitleCached.Value;
 
     IReadOnlyDictionary<string, TaxonomyTerms> CreateTaxonomies()
     {

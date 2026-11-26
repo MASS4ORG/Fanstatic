@@ -10,7 +10,7 @@ namespace Fanstatic.Models;
 /// <summary>
 /// Each page data created from source files or from the system.
 /// </summary>
-public class Page : IPage
+public partial class Page : IPage
 {
     static readonly AsyncLocal<HashSet<Page>?> ContentRenderStack = new();
 
@@ -548,7 +548,7 @@ endif
                           throw new ArgumentException("No output format for {OutputFormat}", OutputFormat);
 
         _allOutputUrLs = BuildAllOutputUrLs();
-        _plainCached = new(() => Markdown.ToPlainText(RawContent, SiteHelper.MarkdownPipeline));
+        _plainCached = new(() => Markdown.ToPlainText(MarkdownForRendering, SiteHelper.MarkdownPipeline));
         _wordCountCached = new(() => Plain
             .Split(NonWords, StringSplitOptions.RemoveEmptyEntries).Length);
         _tagsReferenceCached = new(CreateTagsReference);
@@ -561,10 +561,11 @@ endif
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
         _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
-        _contentPreRenderedCached = new(() => ShortcodeRenderer.ToHtml(RawContent, SiteInternal, this));
+        _contentPreRenderedCached = new(() => ShortcodeRenderer.ToHtml(MarkdownForRendering, SiteInternal, this));
         _shortcodesCached = new(() => ShortcodeRenderer.CollectNames(RawContent, SiteInternal, this));
         _contentCached = new(() => SiteInternal.ParseAndRenderTemplate(this, false),
             LazyThreadSafetyMode.PublicationOnly);
+        InitializeSectionEnhancements();
     }
 
     /// <summary>

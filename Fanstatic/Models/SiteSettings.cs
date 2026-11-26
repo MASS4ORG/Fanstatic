@@ -90,6 +90,12 @@ public class SiteSettings : ISiteSettings
     /// </summary>
     public string PaginatePath { get; set; } = "page";
 
+    /// <inheritdoc/>
+    public int SummaryLength { get; set; } = 70;
+
+    /// <inheritdoc/>
+    public TableOfContentsSettings TableOfContents { get; set; } = new();
+
     #region IParams
 
     /// <inheritdoc/>

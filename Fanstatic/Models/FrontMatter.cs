@@ -15,6 +15,7 @@ public class FrontMatter : IFrontMatter
     {
         nameof(Title),
         nameof(Description),
+        nameof(Summary),
         nameof(Type),
         nameof(Url),
         nameof(Draft),
@@ -41,6 +42,11 @@ public class FrontMatter : IFrontMatter
 
     /// <inheritdoc/>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Explicit summary shown instead of an automatically generated one.
+    /// </summary>
+    public string? Summary { get; set; }
 
     /// <inheritdoc/>
     public string? Type { get; set; } = "page";
@@ -192,6 +198,7 @@ public class FrontMatter : IFrontMatter
     {
         merged.Title = string.IsNullOrEmpty(other.Title) ? Title : other.Title;
         merged.Description = string.IsNullOrEmpty(other.Description) ? Description : other.Description;
+        merged.Summary = string.IsNullOrEmpty(other.Summary) ? Summary : other.Summary;
     }
 
     void MergeTypeAndLocation(FrontMatter other, FrontMatter merged)

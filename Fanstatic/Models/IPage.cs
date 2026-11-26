@@ -40,6 +40,41 @@ public interface IPage : IOutput, IFile, IContentSource
     IPage? Parent { get; }
 
     /// <summary>
+    /// Ancestors from the closest parent to the home page, in this page's language and output format.
+    /// </summary>
+    IReadOnlyList<IPage> Ancestors { get; }
+
+    /// <summary>
+    /// The top-level section this page belongs to, or null for the home page.
+    /// </summary>
+    IPage? FirstSection { get; }
+
+    /// <summary>
+    /// Child sections in this page's language and output format.
+    /// </summary>
+    IReadOnlyList<IPage> Sections { get; }
+
+    /// <summary>
+    /// Previous regular page in date-descending order, or null at the start.
+    /// </summary>
+    IPage? Prev { get; }
+
+    /// <summary>
+    /// Next regular page in date-descending order, or null at the end.
+    /// </summary>
+    IPage? Next { get; }
+
+    /// <summary>
+    /// Previous regular page in the containing section, or null at the start.
+    /// </summary>
+    IPage? PrevInSection { get; }
+
+    /// <summary>
+    /// Next regular page in the containing section, or null at the end.
+    /// </summary>
+    IPage? NextInSection { get; }
+
+    /// <summary>
     /// Plain markdown content, without HTML.
     /// </summary>
     string Plain { get; }
@@ -73,6 +108,31 @@ public interface IPage : IOutput, IFile, IContentSource
     /// The number of words in the main content
     /// </summary>
     int WordCount { get; }
+
+    /// <summary>
+    /// Explicit summary, content before the more marker, or the configured number of leading words.
+    /// </summary>
+    string Summary { get; }
+
+    /// <summary>
+    /// True when the summary is shorter than the full content.
+    /// </summary>
+    bool Truncated { get; }
+
+    /// <summary>
+    /// Estimated reading time in minutes, rounded up from 213 words per minute.
+    /// </summary>
+    int ReadingTime { get; }
+
+    /// <summary>
+    /// Structured headings collected from the Markdown content.
+    /// </summary>
+    PageFragments Fragments { get; }
+
+    /// <summary>
+    /// Nested navigation HTML for the configured heading levels.
+    /// </summary>
+    string TableOfContents { get; }
 
     /// <summary>
     /// The markdown content converted to HTML
