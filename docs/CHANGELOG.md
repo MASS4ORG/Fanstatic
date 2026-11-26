@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [7.5.0] - 2026-11-26
+
 - Added: section hierarchy #26
 - Added: section previous/next page navigation #27
 - Added: summaries #28
@@ -60,7 +62,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - First Commit!
 
-[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.4.0...HEAD
+[Unreleased]: https://github.com/MASS4ORG/Fanstatic/compare/v7.5.0...HEAD
+[7.5.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.4.0...v7.5.0
 [7.4.0]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.3...v7.4.0
 [7.3.3]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.2...v7.3.3
 [7.3.2]: https://github.com/MASS4ORG/Fanstatic/compare/v7.3.1...v7.3.2
