@@ -1,3 +1,4 @@
+using Fanstatic.Helpers;
 using Fanstatic.Shortcodes;
 
 namespace Fanstatic.TemplateEngine;
@@ -82,6 +83,8 @@ public sealed record TemplateError(
         Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
+
+        templatePath = UrlExtension.NormalizeToUnix(templatePath);
 
         if (FindShortcodeException(exception) is { } shortcode)
         {

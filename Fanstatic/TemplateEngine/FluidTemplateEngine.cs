@@ -20,7 +20,7 @@ public class FluidTemplateEngine : ITemplateEngine
     /// <summary>
     /// The Fluid/Liquid template options.
     /// </summary>
-    TemplateOptions TemplateOptions { get; } = new();
+    TemplateOptions TemplateOptions { get; set; }
 
     /// <summary>
     /// Cache of compiled file templates by normalized path.
@@ -63,27 +63,20 @@ public class FluidTemplateEngine : ITemplateEngine
     public FluidTemplateEngine()
     {
         FluidParser = new ShortcodeFluidParser(new() { AllowLiquidTag = true }, ShortcodeUsesInner);
-
-        TemplateOptions.MemberAccessStrategy.Register<ShortcodeContext>();
-        TemplateOptions.MemberAccessStrategy.Register<FanstaticInfo>();
-        TemplateOptions.MemberAccessStrategy.Register<SiteOutput>();
-        TemplateOptions.MemberAccessStrategy.Register<LanguageSettings>();
-        TemplateOptions.MemberAccessStrategy.Register<Page>();
-        TemplateOptions.MemberAccessStrategy.Register<IOutput>();
-        TemplateOptions.MemberAccessStrategy.Register<Resource>();
-        TemplateOptions.MemberAccessStrategy.Register<Theme>();
-        TemplateOptions.MemberAccessStrategy.Register<Pager>();
-        TemplateOptions.MemberAccessStrategy.Register<TaxonomyTerm>();
-        TemplateOptions.MemberAccessStrategy.Register<PageFragments>();
-        TemplateOptions.MemberAccessStrategy.Register<Heading>();
-
-        TemplateOptions.Filters.AddFilter("whereParams", WhereParamsFilter);
-        TemplateOptions.Filters.AddFilter("paginate", PaginateFilter);
-        TemplateOptions.Filters.AddFilter("i18n", I18NFilter);
-        TemplateOptions.Filters.AddFilter("markdownify", LiquidHelpers.Markdownify);
-        TemplateOptions.Filters.AddFilter("errorf", LiquidHelpers.Errorf);
-        TemplateOptions.Filters.AddFilter("warnf", LiquidHelpers.Warnf);
+        TemplateOptions = CreateOptionsBuilder().Build();
     }
+
+    /// <summary>
+    /// Creates the builder for the shared template options and custom filters.
+    /// </summary>
+    TemplateOptionsBuilder CreateOptionsBuilder() =>
+        new TemplateOptionsBuilder()
+            .AddFilter("whereParams", WhereParamsFilter)
+            .AddFilter("paginate", PaginateFilter)
+            .AddFilter("i18n", I18NFilter)
+            .AddFilter("markdownify", LiquidHelpers.Markdownify)
+            .AddFilter("errorf", LiquidHelpers.Errorf)
+            .AddFilter("warnf", LiquidHelpers.Warnf);
 
     /// <summary>
     /// Tells the <c>shortcode</c> tag whether a shortcode takes inner content, using the default language's HTML variant.
@@ -107,7 +100,9 @@ public class FluidTemplateEngine : ITemplateEngine
         _templateMetrics.Clear();
         site.ShortcodeRegistry.Clear();
 
-        TemplateOptions.FileProvider = new LiquidPhysicalFileProvider(_themePath);
+        TemplateOptions = CreateOptionsBuilder()
+            .WithFileProvider(new FileProviderTemplateFileProvider(new LiquidPhysicalFileProvider(_themePath)))
+            .Build();
     }
 
     /// <inheritdoc/>
@@ -401,7 +396,7 @@ public class FluidTemplateEngine : ITemplateEngine
         {
             foreach (var v in arr.Values)
             {
-                if (v.ToObjectValue() is IPage p)
+                if (v.ToObjectValue(context) is IPage p)
                 {
                     items.Add(p);
                 }
@@ -414,14 +409,14 @@ public class FluidTemplateEngine : ITemplateEngine
         }
 
         var pageSize = arguments.Count > 0
-            ? (int)arguments.At(0).ToNumberValue()
+            ? (int)arguments.At(0).ToNumberValue(context)
             : _site.Paginate;
         if (pageSize <= 0)
         {
             return new ValueTask<FluidValue>(NilValue.Instance);
         }
 
-        if (context.GetValue("page").ToObjectValue() is not Page currentPage)
+        if (context.GetValue("page").ToObjectValue(context) is not Page currentPage)
         {
             return new ValueTask<FluidValue>(NilValue.Instance);
         }
@@ -479,13 +474,13 @@ public class FluidTemplateEngine : ITemplateEngine
             return new ValueTask<FluidValue>(NilValue.Instance);
         }
 
-        var key = input.ToStringValue();
+        var key = input.ToStringValue(context);
         if (string.IsNullOrEmpty(key))
         {
             return new ValueTask<FluidValue>(NilValue.Instance);
         }
 
-        if (context.GetValue("page").ToObjectValue() is not IPage page)
+        if (context.GetValue("page").ToObjectValue(context) is not IPage page)
         {
             return new ValueTask<FluidValue>(NilValue.Instance);
         }
@@ -513,7 +508,7 @@ public class FluidTemplateEngine : ITemplateEngine
         }
 
         string? result;
-        var count = arguments.Count > 0 ? (int)arguments.At(0).ToNumberValue() : 0;
+        var count = arguments.Count > 0 ? (int)arguments.At(0).ToNumberValue(context) : 0;
         if (count == 1 && !string.IsNullOrEmpty(entry.One))
         {
             result = entry.One;
@@ -541,26 +536,27 @@ public class FluidTemplateEngine : ITemplateEngine
     /// <summary>
     /// Fluid/Liquid filter to navigate Params dictionary.
     /// </summary>
-    static ValueTask<FluidValue> WhereParamsFilter(FluidValue input, FilterArguments arguments,
-        TemplateContext _)
+    static async ValueTask<FluidValue> WhereParamsFilter(FluidValue input, FilterArguments arguments,
+        TemplateContext context)
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(arguments);
 
         List<FluidValue> result = [];
-        var list = (input as ArrayValue)!.Values;
+        var list = await ArrayValue.ToFluidArrayAsync(input, context);
 
-        var keys = arguments.At(0).ToStringValue().Split('.');
-        foreach (var item in list)
+        var keys = arguments.At(0).ToStringValue(context).Split('.');
+        for (var i = 0; i < list.Count; i++)
         {
-            if (item.ToObjectValue() is IParams param &&
-                CheckValueInDictionary(keys, param.Params, arguments.At(1).ToStringValue()))
+            var item = list[i];
+            if (item.ToObjectValue(context) is IParams param &&
+                CheckValueInDictionary(keys, param.Params, arguments.At(1).ToStringValue(context)))
             {
                 result.Add(item);
             }
         }
 
-        return new ArrayValue(result);
+        return ArrayValue.Create(result);
     }
 
     static bool CheckValueInDictionary(string[] array, IReadOnlyDictionary<string, object> dictionary,

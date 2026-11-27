@@ -132,7 +132,6 @@ public class YamlParserTests : TestSetup
                 ---
 
                 """, "Test Title")]
-    /// <summary>Confirms that the front matter title is parsed.</summary>
     [InlineData("""
                 ---
                 Date: 2023-04-01
@@ -157,7 +156,6 @@ public class YamlParserTests : TestSetup
                 ---
 
                 """, "2023-01-01")]
-    /// <summary>Confirms that the front matter date is parsed.</summary>
     [InlineData("""
                 ---
                 Date: 2023/01/01
@@ -394,7 +392,6 @@ public class YamlParserTests : TestSetup
                 URL: my-page
                 ---
                 """)]
-    /// <summary>Confirms that front matter keys are matched case-insensitively.</summary>
     [InlineData("""
                 ---
                 tiTle: title-test-old
@@ -427,7 +424,6 @@ public class YamlParserTests : TestSetup
                 tiTle: title-test
                 baseUrl: https://www.example.com/
                 """)]
-    /// <summary>Confirms that site setting keys are matched case-insensitively.</summary>
     [InlineData("""
                 tiTle: title-test-old
                 Title: title-test                   # the last on is used

@@ -556,11 +556,11 @@ endif
         _pagesByDateCached = new(() => Pages.OrderBy(page => page.Date).ToList());
         _pagesByLastModCached = new(() => Pages.OrderBy(page => page.LastMod).ToList());
         _pagesByWeightCached = new(() => Pages.OrderBy(page => page.Weight).ToList());
-        _pagesByTitleCached = new(() => Pages.OrderBy(page => page.Title).ToList());
+        _pagesByTitleCached = new(() => Pages.OrderBy(page => page.Title, StringComparer.Ordinal).ToList());
         _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
-        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
+        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title, StringComparer.Ordinal).ToList());
         _contentPreRenderedCached = new(() => ShortcodeRenderer.ToHtml(MarkdownForRendering, SiteInternal, this));
         _shortcodesCached = new(() => ShortcodeRenderer.CollectNames(RawContent, SiteInternal, this));
         _contentCached = new(() => SiteInternal.ParseAndRenderTemplate(this, false),
