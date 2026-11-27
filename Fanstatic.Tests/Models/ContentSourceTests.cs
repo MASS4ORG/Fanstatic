@@ -43,11 +43,27 @@ public class ContentSourceTests : TestSetup
 
         // Act
         var actualDirectory = (contentSource as IFile).SourceRelativePathDirectory;
-        // Normalize the expected directory path to use the correct separator for the current OS
-        expectedDirectory = expectedDirectory.Replace('/', Path.DirectorySeparatorChar);
 
         // Assert
         Assert.Equal(expectedDirectory, actualDirectory);
+    }
+
+    /// <summary>Confirms that source and resource paths use forward slashes whatever separator they were given.</summary>
+    [Theory]
+    [InlineData("blog/sub/_index.md")]
+    [InlineData(@"blog\sub\_index.md")]
+    public void SourcePathsShouldUseForwardSlashes(string sourcePath)
+    {
+        // Act
+        ContentSource contentSource = new(sourcePath, new FrontMatter("Title"), string.Empty);
+        var resource = new ContentSourceResource { SourceRelativePath = sourcePath };
+
+        // Assert
+        Assert.Equal("blog/sub/_index.md", contentSource.SourceRelativePath);
+        Assert.Equal("blog/sub", contentSource.SourceRelativePathDirectory);
+        Assert.Equal("blog/sub/_index.md", resource.SourceRelativePath);
+        Assert.Equal(Path.Combine("content", "blog", "sub", "_index.md"),
+            (contentSource as IFile).SourceFullPath("content"));
     }
 
     /// <summary>Confirms that the publish date falls back to the date when absent.</summary>

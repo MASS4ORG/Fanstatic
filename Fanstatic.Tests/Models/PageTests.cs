@@ -54,16 +54,14 @@ public class PageTests : TestSetup
         string sourcePath, string sourceFileNameWithoutExtension,
         string sourcePathDirectory)
     {
-        ArgumentNullException.ThrowIfNull(sourcePathDirectory);
         var page = new Page(ContentSourceMock, Site, Site, ("html", null), []);
-        var expectedDirectory = Path.Combine(" ", Path.Combine(sourcePathDirectory.Split("/"))).TrimStart();
 
         // Assert
         Assert.Equal(title, page.Title);
         Assert.Equal(sourcePath, page.SourceRelativePath);
         Assert.Same(Site, page.Site);
         Assert.Equal(sourceFileNameWithoutExtension, page.SourceFileNameWithoutExtension);
-        Assert.Equal(expectedDirectory, page.SourceRelativePathDirectory);
+        Assert.Equal(sourcePathDirectory, page.SourceRelativePathDirectory);
     }
 
     /// <summary>Confirms that a page without optional front matter values exposes the expected defaults.</summary>
@@ -191,7 +189,6 @@ public class PageTests : TestSetup
     [InlineData("2024-01-01", "2022-01-01", false, true, false)]
     [InlineData("2022-01-01", "2024-01-01", false, true, true)]
     // Draft as true, option -d
-    /// <summary>Confirms that page validity follows publish date, date, draft flag, and the draft option.</summary>
     [InlineData(null, null, true, true, true)]
     [InlineData(null, "2024-01-01", true, true, false)]
     [InlineData("2022-01-01", null, true, true, true)]
@@ -256,7 +253,6 @@ public class PageTests : TestSetup
     /// <summary>Confirms that a null URL template falls back to the default permalink and a custom template is applied otherwise.</summary>
     [Theory]
     [InlineData(null, "/test-title/index.html")]
-    /// <summary>Confirms that a page permalink uses the default template or a custom URL template.</summary>
     [InlineData("{{ page.Title }}/{{ page.SourceFileNameWithoutExtension }}",
         "/test-title/file/index.html")]
     public void PermalinkCreateWithDefaultOrCustomURLTemplate(
@@ -366,9 +362,8 @@ public class PageTests : TestSetup
                 return templateEngine.Render("content", site, page);
             });
         templateEngine.Render(Arg.Any<string>(), site, Arg.Any<IPage>(), Arg.Any<int?>())
-            .Returns(call => ((IPage)call[2]!).SourceRelativePath);
+            .Returns(call => ((IPage)call[2]).SourceRelativePath);
 
-        Assert.Equal("Parent output", parent.Content);
         Assert.Equal("Parent output", parent.Content);
         foreach (var child in children)
         {
@@ -434,7 +429,6 @@ public class PageTests : TestSetup
     // [InlineData("/blog/blog-01", 1)]
     // [InlineData("/blog/blog-01/blog-01", 1)]
     // [InlineData("/index/post-01", 1)]
-    /// <summary>Confirms that nested pages inherit the cascaded weight from their ancestor sections.</summary>
     [InlineData("/index/post-01/post-01/index.html", 2)]
     // [InlineData("/articles/article-01", 0)]
     public void CascadeShouldCascadeValues(string url, int weight)

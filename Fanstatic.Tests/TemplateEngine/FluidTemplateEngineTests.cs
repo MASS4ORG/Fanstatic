@@ -141,6 +141,53 @@ public class FluidTemplateEngineTests : TestSetup
         Assert.Empty(engine.GetTemplateMetrics());
     }
 
+    /// <summary>Confirms that the i18n filter translates, pluralizes and handles missing entries.</summary>
+    [Fact]
+    public void RenderInlineShouldApplyI18NFilter()
+    {
+        var site = CreateSite(".TestSites/13-multilang");
+        site.TemplateEngine.Initialize(site);
+        var page = site.OutputReferences.Values.OfType<IPage>()
+            .First(candidate => candidate.Language.Code == "pt-br");
+
+        var rendered = site.TemplateEngine.RenderInline(
+            "{{ 'read_more' | i18n }}|{{ 'read_more' | i18n: 1 }}|{{ 'posts' | i18n: 1 }}"
+            + "|{{ 'posts' | i18n: 2 }}|{{ '' | i18n }}|{{ 'missing' | i18n }}",
+            site,
+            page);
+        var parts = rendered.Split('|');
+
+        Assert.Equal("Leia mais", parts[0]);
+        Assert.Equal("Leia mais", parts[1]);
+        Assert.Contains("post", parts[2], StringComparison.Ordinal);
+        Assert.Contains("posts", parts[3], StringComparison.Ordinal);
+        Assert.Equal(string.Empty, parts[4]);
+        Assert.Equal(string.Empty, parts[5]);
+        Assert.Equal(string.Empty,
+            new FluidTemplateEngine().RenderInline("{{ 'read_more' | i18n }}", site, page));
+
+        var noTranslations = CreateSite(TestSitePathConst06);
+        noTranslations.TemplateEngine.Initialize(noTranslations);
+        Assert.Equal(string.Empty, noTranslations.TemplateEngine.RenderInline(
+            "{{ 'read_more' | i18n }}", noTranslations, GetPage(noTranslations, "/index.html")));
+    }
+
+    /// <summary>Confirms that the whereParams filter selects pages by nested param values.</summary>
+    [Fact]
+    public void RenderInlineShouldApplyWhereParamsFilter()
+    {
+        var site = CreateSite(".TestSites/17-shortcodes");
+        site.TemplateEngine.Initialize(site);
+
+        var rendered = site.TemplateEngine.RenderInline(
+            "{% assign matched = site.RegularPages | whereParams: 'layout_audio', '/audio/layout.mp3' %}"
+            + "{% for item in matched %}{{ item.Title }};{% endfor %}",
+            site,
+            site.RegularPages.First());
+
+        Assert.Equal("Layout;", rendered);
+    }
+
     /// <summary>Confirms that re-initializing after a file change clears the stale cache entry.</summary>
     [Fact]
     public void InitializeShouldRecompileChangedFileTemplate()

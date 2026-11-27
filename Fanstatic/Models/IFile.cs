@@ -39,9 +39,10 @@ public interface IFile
     long Size => new FileInfo(SourceRelativePath).Length;
 
     /// <summary>
-    /// The source filename, without the extension. ;)
+    /// The full source path of the file, using the OS separators for the relative part.
     /// </summary>
-    string SourceFullPath(string basePath) => Path.Combine(basePath, SourceRelativePath);
+    string SourceFullPath(string basePath) =>
+        Path.Combine(basePath, SourceRelativePath.Replace('/', Path.DirectorySeparatorChar));
 
     /// <summary>
     /// The full source directory of the file, without the file name.

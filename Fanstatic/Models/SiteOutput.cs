@@ -36,7 +36,7 @@ public class SiteOutput : ISiteOutput
         _regularPagesByDateCached = new(() => RegularPages.OrderBy(page => page.Date).ToList());
         _regularPagesByLastModCached = new(() => RegularPages.OrderBy(page => page.LastMod).ToList());
         _regularPagesByWeightCached = new(() => RegularPages.OrderBy(page => page.Weight).ToList());
-        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title).ToList());
+        _regularPagesByTitleCached = new(() => RegularPages.OrderBy(page => page.Title, StringComparer.Ordinal).ToList());
         _regularPagesByDateDescendingTitleCached = new(() => RegularPagesByDate
             .GroupBy(static page => page.Date)
             .OrderByDescending(static group => group.Key)

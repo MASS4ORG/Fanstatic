@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+- Fixed: tests on Windows
+- Changed: update dependencies
+
 ## [7.5.0] - 2026-11-26
 
 - Added: section hierarchy #26

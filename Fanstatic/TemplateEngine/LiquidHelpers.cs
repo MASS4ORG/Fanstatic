@@ -28,14 +28,14 @@ public static class LiquidHelpers
         ArgumentNullException.ThrowIfNull(arguments);
         ArgumentNullException.ThrowIfNull(context);
 
-        var markdown = input.ToStringValue();
+        var markdown = input.ToStringValue(context);
         var html = (context.AmbientValues.TryGetValue(SiteAmbientKey, out var value) && value is ISite site
-                    && context.GetValue("page").ToObjectValue() is IPage page
+                    && context.GetValue("page").ToObjectValue(context) is IPage page
             ? WikiLinkContext.Run(site, page, () => Markdown.ToHtml(markdown, SiteHelper.MarkdownPipeline))
             : Markdown.ToHtml(markdown, SiteHelper.MarkdownPipeline)).Trim();
         const string open = "<p>";
         const string close = "</p>";
-        if (arguments.At(0).ToStringValue() != "block"
+        if (arguments.At(0).ToStringValue(context) != "block"
             && html.StartsWith(open, StringComparison.Ordinal) && html.EndsWith(close, StringComparison.Ordinal)
             && html.IndexOf(open, open.Length, StringComparison.Ordinal) < 0)
         {
@@ -54,7 +54,7 @@ public static class LiquidHelpers
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        throw new InvalidOperationException(Format(input.ToStringValue(), arguments));
+        throw new InvalidOperationException(Format(input.ToStringValue(context), arguments, context));
     }
 
     /// <summary>
@@ -68,8 +68,8 @@ public static class LiquidHelpers
 
         if (context.AmbientValues.TryGetValue(SiteAmbientKey, out var value) && value is ISite site)
         {
-            var file = context.GetValue("page").ToObjectValue() is IPage page ? page.SourceRelativePath : null;
-            site.Logger.Warning("{Message} (rendering {File})", Format(input.ToStringValue(), arguments), file);
+            var file = context.GetValue("page").ToObjectValue(context) is IPage page ? page.SourceRelativePath : null;
+            site.Logger.Warning("{Message} (rendering {File})", Format(input.ToStringValue(context), arguments, context), file);
         }
 
         return new(StringValue.Empty);
@@ -79,7 +79,7 @@ public static class LiquidHelpers
     /// Replaces the <c>%s</c>, <c>%v</c>, <c>%d</c> and <c>%q</c> verbs with the arguments in order; <c>%%</c> is a
     /// literal percent sign.
     /// </summary>
-    public static string Format(string format, FilterArguments arguments)
+    public static string Format(string format, FilterArguments arguments, TemplateContext context)
     {
         ArgumentNullException.ThrowIfNull(format);
         ArgumentNullException.ThrowIfNull(arguments);
@@ -94,13 +94,14 @@ public static class LiquidHelpers
                 continue;
             }
 
-            AppendVerb(builder, format[++index], arguments, ref next);
+            AppendVerb(builder, format[++index], arguments, context, ref next);
         }
 
         return builder.ToString();
     }
 
-    static void AppendVerb(StringBuilder builder, char verb, FilterArguments arguments, ref int next)
+    static void AppendVerb(StringBuilder builder, char verb, FilterArguments arguments, TemplateContext context,
+        ref int next)
     {
         if (verb == '%' || "svdq".IndexOf(verb, StringComparison.Ordinal) < 0)
         {
@@ -108,7 +109,9 @@ public static class LiquidHelpers
             return;
         }
 
-        var argument = next < arguments.Count ? arguments.At(next++).ToStringValue() : "%!" + verb + "(MISSING)";
+        var argument = next < arguments.Count
+            ? arguments.At(next++).ToStringValue(context)
+            : "%!" + verb + "(MISSING)";
         builder.Append(verb == 'q' ? $"\"{argument}\"" : argument);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Fanstatic.Helpers;
 
 namespace Fanstatic.Models;
 
@@ -113,10 +114,12 @@ public class ContentSource : IContentSource, IFile
     #region IFile
 
     /// <inheritdoc />
-    public string SourceRelativePath { get; set; }
+    /// <remarks>Always uses <c>/</c> separators, so path lookups behave the same on every OS.</remarks>
+    public string SourceRelativePath { get; set => field = UrlExtension.NormalizeToUnix(value); }
 
     /// <inheritdoc />
-    public string SourceRelativePathDirectory => (Path.GetDirectoryName(SourceRelativePath) ?? string.Empty);
+    public string SourceRelativePathDirectory =>
+        UrlExtension.NormalizeToUnix(Path.GetDirectoryName(SourceRelativePath));
 
     /// <summary>
     /// The logical filename without extension and without the language suffix

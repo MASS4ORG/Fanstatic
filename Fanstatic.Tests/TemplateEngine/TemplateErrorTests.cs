@@ -93,6 +93,18 @@ public class TemplateErrorTests
         Assert.Equal(0, error.Line);
     }
 
+    /// <summary>Confirms that a Windows template path is reported with forward slashes.</summary>
+    [Fact]
+    public void FromRenderExceptionShouldReportTemplatePathWithForwardSlashes()
+    {
+        // Act
+        var error = TemplateError.FromRenderException(@"themes\test\_default\single.html",
+            "index.md", new InvalidOperationException("Boom"));
+
+        // Assert
+        Assert.Equal("themes/test/_default/single.html", error.TemplatePath);
+    }
+
     /// <summary>Confirms that a FormatException with a position reports its line, column, and stripped message.</summary>
     [Fact]
     public void FromRenderExceptionShouldKeepPositionForFormatException()
